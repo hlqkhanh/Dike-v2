@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "20.1.0",
-    "@commitlint/config-conventional": "20.0.0",
+    "@commitlint/config-conventional": "21.2.3",
     "lint-staged": "16.2.6",
     "markdownlint-cli2": "0.18.1",
     "prettier": "3.6.2"
