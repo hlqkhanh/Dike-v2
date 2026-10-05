@@ -89,7 +89,11 @@ $repositoryExists = Test-RemoteRepository
 if ($repositoryExists) {
     $isEmpty = Invoke-Gh repo view $Repository --json isEmpty --jq ".isEmpty"
     if ($isEmpty.Trim().ToLowerInvariant() -ne "true") {
-        throw "Remote $Repository already contains history or files. Refusing to overwrite it."
+        $remoteHead = Invoke-Gh api "repos/$Repository/commits/main" --jq ".sha"
+        $localHead = (& git rev-parse HEAD).Trim()
+        if ($remoteHead.Trim() -ne $localHead) {
+            throw "Remote $Repository contains history that does not match local HEAD. Refusing to overwrite it."
+        }
     }
 
     $remotes = @(& git remote)
@@ -109,7 +113,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Invoke-Gh repo edit $Repository --visibility private --accept-visibility-change-consequences --enable-issues --enable-wiki=false --delete-branch-on-merge --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false
-Invoke-Gh api --method PUT "repos/$Repository/actions/permissions" -f "enabled=true" -f "allowed_actions=all" | Out-Null
+Invoke-Gh api --method PUT "repos/$Repository/actions/permissions" -F "enabled=true" -f "allowed_actions=all" | Out-Null
 
 foreach ($collaborator in @("chithong17", "longfptaka3011", "nguyenhat3105")) {
     Invoke-Gh api --method PUT "repos/$Repository/collaborators/$collaborator" -f "permission=push" | Out-Null
