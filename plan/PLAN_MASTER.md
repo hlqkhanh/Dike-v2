@@ -754,11 +754,11 @@ Chi tiết task, ownership và nghiệm thu: [STAGE_0.md](STAGE_0.md).
 - Khởi tạo Git/GitHub greenfield từ tài liệu chuẩn trong `plan/`; không tạo tag prototype vì source cũ không còn.
 - Ghi quyết định xóa source cũ và nguyên tắc không khôi phục/migrate dữ liệu demo vào baseline/ADR.
 - Khởi tạo pnpm workspace và Maven Wrapper baseline; thêm format/lint tài liệu, static check, commit hooks và CI. Chưa scaffold ứng dụng ở giai đoạn này.
-- Dùng flow nhẹ cho nhóm tin cậy: thành viên có quyền `Write` được tự merge hoặc push thay đổi rủi ro thấp vào `main`; PR/review/CI được khuyến nghị nhưng không ép bằng ruleset. Vẫn bật secret/dependency scanning và giữ quyền `Admin` ở mức tối thiểu.
+- Dùng flow nhẹ cho nhóm tin cậy: thành viên có quyền `Write` được tự merge hoặc push thay đổi rủi ro thấp vào `main`; PR/review/CI được khuyến nghị nhưng không ép bằng ruleset. Khi gói GitHub chưa hỗ trợ ruleset cho private repository, quy ước nhóm cấm force-push/xóa `main` là biện pháp bù. Vẫn bật secret/dependency scanning và giữ quyền `Admin` ở mức tối thiểu.
 - Viết ADR cho Spring Boot Modular Monolith, Java 21, MongoDB, WebSocket/STOMP, outbox/worker, auth, R2 và deployment.
 - Tạo backlog từ tài liệu này và ghi rõ phần ngoài phạm vi.
 
-**Hoàn thành khi:** fresh clone chạy được `pnpm` checks và `mvnw verify`; CI xanh với workspace greenfield; ADR kiến trúc đã được duyệt; repo không chứa secret/PII hoặc artefact từ source cũ.
+**Hoàn thành khi:** fresh clone chạy được `pnpm` checks và `mvnw verify`; CI xanh với workspace greenfield; ADR baseline đã được owner duyệt và mở cho nhóm review bất đồng bộ; repo không chứa secret/PII hoặc artefact từ source cũ. Không bắt buộc cài Node system-wide, đủ bốn xác nhận ADR hoặc ruleset trả phí để đóng giai đoạn.
 
 ### Giai đoạn 1 — Nền tảng backend và local infrastructure
 

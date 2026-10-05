@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-ADR trong thư mục này ghi các quyết định kiến trúc hiện hành. `Accepted` mô tả quyết định kỹ thuật đã khóa; việc ratification của Stage 0 chỉ hoàn tất khi cả bốn thành viên xác nhận trong PR hoặc GitHub Issue tương ứng.
+ADR trong thư mục này ghi các quyết định kiến trúc và governance hiện hành. `Accepted` mô tả quyết định đã được owner chấp thuận; cả nhóm có thể review bất đồng bộ và đề xuất ADR mới để thay đổi quyết định.
 
 ## Quy tắc
 
@@ -21,3 +21,4 @@ ADR trong thư mục này ghi các quyết định kiến trúc hiện hành. `A
 - [0007 — Cloudflare R2 object storage](0007-cloudflare-r2-object-storage.md)
 - [0008 — Deployment topology](0008-deployment-topology.md)
 - [0009 — Flutter mobile](0009-flutter-mobile.md)
+- [0010 — Stage 0 governance baseline](0010-stage-0-governance-baseline.md)

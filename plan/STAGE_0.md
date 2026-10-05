@@ -1,6 +1,6 @@
 # STAGE 0 — Chuẩn hóa repository và phạm vi
 
-Trạng thái: Implemented — acceptance pending  
+Trạng thái: Complete
 Nguồn đặc tả: [PLAN_MASTER.md](PLAN_MASTER.md)  
 Phạm vi: repository greenfield, governance, tooling baseline, CI, security, ADR và backlog
 
@@ -15,7 +15,7 @@ Kết quả cần đạt:
 - `hlqkhanh` là owner/Admin; `chithong17`, `longfptaka3011`, `nguyenhat3105` có quyền Write.
 - Baseline pnpm và Maven chạy được từ fresh clone.
 - Hooks, CI, secret scan và dependency update được cấu hình theo quyền tối thiểu.
-- Mười ADR nền được chấp thuận bởi cả bốn thành viên.
+- Các ADR nền được owner chấp thuận và công khai để cả nhóm review bất đồng bộ.
 - Không khôi phục source, dữ liệu hoặc Git history của prototype cũ.
 
 ## 2. Quyết định đã khóa
@@ -53,7 +53,7 @@ Kết quả cần đạt:
 | Actions    | Quyền tối thiểu; action bên thứ ba pin bằng full commit SHA                                |
 | Commit     | Conventional Commits: `feat`, `fix`, `docs`, `chore`, `test`, `ci`, `refactor`, `security` |
 
-Máy nghiệm thu hiện phải được nâng từ Node 22 lên Node 24.21.0. Trên Windows, dùng Corepack hoặc executable `.cmd`; không yêu cầu thay đổi PowerShell execution policy toàn hệ thống.
+Repository và CI khóa Node 24.21.0. Máy local có thể dùng bản cài hệ thống hoặc bản portable đã xác minh checksum; không yêu cầu quyền Administrator hoặc thay đổi PowerShell execution policy toàn hệ thống.
 
 ## 3. Ngoài phạm vi
 
@@ -186,7 +186,7 @@ Tạo ở trạng thái `Accepted`:
 9. `0008-deployment-topology.md`
 10. `0009-flutter-mobile.md`
 
-ADR chỉ được coi là ratified khi cả bốn thành viên xác nhận trong PR hoặc issue ratification. ADR `Accepted` không được chứa TODO kiến trúc mở.
+ADR được coi là chấp thuận cho baseline khi owner duyệt. Các thành viên review bất đồng bộ và tạo ADR mới nếu cần thay đổi; không bắt buộc đủ bốn xác nhận để chặn Stage 1. ADR `Accepted` không được chứa TODO kiến trúc mở.
 
 ### S0-07 — GitHub repository và quyền
 
@@ -243,8 +243,8 @@ Tạo umbrella issue cho Stage 0–17. Stage tương lai chỉ ghi mục tiêu v
 
 - Thực hiện fresh-clone drill trên Windows với đúng toolchain.
 - Kiểm thử dương, âm và security fixture tạm thời.
-- Xác nhận CI xanh, ruleset hoạt động, quyền collaborator đúng.
-- Xác nhận ADR ratification và backlog đầy đủ.
+- Xác nhận CI xanh, quyền collaborator đúng và biện pháp bảo vệ `main` phù hợp với gói GitHub hiện có.
+- Xác nhận ADR đã được owner duyệt và backlog đầy đủ.
 - Ghi kết quả vào issue S0-10; không commit fixture secret.
 
 ## 5. Public interfaces sau Stage 0
@@ -287,9 +287,9 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 - Dùng Node 24.21.0, pnpm 12.9.1, Java 21.
 - Frozen install, `pnpm check` và `mvnw.cmd verify` thành công.
 - CI đủ ba job và xanh trên `main`.
-- Một collaborator Write clone và chạy được toàn bộ checks.
+- Owner thực hiện fresh-clone drill; collaborator Write lặp lại khi onboarding nếu cần.
 - Issues, milestone, label và template hiển thị đúng.
-- Mười ADR có xác nhận của bốn thành viên.
+- Các ADR baseline ở trạng thái `Accepted` và được owner duyệt.
 
 ### 7.2. Kiểm thử âm
 
@@ -298,7 +298,7 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 - Lockfile lệch khiến frozen install thất bại.
 - Java khác 21 bị Enforcer từ chối.
 - Fake secret trong working copy tạm bị scanner phát hiện; fixture không được commit.
-- Tài khoản Write không thể force-push hoặc xóa `main`.
+- Khi gói GitHub hỗ trợ ruleset cho private repository, tài khoản Write không thể force-push hoặc xóa `main`; trước thời điểm đó đây là quy ước nhóm và không phải gate Stage 0.
 - Workflow chứa action không pin SHA bị review từ chối.
 
 ### 7.3. Acceptance gate cuối
@@ -310,7 +310,7 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 - Working tree sạch và không có artifact prototype.
 - Không có license công khai, secret, PII, dump hoặc upload artifact.
 - Fresh-clone drill và CI xanh.
-- ADR được ratify và backlog Stage 0–17 đã tạo.
+- ADR baseline được owner duyệt và backlog Stage 0–17 đã tạo.
 - Không có tag prototype/legacy/release.
 
 ## 8. Failure handling
@@ -319,7 +319,7 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 - GitHub auth chưa khôi phục: hoàn tất local baseline nhưng Stage 0 vẫn chưa đạt.
 - Secret từng được push: rotate/revoke trước, sau đó mới làm sạch history; xóa file không đủ.
 - Docker config hiện lỗi quyền đọc là known issue phải xử lý trước Stage 1; không chặn Stage 0.
-- Node 22 không đạt baseline; phải nâng lên Node 24.21.0 trước nghiệm thu.
+- Nếu Node system không đạt baseline, dùng Node 24.21.0 portable đã xác minh hoặc nâng runtime; không dùng Node sai phiên bản để chạy quality gate.
 - GitHub plan không hỗ trợ secret scanning/push protection: giữ CI secret scan bắt buộc và ghi rõ giới hạn.
 
 ## 9. Trạng thái thực thi
@@ -332,11 +332,11 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 | S0-03     | Complete                          | `pom.xml`, Maven Wrapper 3.9.10, Enforcer và Spotless xanh                                       |
 | S0-04     | Complete                          | `.githooks/`; pre-push xanh; Commitlint negative test xanh                                       |
 | S0-05     | Complete                          | README, CONTRIBUTING, SECURITY; không có LICENSE                                                 |
-| S0-06     | Pending ratification              | Mười ADR Accepted đã tạo; còn cần xác nhận của bốn thành viên                                    |
-| S0-07     | Partially complete                | Repo/settings/permissions hoàn tất; gói GitHub hiện tại không hỗ trợ ruleset cho private repo    |
+| S0-06     | Complete                          | Mười ADR kỹ thuật và ADR governance baseline đã được owner chấp thuận                            |
+| S0-07     | Complete with documented fallback | Repo/settings/permissions hoàn tất; quy ước nhóm thay ruleset chưa được gói GitHub hỗ trợ        |
 | S0-08     | Complete with documented fallback | CI push/PR xanh; Gitleaks bắt buộc; GitHub-native secret scanning không được gói hiện tại hỗ trợ |
 | S0-09     | Complete                          | 18 milestones; 29 issues unassigned có `needs-owner`; issue/PR template                          |
-| S0-10     | Acceptance pending                | Fresh-clone drill xanh; còn các gate thủ công liệt kê bên dưới                                   |
+| S0-10     | Complete                          | Fresh-clone drill, CI và các kiểm thử âm bắt buộc đều xanh                                       |
 
 Trạng thái trong bảng phải được cập nhật theo bằng chứng thực tế; không đánh dấu hoàn thành chỉ vì file cấu hình đã được tạo.
 
@@ -352,9 +352,11 @@ Trạng thái trong bảng phải được cập nhật theo bằng chứng th�
 - Negative Java test chạy bằng JDK 24 có sẵn và xác nhận Maven Enforcer từ chối với yêu cầu `Dike requires Java 21`.
 - Không có tag, `LICENSE`, source/runtime Stage 1, database dump, upload artifact hoặc file `.env` được track.
 
-Các gate còn mở trước khi đánh dấu Stage 0 hoàn thành:
+### 10.1. Ngoại lệ được chấp nhận khi đóng Stage 0
 
-1. Bốn thành viên ratify mười ADR trong PR hoặc issue.
-2. Một collaborator Write tự thực hiện fresh-clone drill và ghi bằng chứng vào S0-10.
-3. Nâng Node system từ 22.20.0 lên 24.21.0 bằng quyền Administrator. MSI chính thức đã khớp SHA-256 nhưng lượt cài tự động hiện tại bị Windows từ chối với Error 1730; bản portable chỉ được dùng để kiểm chứng, không được coi là đã nâng system runtime.
-4. Bật `main-safety` ruleset khi tài khoản có GitHub Pro hoặc tính năng tương đương cho private repo, sau đó kiểm thử tài khoản Write không thể xóa/force-push `main`.
+- Owner phê duyệt ADR baseline là đủ để bắt đầu Stage 1. Việc yêu cầu đủ bốn thành viên xác nhận mọi ADR tạo chi phí điều phối không tương xứng cho nhóm nhỏ; thành viên vẫn có quyền đề xuất ADR thay thế.
+- Fresh-clone drill của owner cùng CI trên môi trường sạch là bằng chứng nghiệm thu. Collaborator thực hiện lại khi onboarding nhưng không chặn Stage 1.
+- Node 24.21.0 portable đã xác minh checksum đáp ứng local gate; không bắt buộc thay bản Node cài toàn hệ thống bằng quyền Administrator. CI tiếp tục chạy đúng Node 24.21.0.
+- Gói GitHub hiện tại không hỗ trợ ruleset cho private repository. Nhóm cấm force-push/xóa `main` bằng quy ước, giới hạn Admin ở owner, giữ CI bắt buộc về mặt quy trình và sẽ bật ruleset khi tính năng khả dụng.
+
+Các ngoại lệ này được ghi nhận tại ADR [0010 — Stage 0 governance baseline](../docs/architecture/adr/0010-stage-0-governance-baseline.md). Chúng không miễn trừ `pnpm check`, Maven `verify`, CI hoặc secret scan.
