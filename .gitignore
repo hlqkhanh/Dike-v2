@@ -1,0 +1,82 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# Java / Maven
+target/
+*.class
+*.log
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+pubspec.lock
+android/.gradle/
+ios/Pods/
+
+# IDE and OS
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.DS_Store
+Thumbs.db
+
+# Logs, reports and caches
+logs/
+*.log.*
+.cache/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Local infrastructure and persistent data
+.docker-data/
+docker-data/
+volumes/
+data/
+uploads/
+dump/
+dumps/
+*.dump
+*.sql
+*.sqlite
+*.sqlite3
+*.bson
+
+# Temporary files
+.tmp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+
