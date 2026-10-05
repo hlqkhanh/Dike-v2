@@ -34,7 +34,8 @@ function Ensure-Milestone {
     param([string]$Title)
 
     $milestones = Invoke-Gh api "repos/$Repository/milestones?state=all&per_page=100" | ConvertFrom-Json
-    if ($milestones.title -notcontains $Title) {
+    $milestoneTitles = @($milestones | ForEach-Object { $_.title })
+    if ($milestoneTitles -notcontains $Title) {
         Invoke-Gh api --method POST "repos/$Repository/milestones" -f "title=$Title" | Out-Null
     }
 }
