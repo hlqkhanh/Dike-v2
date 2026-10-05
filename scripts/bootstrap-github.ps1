@@ -119,8 +119,17 @@ foreach ($collaborator in @("chithong17", "longfptaka3011", "nguyenhat3105")) {
     Invoke-Gh api --method PUT "repos/$Repository/collaborators/$collaborator" -f "permission=push" | Out-Null
 }
 
-$existingRulesets = Invoke-Gh api "repos/$Repository/rulesets" | ConvertFrom-Json
-if ($existingRulesets.name -notcontains "main-safety") {
+$rulesetSupported = $true
+try {
+    $existingRulesetsJson = & gh api "repos/$Repository/rulesets" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $rulesetSupported = $false
+    }
+} catch {
+    $rulesetSupported = $false
+}
+
+if ($rulesetSupported -and (($existingRulesetsJson | ConvertFrom-Json).name -notcontains "main-safety")) {
     $ruleset = @{
         name          = "main-safety"
         target        = "branch"
@@ -143,10 +152,18 @@ if ($existingRulesets.name -notcontains "main-safety") {
             @{ type = "non_fast_forward" }
         )
     }
-    $ruleset | ConvertTo-Json -Depth 10 | gh api --method POST "repos/$Repository/rulesets" --input - | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to create main-safety ruleset."
+    try {
+        $ruleset | ConvertTo-Json -Depth 10 | gh api --method POST "repos/$Repository/rulesets" --input - | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            $rulesetSupported = $false
+        }
+    } catch {
+        $rulesetSupported = $false
     }
+}
+
+if (-not $rulesetSupported) {
+    Write-Warning "The current GitHub plan does not support rulesets on this private repository. main-safety remains a required pending setting."
 }
 
 $securitySettings = @{
@@ -155,8 +172,16 @@ $securitySettings = @{
         secret_scanning_push_protection = @{ status = "enabled" }
     }
 }
-$securitySettings | ConvertTo-Json -Depth 5 | gh api --method PATCH "repos/$Repository" --input - *> $null
-if ($LASTEXITCODE -ne 0) {
+$securityEnabled = $true
+try {
+    $securitySettings | ConvertTo-Json -Depth 5 | gh api --method PATCH "repos/$Repository" --input - *> $null
+    if ($LASTEXITCODE -ne 0) {
+        $securityEnabled = $false
+    }
+} catch {
+    $securityEnabled = $false
+}
+if (-not $securityEnabled) {
     Write-Warning "Secret scanning/push protection is unavailable for this private repository plan; CI scanning remains mandatory."
 }
 
