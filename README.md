@@ -117,6 +117,7 @@ pnpm api:check
 - [Master plan](plan/PLAN_MASTER.md)
 - [Stage 0 runbook](plan/STAGE_0.md)
 - [Stage 1 runbook](plan/STAGE_1.md)
+- [Stage 2 runbook và kết quả rà soát](plan/STAGE_2.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

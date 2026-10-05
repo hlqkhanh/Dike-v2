@@ -249,3 +249,35 @@ a:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+/* Account flows share the foundation shell and remain usable on small screens. */
+.auth-shell {
+  max-width: 48rem;
+  padding-block: 3rem;
+}
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+.auth-shell input,
+.auth-shell button {
+  font: inherit;
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid #57736b;
+}
+.auth-shell button {
+  cursor: pointer;
+  margin: 0.25rem;
+}
+.auth-shell button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.auth-shell input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.auth-shell :focus-visible {
+  outline: 3px solid #087f6a;
+  outline-offset: 3px;
+}

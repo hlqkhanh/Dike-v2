@@ -1,4 +1,10 @@
 spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  mongodb:
+    database: ${DIKE_MONGODB_DATABASE:dike}
+    uri: ${DIKE_MONGODB_URI:mongodb://localhost:27017/dike?replicaSet=rs0}
   application:
     name: dike-backend
   data:

@@ -10,7 +10,9 @@ export default function HomePage() {
           </span>
           <span>Dike</span>
         </a>
-        <span className="stage-badge">Stage 1 foundation</span>
+        <a className="stage-badge" href="/login">
+          Đăng nhập
+        </a>
       </nav>
 
       <section className="hero" id="top">

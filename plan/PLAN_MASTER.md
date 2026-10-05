@@ -780,6 +780,8 @@ Chi tiết task, dependency, ownership và nghiệm thu: [STAGE_1.md](STAGE_1.md
 
 ### Giai đoạn 2 — Google authentication và session
 
+Runbook triển khai và gate đầu vào: [STAGE_2.md](STAGE_2.md).
+
 - Spring Security OAuth2 Client thực hiện Google Authorization Code + PKCE, kiểm tra state, nonce và OIDC claims.
 - Backend quản lý `AuthIdentity`, `User` và opaque session; session production lưu server-side trong Redis.
 - Web dùng cookie `HttpOnly`, `Secure`, `SameSite`; mutation kiểm tra CSRF/Origin; thiết lập refresh, logout từng thiết bị, logout toàn bộ và revoke.
