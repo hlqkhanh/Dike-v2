@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+corepack pnpm check
+
+if [ -f "./mvnw.cmd" ]; then
+  ./mvnw.cmd -B -ntp verify
+else
+  ./mvnw -B -ntp verify
+fi
+

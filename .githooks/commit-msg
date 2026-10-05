@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+corepack pnpm exec commitlint --edit "$1"
+

@@ -1,0 +1,30 @@
+{
+  "name": "dike-v2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dike greenfield monorepo baseline",
+  "packageManager": "pnpm@12.9.1+sha512.06b055fff5cd20dc12781de173ced3310ce0951bf2ec620211a16045d5444d5c93a663210764ef29a653a610459ba0368f0e74f84d80c54723cf95aae7bc0d6d",
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "scripts": {
+    "prepare": "node scripts/configure-git-hooks.mjs",
+    "setup:repo": "node scripts/configure-git-hooks.mjs",
+    "format": "prettier --write \"**/*.{md,json,jsonc,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{md,json,jsonc,yaml,yml}\"",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+    "check:tracked-files": "node scripts/check-tracked-files.mjs",
+    "check:actions": "node scripts/check-actions-pinned.mjs",
+    "check": "prettier --check \"**/*.{md,json,jsonc,yaml,yml}\" && markdownlint-cli2 \"**/*.md\" \"#node_modules\" && node scripts/check-tracked-files.mjs && node scripts/check-actions-pinned.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "20.1.0",
+    "@commitlint/config-conventional": "20.0.0",
+    "lint-staged": "16.2.6",
+    "markdownlint-cli2": "0.18.1",
+    "prettier": "3.6.2"
+  },
+  "lint-staged": {
+    "*.{md,json,jsonc,yaml,yml}": "prettier --write"
+  }
+}
