@@ -1,7 +1,11 @@
 #!/bin/sh
 set -eu
 
-corepack pnpm check
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm check
+else
+  corepack pnpm check
+fi
 
 if [ -f "./mvnw.cmd" ]; then
   ./mvnw.cmd -B -ntp verify

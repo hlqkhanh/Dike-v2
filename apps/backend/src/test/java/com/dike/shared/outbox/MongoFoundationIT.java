@@ -28,20 +28,25 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+@Testcontainers(disabledWithoutDocker = true)
 class MongoFoundationIT {
 
   private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
+
+  @Container
   private static final MongoDBContainer MONGO =
       new MongoDBContainer(DockerImageName.parse("mongo:8.0.32-noble"));
+
   private static MongoClient client;
   private static MongoTemplate template;
   private static TransactionTemplate transactions;
 
   @BeforeAll
   static void startMongo() {
-    MONGO.start();
     client = MongoClients.create(MONGO.getReplicaSetUrl());
     var factory = new SimpleMongoClientDatabaseFactory(client, "dike_stage1_test");
     template = new MongoTemplate(factory);
@@ -51,7 +56,6 @@ class MongoFoundationIT {
   @AfterAll
   static void stopMongo() {
     if (client != null) client.close();
-    MONGO.stop();
   }
 
   @BeforeEach
