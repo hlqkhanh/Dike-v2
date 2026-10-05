@@ -62,9 +62,6 @@ class MongoFoundationIT {
   void cleanDatabase() {
     template.getDb().drop();
     template
-        .indexOps("outbox_events")
-        .ensureIndex(new Index().on("eventId", Sort.Direction.ASC).unique());
-    template
         .indexOps("processed_events")
         .ensureIndex(new Index().on("eventId", Sort.Direction.ASC).unique());
   }
@@ -139,6 +136,11 @@ class MongoFoundationIT {
     assertThat(template.getCollection("outbox_events").countDocuments()).isZero();
 
     publisher.publish("foundation.projection", "Probe", "state-1", 1, Map.of("ok", true));
+    assertThatThrownBy(
+            () ->
+                publisher.publish(
+                    "foundation.projection", "Probe", "state-1", 1, Map.of("ok", true)))
+        .isInstanceOf(DuplicateKeyException.class);
     OutboxStore store = new OutboxStore(template);
     CountDownLatch start = new CountDownLatch(1);
     try (var workers = Executors.newFixedThreadPool(2)) {
