@@ -1,6 +1,6 @@
 # STAGE 0 — Chuẩn hóa repository và phạm vi
 
-Trạng thái: In progress  
+Trạng thái: Implemented — acceptance pending  
 Nguồn đặc tả: [PLAN_MASTER.md](PLAN_MASTER.md)  
 Phạm vi: repository greenfield, governance, tooling baseline, CI, security, ADR và backlog
 
@@ -324,18 +324,36 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 
 ## 9. Trạng thái thực thi
 
-| Work item | Trạng thái                             | Bằng chứng                            |
-| --------- | -------------------------------------- | ------------------------------------- |
-| S0-00     | In progress                            | `PLAN_MASTER.md`, tài liệu này        |
-| S0-01     | Pending                                | Git baseline files, `main`            |
-| S0-02     | Pending                                | `package.json`, workspace, lockfile   |
-| S0-03     | Pending                                | `pom.xml`, Maven Wrapper, verify log  |
-| S0-04     | Pending                                | `.githooks/`, hook negative tests     |
-| S0-05     | Pending                                | README, CONTRIBUTING, SECURITY        |
-| S0-06     | Pending ratification                   | `docs/architecture/adr/`              |
-| S0-07     | Blocked until valid GitHub auth        | Repository settings and collaborators |
-| S0-08     | Pending                                | CI, Dependabot, security scan         |
-| S0-09     | Blocked until GitHub repository exists | Milestones, labels, issues            |
-| S0-10     | Pending                                | Fresh-clone and acceptance report     |
+| Work item | Trạng thái                        | Bằng chứng                                                                                       |
+| --------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| S0-00     | Complete                          | `PLAN_MASTER.md`, tài liệu này                                                                   |
+| S0-01     | Complete                          | Git history greenfield trên `main`; không có tag                                                 |
+| S0-02     | Complete                          | `package.json`, `pnpm-workspace.yaml`, frozen lockfile                                           |
+| S0-03     | Complete                          | `pom.xml`, Maven Wrapper 3.9.10, Enforcer và Spotless xanh                                       |
+| S0-04     | Complete                          | `.githooks/`; pre-push xanh; Commitlint negative test xanh                                       |
+| S0-05     | Complete                          | README, CONTRIBUTING, SECURITY; không có LICENSE                                                 |
+| S0-06     | Pending ratification              | Mười ADR Accepted đã tạo; còn cần xác nhận của bốn thành viên                                    |
+| S0-07     | Partially complete                | Repo/settings/permissions hoàn tất; gói GitHub hiện tại không hỗ trợ ruleset cho private repo    |
+| S0-08     | Complete with documented fallback | CI push/PR xanh; Gitleaks bắt buộc; GitHub-native secret scanning không được gói hiện tại hỗ trợ |
+| S0-09     | Complete                          | 18 milestones; 29 issues unassigned có `needs-owner`; issue/PR template                          |
+| S0-10     | Acceptance pending                | Fresh-clone drill xanh; còn các gate thủ công liệt kê bên dưới                                   |
 
 Trạng thái trong bảng phải được cập nhật theo bằng chứng thực tế; không đánh dấu hoàn thành chỉ vì file cấu hình đã được tạo.
+
+## 10. Bằng chứng thực thi ngày 2026-10-05
+
+- Repository: <https://github.com/hlqkhanh/Dike-v2>, private, default branch `main`, Issues/Actions bật, Wiki tắt, squash-only và tự xóa branch sau merge.
+- Quyền: `hlqkhanh` là Admin; `chithong17`, `longfptaka3011`, `nguyenhat3105` đều được GitHub API báo role `write`.
+- Backlog: 18 milestone Stage 0–17; 18 umbrella issue và 11 issue S0-00–S0-10. Toàn bộ 29 issue ban đầu unassigned và có `needs-owner`.
+- CI: [run trên main](https://github.com/hlqkhanh/Dike-v2/actions/runs/37262541863) xanh đủ `repo-quality`, `java-baseline`, `secret-scan`. Sáu Dependabot PR đầu tiên cũng xanh sau khi job Gitleaks được cấp riêng `pull-requests: read`.
+- Fresh clone Windows chạy thành công với Node 24.21.0 portable đã xác minh checksum, pnpm 12.9.1, Java 21 và Maven Wrapper 3.9.10: frozen install, `pnpm check`, Enforcer và Spotless đều xanh.
+- Git hooks được cài qua `core.hooksPath=.githooks`; pre-push chạy cả pnpm/Maven và Commitlint từ chối message không theo Conventional Commits.
+- Không có tag, `LICENSE`, source/runtime Stage 1, database dump, upload artifact hoặc file `.env` được track.
+
+Các gate còn mở trước khi đánh dấu Stage 0 hoàn thành:
+
+1. Bốn thành viên ratify mười ADR trong PR hoặc issue.
+2. Một collaborator Write tự thực hiện fresh-clone drill và ghi bằng chứng vào S0-10.
+3. Nâng Node system từ 22.20.0 lên 24.21.0 bằng quyền Administrator. MSI chính thức đã khớp SHA-256 nhưng lượt cài tự động hiện tại bị Windows từ chối với Error 1730; bản portable chỉ được dùng để kiểm chứng, không được coi là đã nâng system runtime.
+4. Bật `main-safety` ruleset khi tài khoản có GitHub Pro hoặc tính năng tương đương cho private repo, sau đó kiểm thử tài khoản Write không thể xóa/force-push `main`.
+5. Thực hiện negative test secret fixture tạm và Java khác 21 trong môi trường nghiệm thu phù hợp; fixture không được commit.
