@@ -1,0 +1,94 @@
+name: Work item
+description: Track a scoped task from PLAN_MASTER.md
+title: "[Sx-xx] "
+labels:
+  - needs-owner
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `plan/PLAN_MASTER.md` is the product and architecture source of truth. Update it when a requirement or decision changes.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the problem and link the relevant PLAN_MASTER section.
+      placeholder: "PLAN_MASTER: plan/PLAN_MASTER.md#..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      description: List the concrete work included.
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: State what this issue intentionally does not change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link blocking issues, ADRs or external decisions; write "None" when applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use objective, verifiable checklist items.
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Test and verification
+      description: List commands, tests and evidence required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: Describe data/auth impact or write "None". Never paste a secret or PII.
+    validations:
+      required: true
+
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation impact
+      description: Identify PLAN_MASTER, ADR, runbook or user docs that must change.
+    validations:
+      required: true
+
+  - type: input
+    id: owner
+    attributes:
+      label: Owner
+      description: Admin assigns before work starts; leave "Unassigned" at creation.
+      value: Unassigned
+    validations:
+      required: true
+
+  - type: input
+    id: reviewer
+    attributes:
+      label: Reviewer
+      description: Admin assigns before work starts; leave "Unassigned" at creation.
+      value: Unassigned
+    validations:
+      required: true

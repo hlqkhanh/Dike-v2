@@ -1,0 +1,23 @@
+# Architecture Decision Records
+
+ADR trong thư mục này ghi các quyết định kiến trúc hiện hành. `Accepted` mô tả quyết định kỹ thuật đã khóa; việc ratification của Stage 0 chỉ hoàn tất khi cả bốn thành viên xác nhận trong PR hoặc GitHub Issue tương ứng.
+
+## Quy tắc
+
+- Dùng số thứ tự bốn chữ số và tên kebab-case.
+- Không sửa ngược nội dung quyết định đã được ratify; tạo ADR mới để supersede.
+- Thay đổi kiến trúc phải cập nhật `plan/PLAN_MASTER.md` trong cùng PR hoặc commit.
+- ADR Accepted không chứa TODO kiến trúc mở.
+
+## Danh mục
+
+- [0000 — Greenfield baseline](0000-greenfield-baseline.md)
+- [0001 — Spring Boot Modular Monolith](0001-spring-boot-modular-monolith.md)
+- [0002 — Java 21 and Maven](0002-java-21-and-maven.md)
+- [0003 — MongoDB primary store](0003-mongodb-primary-store.md)
+- [0004 — WebSocket/STOMP](0004-websocket-stomp.md)
+- [0005 — MongoDB outbox worker](0005-mongodb-outbox-worker.md)
+- [0006 — Auth and session model](0006-auth-and-session-model.md)
+- [0007 — Cloudflare R2 object storage](0007-cloudflare-r2-object-storage.md)
+- [0008 — Deployment topology](0008-deployment-topology.md)
+- [0009 — Flutter mobile](0009-flutter-mobile.md)
