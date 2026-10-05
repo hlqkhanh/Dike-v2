@@ -349,6 +349,7 @@ Trạng thái trong bảng phải được cập nhật theo bằng chứng th�
 - Fresh clone Windows chạy thành công với Node 24.21.0 portable đã xác minh checksum, pnpm 12.9.1, Java 21 và Maven Wrapper 3.9.10: frozen install, `pnpm check`, Enforcer và Spotless đều xanh.
 - Git hooks được cài qua `core.hooksPath=.githooks`; pre-push chạy cả pnpm/Maven và Commitlint từ chối message không theo Conventional Commits.
 - Negative secret test chạy bằng Gitleaks 8.24.3 đã xác minh checksum và phát hiện fixture AWS tổng hợp trong `.tmp/`; fixture được Git ignore và không được commit.
+- Negative Java test chạy bằng JDK 24 có sẵn và xác nhận Maven Enforcer từ chối với yêu cầu `Dike requires Java 21`.
 - Không có tag, `LICENSE`, source/runtime Stage 1, database dump, upload artifact hoặc file `.env` được track.
 
 Các gate còn mở trước khi đánh dấu Stage 0 hoàn thành:
@@ -357,4 +358,3 @@ Các gate còn mở trước khi đánh dấu Stage 0 hoàn thành:
 2. Một collaborator Write tự thực hiện fresh-clone drill và ghi bằng chứng vào S0-10.
 3. Nâng Node system từ 22.20.0 lên 24.21.0 bằng quyền Administrator. MSI chính thức đã khớp SHA-256 nhưng lượt cài tự động hiện tại bị Windows từ chối với Error 1730; bản portable chỉ được dùng để kiểm chứng, không được coi là đã nâng system runtime.
 4. Bật `main-safety` ruleset khi tài khoản có GitHub Pro hoặc tính năng tương đương cho private repo, sau đó kiểm thử tài khoản Write không thể xóa/force-push `main`.
-5. Thực hiện negative test Java khác 21 trong môi trường nghiệm thu phù hợp để chứng minh Maven Enforcer từ chối runtime sai major version.
