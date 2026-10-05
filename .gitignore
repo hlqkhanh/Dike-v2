@@ -22,6 +22,8 @@ dist/
 
 # Java / Maven
 target/
+.m2/
+.maven-home/
 *.class
 *.log
 .mvn/timing.properties

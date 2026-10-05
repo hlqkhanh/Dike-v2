@@ -1,0 +1,4 @@
+dike:
+  environment: local
+  migrations:
+    enabled: true

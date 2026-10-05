@@ -1,0 +1,18 @@
+spring:
+  data:
+    mongodb:
+      database: ${DIKE_MONGODB_DATABASE}
+      uri: ${DIKE_MONGODB_URI}
+    redis:
+      host: ${DIKE_REDIS_HOST}
+      port: ${DIKE_REDIS_PORT}
+
+dike:
+  environment: staging
+  storage:
+    endpoint: ${DIKE_STORAGE_ENDPOINT}
+    region: ${DIKE_STORAGE_REGION}
+    access-key: ${DIKE_STORAGE_ACCESS_KEY}
+    secret-key: ${DIKE_STORAGE_SECRET_KEY}
+    public-bucket: ${DIKE_STORAGE_PUBLIC_BUCKET}
+    private-bucket: ${DIKE_STORAGE_PRIVATE_BUCKET}

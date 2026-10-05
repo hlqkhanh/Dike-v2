@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: dike-backend
+  data:
+    mongodb:
+      auto-index-creation: false
+      database: ${DIKE_MONGODB_DATABASE:dike}
+      uri: ${DIKE_MONGODB_URI:mongodb://localhost:27017/dike?replicaSet=rs0}
+    redis:
+      host: ${DIKE_REDIS_HOST:localhost}
+      port: ${DIKE_REDIS_PORT:6379}
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+dike:
+  environment: ${DIKE_ENVIRONMENT:local}
+  workload: ${DIKE_WORKLOAD:api}
+  service:
+    version: ${DIKE_SERVICE_VERSION:dev}
+  storage:
+    endpoint: ${DIKE_STORAGE_ENDPOINT:http://localhost:9000}
+    region: ${DIKE_STORAGE_REGION:us-east-1}
+    access-key: ${DIKE_STORAGE_ACCESS_KEY:dike-local}
+    secret-key: ${DIKE_STORAGE_SECRET_KEY:dike-local-secret}
+    public-bucket: ${DIKE_STORAGE_PUBLIC_BUCKET:dike-public}
+    private-bucket: ${DIKE_STORAGE_PRIVATE_BUCKET:dike-private}
+    timeout: ${DIKE_STORAGE_TIMEOUT:3s}
+  outbox:
+    poll-interval: ${DIKE_OUTBOX_POLL_INTERVAL:1s}
+    lease-duration: ${DIKE_OUTBOX_LEASE_DURATION:30s}
+    initial-backoff: ${DIKE_OUTBOX_INITIAL_BACKOFF:2s}
+    max-backoff: ${DIKE_OUTBOX_MAX_BACKOFF:5m}
+    max-attempts: ${DIKE_OUTBOX_MAX_ATTEMPTS:8}
+    batch-size: ${DIKE_OUTBOX_BATCH_SIZE:20}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,mongo,redis,objectStorage
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+server:
+  shutdown: graceful
+
+springdoc:
+  api-docs:
+    path: /api/openapi.json
+  packages-to-scan: com.dike
+  paths-to-match: /api/v1/**
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      add:
+        service: ${spring.application.name}
+        serviceVersion: ${dike.service.version}
+        environment: ${dike.environment}
+        workload: ${dike.workload}

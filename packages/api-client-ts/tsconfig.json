@@ -1,0 +1,4 @@
+{
+  "extends": "@dike/frontend-config/tsconfig/base",
+  "include": ["src/**/*.ts"]
+}

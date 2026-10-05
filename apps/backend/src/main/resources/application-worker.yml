@@ -1,0 +1,6 @@
+dike:
+  workload: worker
+
+spring:
+  main:
+    web-application-type: none

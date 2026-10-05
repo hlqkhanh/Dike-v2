@@ -1,0 +1,18 @@
+:root {
+  color-scheme: light;
+  --dike-canvas: #f4fbf7;
+  --dike-surface: #ffffff;
+  --dike-surface-muted: #e8f5ee;
+  --dike-ink: #13231b;
+  --dike-ink-muted: #51655a;
+  --dike-primary: #087f5b;
+  --dike-primary-strong: #056146;
+  --dike-accent: #c9f2dd;
+  --dike-border: #c9ddd2;
+  --dike-danger: #b42318;
+  --dike-focus: #2563eb;
+  --dike-radius-sm: 0.5rem;
+  --dike-radius-md: 0.875rem;
+  --dike-radius-lg: 1.25rem;
+  --dike-shadow-card: 0 18px 45px rgb(19 35 27 / 8%);
+}

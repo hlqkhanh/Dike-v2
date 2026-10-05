@@ -1,19 +1,16 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
-const tracked = execFileSync("git", ["ls-files", "-z"], {
-  encoding: "utf8"
-})
+const candidates = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+  { encoding: "utf8" },
+)
   .split("\0")
   .filter(Boolean)
   .map((file) => file.replaceAll("\\", "/"));
 
-const forbiddenNames = new Set([
-  "id_rsa",
-  "id_dsa",
-  "id_ecdsa",
-  "id_ed25519"
-]);
+const forbiddenNames = new Set(["id_rsa", "id_dsa", "id_ecdsa", "id_ed25519"]);
 const forbiddenExtensions = new Set([
   ".key",
   ".pem",
@@ -25,7 +22,7 @@ const forbiddenExtensions = new Set([
   ".sql",
   ".sqlite",
   ".sqlite3",
-  ".bson"
+  ".bson",
 ]);
 const forbiddenDirectories = new Set([
   "data",
@@ -34,7 +31,7 @@ const forbiddenDirectories = new Set([
   "dumps",
   "volumes",
   "docker-data",
-  ".docker-data"
+  ".docker-data",
 ]);
 
 function isExampleEnvironmentFile(file) {
@@ -46,7 +43,10 @@ function isForbidden(file) {
   const basename = parts.at(-1).toLowerCase();
   const extension = path.posix.extname(basename);
 
-  if ((basename === ".env" || basename.startsWith(".env.")) && !isExampleEnvironmentFile(file)) {
+  if (
+    (basename === ".env" || basename.startsWith(".env.")) &&
+    !isExampleEnvironmentFile(file)
+  ) {
     return true;
   }
 
@@ -57,7 +57,7 @@ function isForbidden(file) {
   );
 }
 
-const violations = tracked.filter(isForbidden);
+const violations = candidates.filter(isForbidden);
 
 if (violations.length > 0) {
   console.error("Forbidden sensitive or persistent-data files are tracked:");
@@ -65,5 +65,6 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log(`Tracked-file policy passed (${tracked.length} files inspected).`);
-
+console.log(
+  `Repository file policy passed (${candidates.length} tracked or untracked files inspected).`,
+);

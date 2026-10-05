@@ -1,0 +1,7 @@
+{
+  "extends": "@dike/frontend-config/tsconfig/react",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

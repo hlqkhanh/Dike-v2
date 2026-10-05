@@ -1,0 +1,22 @@
+{
+  "name": "@dike/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@dike/frontend-config": "workspace:*",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

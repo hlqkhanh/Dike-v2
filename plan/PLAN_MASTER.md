@@ -762,6 +762,8 @@ Chi tiết task, ownership và nghiệm thu: [STAGE_0.md](STAGE_0.md).
 
 ### Giai đoạn 1 — Nền tảng backend và local infrastructure
 
+Chi tiết task, dependency, ownership và nghiệm thu: [STAGE_1.md](STAGE_1.md).
+
 - Scaffold từ đầu `apps/web`, `apps/backend`, `packages/api-client-ts`, `packages/design-tokens`, `packages/frontend-config` và `packages/web-ui` theo kiến trúc mục tiêu; `apps/mobile` và `packages/api-client-dart` được tạo ở giai đoạn mobile.
 - Bootstrap Spring Boot với Java 21, Maven Wrapper và package gốc `com.dike`; tạo module `identity`, `community`, `planning`, `ride`, `messaging`, `trust` và `shared`.
 - Thêm Spring Modulith verification test và ArchUnit rule tối thiểu: không cycle module, controller không truy cập repository, module không dùng internal package của module khác.

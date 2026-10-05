@@ -4,7 +4,10 @@ Dike là nền tảng kết nối người có xe và người cần đi nhờ t
 
 ## Trạng thái
 
-Repository được xây mới theo hướng greenfield. Source, dữ liệu và Git history của prototype cũ không được khôi phục hoặc migrate. Stage 0 chỉ thiết lập governance, tooling và quality gate; ứng dụng bắt đầu được scaffold ở Stage 1.
+Repository được xây mới theo hướng greenfield. Source, dữ liệu và Git history của
+prototype cũ không được khôi phục hoặc migrate. Stage 1 cung cấp app shell, modular
+backend, local infrastructure, transaction/outbox foundation và contract sinh tự
+động; chưa chứa tính năng nghiệp vụ.
 
 ## Kiến trúc đã chọn
 
@@ -20,8 +23,9 @@ Repository được xây mới theo hướng greenfield. Source, dữ liệu và
 - Node.js 24.21.0.
 - Corepack và pnpm 12.9.1.
 - Java 21.
+- Docker Desktop dùng WSL 2 và Docker Compose v2.
 
-Maven 3.9.10 được cung cấp qua Maven Wrapper. Docker chưa cần cho Stage 0.
+Maven 3.9.10 được cung cấp qua Maven Wrapper.
 
 Trên Windows, nếu PowerShell chặn `npm.ps1`, dùng `corepack`, `pnpm.cmd` hoặc executable `.cmd`; không cần thay đổi execution policy toàn hệ thống.
 
@@ -48,10 +52,71 @@ pnpm check
 ./mvnw -B -ntp verify
 ```
 
+`verify` chạy integration test bằng MongoDB replica set thật qua Testcontainers,
+vì vậy Docker Engine phải sẵn sàng. Nếu chỉ cần kiểm tra nhanh Java khi đang sửa
+code, dùng `-DskipITs test`; CI và gate trước khi merge vẫn phải chạy `verify`.
+
+## Chạy môi trường local
+
+Sao chép `.env.local.example` thành file cấu hình local của riêng bạn nếu cần đổi
+giá trị mặc định. Không commit file chứa credential.
+
+```powershell
+pnpm dev
+```
+
+Lệnh trên kiểm tra Docker và port, đợi MongoDB/Redis/MinIO healthy, build một JAR,
+sau đó chạy API, worker và web với log có prefix. Nhấn `Ctrl+C` để dừng các process
+Dike; volume local được giữ lại.
+
+Có thể chạy từng phần để debug:
+
+```powershell
+pnpm infra:up
+pnpm dev:api
+pnpm dev:worker
+pnpm dev:web
+```
+
+| Dịch vụ         | Địa chỉ                                           |
+| --------------- | ------------------------------------------------- |
+| Web             | `http://localhost:3000`                           |
+| API             | `http://localhost:8080/api/v1`                    |
+| Liveness        | `http://localhost:8080/actuator/health/liveness`  |
+| Readiness       | `http://localhost:8080/actuator/health/readiness` |
+| OpenAPI         | `http://localhost:8080/api/openapi.json`          |
+| MongoDB         | `localhost:27017`                                 |
+| Redis           | `localhost:6379`                                  |
+| MinIO / console | `http://localhost:9000` / `http://localhost:9001` |
+
+`pnpm infra:reset` xóa đúng volume của Compose project Dike và làm mất toàn bộ dữ
+liệu local. Lệnh này không được gọi tự động.
+
+## Contract API
+
+`docs/api/openapi.json` là artifact OpenAPI được review. TypeScript contract trong
+`packages/api-client-ts/src/generated` không sửa tay:
+
+```powershell
+pnpm api:generate
+pnpm api:check
+```
+
+## Xử lý lỗi thường gặp trên Windows
+
+- Docker đứng ở “Starting the Docker Engine”: thoát Docker Desktop, chạy
+  `wsl --shutdown` bằng PowerShell Administrator rồi mở lại Docker. Thao tác này
+  dừng tất cả distro WSL nhưng không xóa Docker volume.
+- Maven báo sai Java: đặt `JAVA_HOME` tới JDK 21 trước khi chạy wrapper.
+- Port đã được dùng: dừng process đang giữ port `3000`, `8080`, `27017`, `6379`,
+  `9000` hoặc `9001`; không đổi riêng port Mongo vì replica-set member đang quảng
+  bá `localhost:27017`.
+
 ## Tài liệu
 
 - [Master plan](plan/PLAN_MASTER.md)
 - [Stage 0 runbook](plan/STAGE_0.md)
+- [Stage 1 runbook](plan/STAGE_1.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

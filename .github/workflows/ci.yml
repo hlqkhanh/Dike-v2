@@ -42,8 +42,11 @@ jobs:
       - name: Run repository checks
         run: pnpm check
 
-  java-baseline:
-    name: Java baseline
+      - name: Validate local infrastructure definition
+        run: docker compose -p dike -f infra/docker-compose.yml config --quiet
+
+  backend-verification:
+    name: Backend unit, architecture and integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

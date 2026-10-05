@@ -1,0 +1,16 @@
+{
+  "name": "@dike/frontend-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig/base": "./tsconfig/base.json",
+    "./tsconfig/react": "./tsconfig/react.json"
+  },
+  "scripts": {
+    "lint": "node -e \"console.log('frontend-config: configuration package')\"",
+    "typecheck": "node -e \"console.log('frontend-config: no source to typecheck')\"",
+    "test": "node -e \"console.log('frontend-config: no runtime tests')\"",
+    "build": "node -e \"console.log('frontend-config: configuration ready')\""
+  }
+}

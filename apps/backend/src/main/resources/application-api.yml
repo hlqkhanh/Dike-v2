@@ -1,0 +1,6 @@
+dike:
+  workload: api
+
+spring:
+  main:
+    web-application-type: servlet

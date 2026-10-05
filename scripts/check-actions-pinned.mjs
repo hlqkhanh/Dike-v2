@@ -27,10 +27,13 @@ for (const file of workflowFiles) {
 }
 
 if (violations.length > 0) {
-  console.error("GitHub Actions must be pinned to a full 40-character commit SHA:");
+  console.error(
+    "GitHub Actions must be pinned to a full 40-character commit SHA:",
+  );
   violations.forEach((violation) => console.error(`- ${violation}`));
   process.exit(1);
 }
 
-console.log(`Action pin policy passed (${workflowFiles.length} workflow files inspected).`);
-
+console.log(
+  `Action pin policy passed (${workflowFiles.length} workflow files inspected).`,
+);
