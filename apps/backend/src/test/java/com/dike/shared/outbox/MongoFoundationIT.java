@@ -68,7 +68,9 @@ class MongoFoundationIT {
 
   @Test
   void commitsAndRollsBackMultipleDocumentsOnReplicaSet() {
-    assertThat(MONGO.getReplicaSetUrl()).contains("replicaSet=");
+    Document topology = template.executeCommand(new Document("hello", 1));
+    assertThat(topology.getString("setName")).isNotBlank();
+    assertThat(topology.getBoolean("isWritablePrimary")).isTrue();
 
     transactions.executeWithoutResult(
         ignored -> {
