@@ -125,6 +125,12 @@ xem các gate còn thiếu trong runbook.
 
 ## Xử lý lỗi thường gặp trên Windows
 
+- Git client báo sai Node dù terminal dùng đúng phiên bản: chạy `pnpm setup:repo`
+  bằng Node 24.21.0. Lệnh này lưu đường dẫn Node vào Git config local
+  `dike.nodePath`, để hook không phụ thuộc PATH cũ của Git client. Nếu di chuyển
+  toolchain, chạy lại setup hoặc xóa cấu hình bằng
+  `git config --local --unset dike.nodePath`.
+
 - Docker đứng ở “Starting the Docker Engine”: thoát Docker Desktop, chạy
   `wsl --shutdown` bằng PowerShell Administrator rồi mở lại Docker. Thao tác này
   dừng tất cả distro WSL nhưng không xóa Docker volume.
