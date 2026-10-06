@@ -20,9 +20,10 @@ spring:
             redirect-uri: "{baseUrl}/api/v1/auth/callback/{registrationId}"
   session:
     timeout: 24h
-    redis:
-      repository-type: indexed
-      namespace: dike:${dike.environment}:session
+    data:
+      redis:
+        repository-type: indexed
+        namespace: dike:${dike.environment}:session
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
