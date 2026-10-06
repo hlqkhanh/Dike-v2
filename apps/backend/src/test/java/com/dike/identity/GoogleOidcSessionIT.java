@@ -105,7 +105,11 @@ class GoogleOidcSessionIT {
     assertThat(start.statusCode()).isEqualTo(302);
 
     HttpResponse<String> authorization =
-        get(browser, app + start.headers().firstValue("location").orElseThrow());
+        get(
+            browser,
+            URI.create(app)
+                .resolve(start.headers().firstValue("location").orElseThrow())
+                .toString());
     assertThat(authorization.statusCode()).isEqualTo(302);
     URI providerLocation = URI.create(authorization.headers().firstValue("location").orElseThrow());
     assertThat(providerLocation.getQuery()).contains("code_challenge_method=S256");
