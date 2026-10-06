@@ -4,6 +4,8 @@ import "./styles.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { Providers } from "./providers";
+
 export const metadata: Metadata = {
   title: "Dike",
   description:
@@ -15,7 +17,9 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

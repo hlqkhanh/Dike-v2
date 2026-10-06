@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter extends OncePerRequestFilter {
 
-  static final String REQUEST_ID_ATTRIBUTE = RequestIdFilter.class.getName() + ".requestId";
+  public static final String REQUEST_ID_ATTRIBUTE = RequestIdFilter.class.getName() + ".requestId";
   static final String REQUEST_ID_HEADER = "X-Request-Id";
   static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
   static final String CAUSATION_ID_HEADER = "X-Causation-Id";

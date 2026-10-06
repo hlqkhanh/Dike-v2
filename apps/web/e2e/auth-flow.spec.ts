@@ -1,0 +1,109 @@
+import { expect, test } from "@playwright/test";
+
+const session = {
+  authenticated: true,
+  user: {
+    id: "user-1",
+    displayName: "Người lái thử",
+    avatarUrl: null,
+    email: "masked@example.test",
+    onboardingStatus: "PHONE_REQUIRED",
+    phoneStatus: "NOT_PROVIDED",
+    phoneMasked: null,
+    nextAction: "SUBMIT_PHONE",
+  },
+  session: {
+    id: "public-session-1",
+    deviceLabel: "Chromium test",
+    createdAt: "2026-10-06T00:00:00Z",
+    lastSeenAt: "2026-10-06T00:00:00Z",
+    idleExpiresAt: "2026-10-07T00:00:00Z",
+    absoluteExpiresAt: "2026-11-05T00:00:00Z",
+    current: true,
+  },
+};
+
+test("login entry uses the same-origin backend route", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(
+    page.getByRole("link", { name: "Tiếp tục với Google" }),
+  ).toHaveAttribute("href", "/api/v1/auth/google");
+});
+
+test("auth completion routes a new user through phone onboarding", async ({
+  context,
+  page,
+}) => {
+  await context.addCookies([
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+  ]);
+  await page.route("**/api/v1/auth/session", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(session),
+    }),
+  );
+  await page.goto("/auth/complete");
+  await expect(page).toHaveURL(/\/onboarding\/phone$/);
+
+  await page.route("**/api/v1/auth/phone", async (route) => {
+    expect(route.request().method()).toBe("PUT");
+    expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-e2e");
+    expect(route.request().postDataJSON()).toEqual({
+      phoneNumber: "0901 234 567",
+    });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...session,
+        user: {
+          ...session.user,
+          onboardingStatus: "PHONE_SUBMITTED",
+          phoneStatus: "UNVERIFIED",
+          phoneMasked: "+849••••4567",
+          nextAction: "NONE",
+        },
+      }),
+    });
+  });
+  await page.getByLabel("Số điện thoại Việt Nam").fill("0901 234 567");
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await expect(page).toHaveURL("http://127.0.0.1:3100/");
+});
+
+test("session management revokes only the selected public handle", async ({
+  page,
+}) => {
+  const revoked: string[] = [];
+  await page.route("**/api/v1/auth/sessions**", async (route) => {
+    if (route.request().method() === "DELETE") {
+      revoked.push(route.request().url().split("/").at(-1) ?? "");
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sessions: [
+          session.session,
+          {
+            ...session.session,
+            id: "public-session-2",
+            deviceLabel: "Điện thoại",
+            current: false,
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto("/account/sessions");
+  await expect(page.getByText("Chromium test")).toBeVisible();
+  await expect(page.getByText("Điện thoại")).toBeVisible();
+  await page.getByRole("button", { name: "Đăng xuất thiết bị" }).last().click();
+  await expect.poll(() => revoked).toEqual(["public-session-2"]);
+});

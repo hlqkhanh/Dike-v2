@@ -249,35 +249,105 @@ a:focus-visible {
     scroll-behavior: auto !important;
   }
 }
-/* Account flows share the foundation shell and remain usable on small screens. */
-.auth-shell {
-  max-width: 48rem;
-  padding-block: 3rem;
+
+.auth-page {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 1.25rem;
+  place-items: center;
 }
-.auth-form {
+
+.auth-card {
   display: grid;
   gap: 1rem;
-}
-.auth-shell input,
-.auth-shell button {
-  font: inherit;
-  padding: 0.8rem 1rem;
-  border-radius: 0.6rem;
-  border: 1px solid #57736b;
-}
-.auth-shell button {
-  cursor: pointer;
-  margin: 0.25rem;
-}
-.auth-shell button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-.auth-shell input {
+  max-width: 34rem;
+  min-height: auto;
+  padding: clamp(1.5rem, 5vw, 2.5rem);
   width: 100%;
-  box-sizing: border-box;
 }
-.auth-shell :focus-visible {
-  outline: 3px solid #087f6a;
-  outline-offset: 3px;
+
+.auth-card h1,
+.auth-management h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  margin-bottom: 0;
+}
+
+.auth-copy,
+.auth-card p {
+  color: var(--dike-ink-muted);
+  line-height: 1.6;
+}
+
+.auth-action {
+  background: var(--dike-primary);
+  border-radius: var(--dike-radius-md);
+  color: white;
+  display: inline-flex;
+  font-weight: 750;
+  justify-content: center;
+  padding: 0.9rem 1.2rem;
+  text-decoration: none;
+}
+
+.auth-error {
+  color: var(--dike-danger) !important;
+}
+
+.dike-field {
+  display: grid;
+  font-weight: 700;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.dike-field input {
+  border: 1px solid var(--dike-border);
+  border-radius: var(--dike-radius-sm);
+  font: inherit;
+  padding: 0.85rem;
+}
+
+.dike-field input:focus-visible {
+  outline: 3px solid var(--dike-focus);
+  outline-offset: 2px;
+}
+
+.auth-management {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 4rem;
+}
+
+.session-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.session-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.nav-account {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-account a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nav-account button {
+  background: transparent;
+  border: 1px solid var(--dike-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.75rem;
 }

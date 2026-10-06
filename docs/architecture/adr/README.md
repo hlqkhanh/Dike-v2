@@ -22,3 +22,4 @@ ADR trong thư mục này ghi các quyết định kiến trúc và governance h
 - [0008 — Deployment topology](0008-deployment-topology.md)
 - [0009 — Flutter mobile](0009-flutter-mobile.md)
 - [0010 — Stage 0 governance baseline](0010-stage-0-governance-baseline.md)
+- [0011 — Web same-origin authentication proxy](0011-web-same-origin-auth-proxy.md)

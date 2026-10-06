@@ -7,8 +7,8 @@ Dike là nền tảng kết nối người có xe và người cần đi nhờ t
 Repository được xây mới theo hướng greenfield. Source, dữ liệu và Git history của
 prototype cũ không được khôi phục hoặc migrate. Stage 1 cung cấp app shell, modular
 backend, local infrastructure, transaction/outbox foundation và contract sinh tự
-động. Stage 2 đã có Google OAuth, session Redis, nhập số điện thoại chưa xác minh
-và UI quản lý phiên; nghiệm thu Docker/Google thật và browser E2E còn pending.
+động. Stage 2 bổ sung Google OIDC, Redis-backed opaque session, phone onboarding
+và luồng đăng nhập web qua same-origin proxy.
 
 ## Kiến trúc đã chọn
 
@@ -62,6 +62,10 @@ code, dùng `-DskipITs test`; CI và gate trước khi merge vẫn phải chạy
 Sao chép `.env.local.example` thành file cấu hình local của riêng bạn nếu cần đổi
 giá trị mặc định. Không commit file chứa credential.
 
+Để đăng nhập Google thật, tạo OAuth Web Client dành riêng cho development và đăng
+ký callback `http://localhost:3000/api/v1/auth/callback/google`, sau đó đặt client
+ID/secret trong môi trường local. Không dùng credential production ở local.
+
 ```powershell
 pnpm dev
 ```
@@ -82,7 +86,8 @@ pnpm dev:web
 | Dịch vụ         | Địa chỉ                                           |
 | --------------- | ------------------------------------------------- |
 | Web             | `http://localhost:3000`                           |
-| API             | `http://localhost:8080/api/v1`                    |
+| API qua web     | `http://localhost:3000/api/v1`                    |
+| API trực tiếp   | `http://localhost:8080/api/v1`                    |
 | Liveness        | `http://localhost:8080/actuator/health/liveness`  |
 | Readiness       | `http://localhost:8080/actuator/health/readiness` |
 | OpenAPI         | `http://localhost:8080/api/openapi.json`          |
@@ -103,33 +108,7 @@ pnpm api:generate
 pnpm api:check
 ```
 
-`api:generate` cần Java 21: chạy backend trong test context để xuất OpenAPI rồi
-sinh kiểu dữ liệu và route/method TypeScript. `api:check` kiểm tra artifact → TS;
-Maven `verify` kiểm tra toàn bộ runtime contract → artifact. Không sửa JSON hoặc
-client sinh ra để che drift từ controller.
-
-## Google login và Stage 2
-
-Cấu hình `DIKE_GOOGLE_CLIENT_ID`, `DIKE_GOOGLE_CLIENT_SECRET` trong environment
-của API. Đăng ký callback `http://localhost:8080/api/v1/auth/callback` trong OAuth
-client Google dùng cho local. Web mặc định ở `http://localhost:3000`; URL cấu hình
-qua `DIKE_AUTH_WEB_URL` và `DIKE_AUTH_CALLBACK_URL`. Không commit credential.
-
-Vào `/login`, đăng nhập Google, nhập số điện thoại rồi mở `/account/sessions` để
-làm mới hoặc thu hồi phiên. Khi chưa cấu hình Google, endpoint trả lỗi khả dụng;
-không có tài khoản hoặc header đăng nhập giả. Số điện thoại vẫn chưa xác minh.
-
-Staging/production yêu cầu HTTPS, cấu hình Google đầy đủ và
-`REQUIRE_PHONE_OTP=true`. Chưa nghiệm thu Stage 2 không đồng nghĩa sẵn sàng pilot;
-xem các gate còn thiếu trong runbook.
-
 ## Xử lý lỗi thường gặp trên Windows
-
-- Git client báo sai Node dù terminal dùng đúng phiên bản: chạy `pnpm setup:repo`
-  bằng Node 24.21.0. Lệnh này lưu đường dẫn Node vào Git config local
-  `dike.nodePath`, để hook không phụ thuộc PATH cũ của Git client. Nếu di chuyển
-  toolchain, chạy lại setup hoặc xóa cấu hình bằng
-  `git config --local --unset dike.nodePath`.
 
 - Docker đứng ở “Starting the Docker Engine”: thoát Docker Desktop, chạy
   `wsl --shutdown` bằng PowerShell Administrator rồi mở lại Docker. Thao tác này
@@ -144,8 +123,10 @@ xem các gate còn thiếu trong runbook.
 - [Master plan](plan/PLAN_MASTER.md)
 - [Stage 0 runbook](plan/STAGE_0.md)
 - [Stage 1 runbook](plan/STAGE_1.md)
-- [Stage 2 runbook và kết quả rà soát](plan/STAGE_2.md)
+- [Stage 2 runbook](plan/STAGE_2.md)
 - [Stage 3 runbook — OTP và phân quyền](plan/STAGE_3.md)
+- [Web auth proxy](docs/architecture/auth/web-same-origin-proxy.md)
+- [Google OAuth smoke test](docs/runbooks/google-oauth-smoke.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

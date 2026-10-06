@@ -1,5 +1,7 @@
 import { Button, Card, Status } from "@dike/web-ui";
 
+import { AuthNavigation } from "./auth-navigation";
+
 export default function HomePage() {
   return (
     <main className="shell">
@@ -10,9 +12,7 @@ export default function HomePage() {
           </span>
           <span>Dike</span>
         </a>
-        <a className="stage-badge" href="/login">
-          Đăng nhập
-        </a>
+        <AuthNavigation />
       </nav>
 
       <section className="hero" id="top">
@@ -23,7 +23,9 @@ export default function HomePage() {
           cộng đồng sẽ được mở theo từng giai đoạn đã kiểm chứng.
         </p>
         <div className="hero__actions" aria-label="Trạng thái nền tảng">
-          <Button type="button">Nền tảng đang được xây dựng</Button>
+          <a className="auth-action" href="/login">
+            Bắt đầu với Google
+          </a>
           <span>Web responsive · API contract-first · Dữ liệu riêng tư</span>
         </div>
       </section>
