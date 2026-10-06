@@ -129,7 +129,10 @@ export default function PhoneOnboardingPage() {
             : "Số điện thoại chỉ được xác minh sau khi nhập đúng mã OTP."}
         </p>
         {!challenge ? (
-          <form onSubmit={form.handleSubmit((values) => submit.mutate(values))}>
+          <form
+            key="phone-form"
+            onSubmit={form.handleSubmit((values) => submit.mutate(values))}
+          >
             <Input
               label="Số điện thoại Việt Nam"
               autoComplete="tel"
@@ -154,6 +157,7 @@ export default function PhoneOnboardingPage() {
           </form>
         ) : (
           <form
+            key="otp-form"
             onSubmit={(event) => {
               event.preventDefault();
               verify.mutate();
