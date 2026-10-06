@@ -1,10 +1,43 @@
 # STAGE 3 — OTP và phân quyền tài khoản
 
-Ngày lập: 06/10/2026. Baseline: `03a35c8` trên `main`.
+Ngày lập: 06/10/2026. Baseline kế hoạch: `03a35c8`; baseline bắt đầu triển khai:
+`338facf` trên `main`.
 
-Trạng thái: Kế hoạch chi tiết; chưa triển khai Stage 3. `PLAN_MASTER.md` và ADR
-Accepted có ưu tiên cao hơn runbook này. Timeout, hạn mức và API bổ sung bên dưới
-là đề xuất triển khai cần review trong PR; không phải chức năng đã nghiệm thu.
+Trạng thái: Code-complete cho phạm vi không gồm SMS thật; chờ Docker/CI và browser
+acceptance. `PLAN_MASTER.md` và ADR Accepted có ưu tiên cao hơn runbook này.
+Timeout, hạn mức và API bổ sung bên dưới cần review trong PR; chưa phải chức năng
+đã nghiệm thu production.
+
+Tiến độ tại baseline triển khai:
+
+- `S3-00`: In progress — gate local còn thiếu Docker IT không skip.
+- `S3-01`: Implemented, pending review — ADR 0012 đã ghi transport, state,
+  authority, re-auth, budget và bootstrap boundary; vendor SMS vẫn là gate riêng.
+- `S3-02`: In progress — typed account state và migration/index test đã được thêm;
+  chỉ Complete sau khi Docker IT chạy thật trên CI.
+- `S3-03`: Implemented, pending integration evidence — principal và authority được
+  dựng lại từ account hiện hành mỗi request; SecurityContext không còn persist.
+- `S3-04`: In progress — provider port, fake local/test, HMAC/key version và hosted
+  startup guard đã có; còn contract test và adapter provider thật.
+- `S3-05`: In progress — challenge persistence, generation, resend supersede,
+  issue idempotency và HMAC binding đã có; còn quota integration và race evidence.
+- `S3-06`: In progress — Redis quota đa chiều, Mongo daily budget, cooldown và
+  `Retry-After` đã có; còn integration evidence với Redis/Mongo thật trên CI.
+- `S3-07`: In progress — verify transaction cập nhật user/challenge/audit outbox,
+  đếm lượt sai và partial unique đã có; còn concurrency evidence trên CI.
+- `S3-08`: Implemented, pending integration evidence — đổi số VERIFIED yêu cầu
+  Google authentication không quá 5 phút; phone version và authority bị revoke
+  ngay khi đổi số, khiến challenge cũ không còn hiệu lực.
+- `S3-10`: Implemented, pending E2E — API/OpenAPI/generated client và web OTP có
+  restore status, resend countdown, `Retry-After`, hủy/đổi số và re-auth guidance.
+- `S3-11`: Implemented, pending integration evidence — bootstrap ADMIN chỉ chạy
+  khi opt-in, mặc định dry-run, yêu cầu account ID/operator/reason, idempotent và
+  ghi audit outbox cùng transaction; không có API tự cấp role.
+- `S3-12`: Blocked locally — Maven verify pass nhưng 10 Docker IT bị skip vì Docker
+  Engine không sẵn sàng; browser/OIDC E2E vẫn cần evidence trên commit PR.
+- `S3-13`: Implemented, pending gates — README, env và runbook OTP/admin đã cập nhật.
+- `S3-09`: Deferred theo quyết định hiện tại vì chưa tích hợp SMS thật; fake
+  provider và test-code route vẫn bị chặn ở hosted.
 
 ## 1. Mục tiêu và phạm vi
 
@@ -363,7 +396,7 @@ Owner chốt thresholds bằng sandbox/pilot dữ liệu tổng hợp trước p
 
 ## 14. Definition of Done và bằng chứng bàn giao
 
-Tất cả S3-00 đến S3-13 hiện Pending. Chuyển Complete chỉ khi có:
+Trạng thái từng work item được ghi ở đầu tài liệu. Chỉ chuyển Complete khi có:
 
 - Commit/PR, owner/reviewer và CI URL; security/ADR qua review theo CONTRIBUTING.
 - Test transaction/concurrency/authorization trên dependency thật và report không skip.

@@ -15,12 +15,17 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ApiException.class)
   ResponseEntity<ErrorResponse> handleApi(ApiException exception, HttpServletRequest request) {
-    return response(
-        exception.status(),
-        exception.code(),
-        exception.getMessage(),
-        requestId(request),
-        List.of());
+    ResponseEntity<ErrorResponse> response =
+        response(
+            exception.status(),
+            exception.code(),
+            exception.getMessage(),
+            requestId(request),
+            List.of());
+    if (exception.retryAfter().isZero()) return response;
+    return ResponseEntity.status(exception.status())
+        .header("Retry-After", Long.toString(Math.max(1, exception.retryAfter().toSeconds())))
+        .body(response.getBody());
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)

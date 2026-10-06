@@ -803,6 +803,7 @@ Chi tiết task, dependency, public contract và nghiệm thu: [STAGE_2.md](STAG
 ### Giai đoạn 3 — OTP và phân quyền tài khoản
 
 Runbook triển khai, dependency và nghiệm thu: [STAGE_3.md](STAGE_3.md).
+Quyết định OTP, authority và failure semantics: [ADR 0012](../docs/architecture/adr/0012-otp-verification-and-account-authority.md).
 
 - Tạo port `OtpProvider` trong module `identity`, adapter fake cho local/test và adapter provider thật cho production.
 - Rate limit theo IP, user, số điện thoại và thiết bị; OTP có hạn dùng, số lần thử và cooldown.

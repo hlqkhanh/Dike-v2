@@ -35,7 +35,10 @@ class SessionApplicationServiceTest {
     when(request.getSession(false)).thenReturn(current);
     var service =
         new SessionApplicationService(
-            repository, mock(IdentityProvisioningService.class), properties());
+            repository,
+            mock(IdentityProvisioningService.class),
+            mock(AccountAccessService.class),
+            properties());
 
     boolean found = service.revoke(new DikePrincipal("user-1"), "public-handle", request);
 

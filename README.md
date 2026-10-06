@@ -8,7 +8,9 @@ Repository được xây mới theo hướng greenfield. Source, dữ liệu và
 prototype cũ không được khôi phục hoặc migrate. Stage 1 cung cấp app shell, modular
 backend, local infrastructure, transaction/outbox foundation và contract sinh tự
 động. Stage 2 bổ sung Google OIDC, Redis-backed opaque session, phone onboarding
-và luồng đăng nhập web qua same-origin proxy.
+và luồng đăng nhập web qua same-origin proxy. Stage 3 bổ sung OTP local/test,
+rate limit đa chiều, unique verified phone, authority dựng lại mỗi request, re-auth
+khi đổi số và bootstrap admin có audit; adapter SMS thật đang được hoãn.
 
 ## Kiến trúc đã chọn
 
@@ -127,6 +129,7 @@ pnpm api:check
 - [Stage 3 runbook — OTP và phân quyền](plan/STAGE_3.md)
 - [Web auth proxy](docs/architecture/auth/web-same-origin-proxy.md)
 - [Google OAuth smoke test](docs/runbooks/google-oauth-smoke.md)
+- [OTP và bootstrap admin](docs/runbooks/otp-and-admin.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

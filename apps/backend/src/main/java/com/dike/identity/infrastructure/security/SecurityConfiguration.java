@@ -1,8 +1,10 @@
 package com.dike.identity.infrastructure.security;
 
+import com.dike.identity.application.AccountAccessService;
 import com.dike.identity.application.AuthTelemetry;
 import com.dike.identity.application.IdentityProvisioningService;
 import com.dike.identity.application.LoginRateLimiter;
+import com.dike.identity.infrastructure.otp.OtpProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -11,12 +13,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -29,11 +32,12 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(IdentityProperties.class)
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
   @Bean
   SecurityContextRepository securityContextRepository() {
-    return new HttpSessionSecurityContextRepository();
+    return new NullSecurityContextRepository();
   }
 
   @Bean
@@ -61,6 +65,7 @@ public class SecurityConfiguration {
       HttpSecurity http,
       ClientRegistrationRepository clients,
       IdentityProvisioningService provisioning,
+      AccountAccessService access,
       IdentityProperties properties,
       OAuth2AuthorizedClientRepository authorizedClients,
       SecurityContextRepository securityContexts,
@@ -76,13 +81,7 @@ public class SecurityConfiguration {
 
     var success =
         new OidcLoginSuccessHandler(
-            provisioning,
-            properties,
-            securityContexts,
-            authorizedClients,
-            clock,
-            sessions,
-            telemetry);
+            provisioning, access, properties, authorizedClients, clock, sessions, telemetry);
 
     http.authorizeHttpRequests(
             requests ->
@@ -165,15 +164,18 @@ public class SecurityConfiguration {
 
     http.addFilterBefore(new TrustedOriginFilter(properties), CsrfFilter.class);
     http.addFilterAfter(
-        new AbsoluteSessionExpiryFilter(clock, properties, provisioning, telemetry),
+        new AccountAuthenticationFilter(access),
         org.springframework.security.web.context.SecurityContextHolderFilter.class);
+    http.addFilterAfter(
+        new AbsoluteSessionExpiryFilter(clock, properties, provisioning, telemetry),
+        AccountAuthenticationFilter.class);
     http.addFilterAfter(new AuthNoStoreFilter(), AbsoluteSessionExpiryFilter.class);
     return http.build();
   }
 
   @Bean
   org.springframework.boot.ApplicationRunner validateAuthProductionConfiguration(
-      IdentityProperties properties, Environment environment) {
+      IdentityProperties properties, OtpProperties otp, Environment environment) {
     return arguments -> {
       String current = environment.getProperty("dike.environment", "local");
       String clientId =
@@ -201,7 +203,11 @@ public class SecurityConfiguration {
               || clientId.isBlank()
               || clientSecret.isBlank()
               || clientId.startsWith("local-")
-              || clientSecret.startsWith("local-"))) {
+              || clientSecret.startsWith("local-")
+              || "fake".equalsIgnoreCase(otp.provider())
+              || otp.hmacSecret().startsWith("local-only-")
+              || otp.rateKeySecret().startsWith("local-only-")
+              || !otp.sendEnabled())) {
         throw new IllegalStateException("Secure auth configuration is required outside local/test");
       }
     };

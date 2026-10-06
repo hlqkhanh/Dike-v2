@@ -144,6 +144,142 @@
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
+          },
+          "403": {
+            "description": "Recent Google re-authentication required to replace a verified phone",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Phone version changed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/otp": {
+      "post": {
+        "operationId": "issuePhoneOtp",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OtpIssueRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OTP challenge accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OtpChallenge" }
+              }
+            }
+          },
+          "429": {
+            "description": "OTP quota or resend cooldown reached",
+            "headers": {
+              "Retry-After": {
+                "schema": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/otp/{challengeId}": {
+      "get": {
+        "operationId": "getPhoneOtpStatus",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current challenge state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OtpChallenge" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelPhoneOtp",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "204": { "description": "Challenge cancelled" } }
+      }
+    },
+    "/auth/otp/{challengeId}/verify": {
+      "post": {
+        "operationId": "verifyPhoneOtp",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "parameters": [
+          {
+            "name": "challengeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OtpVerifyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phone verified",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
           }
         }
       }
@@ -196,6 +332,10 @@
           "email",
           "onboardingStatus",
           "phoneStatus",
+          "phoneVersion",
+          "verificationEvidence",
+          "authorities",
+          "authorizationVersion",
           "nextAction"
         ],
         "properties": {
@@ -206,6 +346,13 @@
           "onboardingStatus": { "type": "string" },
           "phoneStatus": { "type": "string" },
           "phoneMasked": { "type": "string" },
+          "phoneVersion": { "type": "integer" },
+          "verificationEvidence": { "type": "string" },
+          "authorities": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "authorizationVersion": { "type": "integer" },
           "nextAction": { "type": "string" }
         }
       },
@@ -242,8 +389,35 @@
       },
       "PhoneRequest": {
         "type": "object",
-        "required": ["phoneNumber"],
-        "properties": { "phoneNumber": { "type": "string" } }
+        "required": ["phoneNumber", "expectedPhoneVersion"],
+        "properties": {
+          "phoneNumber": { "type": "string" },
+          "expectedPhoneVersion": { "type": "integer" }
+        }
+      },
+      "OtpIssueRequest": {
+        "type": "object",
+        "required": ["purpose", "phoneVersion"],
+        "properties": {
+          "purpose": { "type": "string" },
+          "phoneVersion": { "type": "integer" }
+        }
+      },
+      "OtpVerifyRequest": {
+        "type": "object",
+        "required": ["code"],
+        "properties": { "code": { "type": "string" } }
+      },
+      "OtpChallenge": {
+        "type": "object",
+        "required": ["challengeId", "status", "expiresAt", "resendAfter"],
+        "properties": {
+          "challengeId": { "type": "string" },
+          "status": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "resendAfter": { "type": "string", "format": "date-time" },
+          "maskedPhone": { "type": "string" }
+        }
       }
     },
     "securitySchemes": {

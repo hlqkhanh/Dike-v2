@@ -9,6 +9,7 @@ import com.dike.identity.domain.UserAccount;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -70,6 +71,11 @@ public class IdentityProvisioningService {
             OnboardingStatus.PHONE_REQUIRED,
             null,
             PhoneStatus.NOT_PROVIDED,
+            0,
+            null,
+            com.dike.identity.domain.VerificationEvidence.NONE,
+            Set.of(),
+            0,
             now,
             now,
             0);

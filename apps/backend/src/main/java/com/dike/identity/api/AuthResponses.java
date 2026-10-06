@@ -17,6 +17,10 @@ public final class AuthResponses {
       String onboardingStatus,
       String phoneStatus,
       String phoneMasked,
+      long phoneVersion,
+      String verificationEvidence,
+      List<String> authorities,
+      long authorizationVersion,
       String nextAction) {}
 
   public record SessionView(

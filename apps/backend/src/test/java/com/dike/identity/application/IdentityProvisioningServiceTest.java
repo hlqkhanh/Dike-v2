@@ -113,7 +113,8 @@ class IdentityProvisioningServiceTest {
     }
 
     @Override
-    public UserAccount updatePhoneCandidate(String userId, String phoneE164, Instant updatedAt) {
+    public UserAccount updatePhoneCandidate(
+        String userId, long expectedPhoneVersion, String phoneE164, Instant updatedAt) {
       throw new UnsupportedOperationException();
     }
   }

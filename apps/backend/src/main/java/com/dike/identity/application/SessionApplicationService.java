@@ -23,14 +23,17 @@ public class SessionApplicationService {
 
   private final FindByIndexNameSessionRepository<? extends Session> sessions;
   private final IdentityProvisioningService identities;
+  private final AccountAccessService access;
   private final IdentityProperties properties;
 
   public SessionApplicationService(
       FindByIndexNameSessionRepository<? extends Session> sessions,
       IdentityProvisioningService identities,
+      AccountAccessService access,
       IdentityProperties properties) {
     this.sessions = sessions;
     this.identities = identities;
+    this.access = access;
     this.properties = properties;
   }
 
@@ -84,6 +87,7 @@ public class SessionApplicationService {
   }
 
   private UserView userView(UserAccount user) {
+    AccountAccessSnapshot snapshot = access.require(user.id());
     String nextAction =
         switch (user.onboardingStatus()) {
           case PHONE_REQUIRED -> "SUBMIT_PHONE";
@@ -96,7 +100,11 @@ public class SessionApplicationService {
         user.canonicalEmail(),
         user.onboardingStatus().name(),
         user.phoneStatus().name(),
-        mask(user.phoneCandidateE164()),
+        mask(user.phoneE164()),
+        user.phoneVersion(),
+        user.verificationEvidence().name(),
+        snapshot.authorities().stream().map(Enum::name).sorted().toList(),
+        snapshot.authorizationVersion(),
         nextAction);
   }
 

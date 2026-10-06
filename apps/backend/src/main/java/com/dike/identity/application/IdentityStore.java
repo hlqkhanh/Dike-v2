@@ -19,5 +19,6 @@ public interface IdentityStore {
 
   void updateIdentityLogin(String identityId, Instant lastLoginAt, String emailSnapshot);
 
-  UserAccount updatePhoneCandidate(String userId, String phoneE164, Instant updatedAt);
+  UserAccount updatePhoneCandidate(
+      String userId, long expectedPhoneVersion, String phoneE164, Instant updatedAt);
 }

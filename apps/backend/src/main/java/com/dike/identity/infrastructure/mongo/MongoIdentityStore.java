@@ -1,10 +1,12 @@
 package com.dike.identity.infrastructure.mongo;
 
 import com.dike.identity.application.IdentityStore;
+import com.dike.identity.application.StalePhoneVersionException;
 import com.dike.identity.domain.AuthIdentity;
 import com.dike.identity.domain.OnboardingStatus;
 import com.dike.identity.domain.PhoneStatus;
 import com.dike.identity.domain.UserAccount;
+import com.dike.identity.domain.VerificationEvidence;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -59,19 +61,25 @@ class MongoIdentityStore implements IdentityStore {
   }
 
   @Override
-  public UserAccount updatePhoneCandidate(String userId, String phoneE164, Instant updatedAt) {
+  public UserAccount updatePhoneCandidate(
+      String userId, long expectedPhoneVersion, String phoneE164, Instant updatedAt) {
     UserDocument updated =
         template.findAndModify(
-            Query.query(Criteria.where("_id").is(userId)),
+            Query.query(
+                Criteria.where("_id").is(userId).and("phoneVersion").is(expectedPhoneVersion)),
             new Update()
-                .set("phoneCandidateE164", phoneE164)
+                .set("phoneE164", phoneE164)
                 .set("phoneStatus", PhoneStatus.UNVERIFIED)
+                .set("verificationEvidence", VerificationEvidence.NONE)
+                .unset("phoneVerifiedAt")
                 .set("onboardingStatus", OnboardingStatus.PHONE_SUBMITTED)
-                .set("updatedAt", updatedAt),
+                .set("updatedAt", updatedAt)
+                .inc("phoneVersion", 1)
+                .inc("authorizationVersion", 1),
             FindAndModifyOptions.options().returnNew(true),
             UserDocument.class);
     if (updated == null) {
-      throw new IllegalStateException("Authenticated user does not exist");
+      throw new StalePhoneVersionException();
     }
     return map(updated);
   }
@@ -82,10 +90,21 @@ class MongoIdentityStore implements IdentityStore {
         document.canonicalEmail(),
         document.displayName(),
         document.avatarUrl(),
-        document.accountStatus(),
-        document.onboardingStatus(),
-        document.phoneCandidateE164(),
-        document.phoneStatus(),
+        document.accountStatus() == null
+            ? com.dike.identity.domain.AccountStatus.ACTIVE
+            : document.accountStatus(),
+        document.onboardingStatus() == null
+            ? OnboardingStatus.PHONE_REQUIRED
+            : document.onboardingStatus(),
+        document.phoneE164(),
+        document.phoneStatus() == null ? PhoneStatus.NOT_PROVIDED : document.phoneStatus(),
+        document.phoneVersion() == null ? 0 : document.phoneVersion(),
+        document.phoneVerifiedAt(),
+        document.verificationEvidence() == null
+            ? VerificationEvidence.NONE
+            : document.verificationEvidence(),
+        document.assignedRoles() == null ? java.util.Set.of() : document.assignedRoles(),
+        document.authorizationVersion() == null ? 0 : document.authorizationVersion(),
         document.createdAt(),
         document.updatedAt(),
         document.version() == null ? 0 : document.version());
@@ -99,8 +118,13 @@ class MongoIdentityStore implements IdentityStore {
         user.avatarUrl(),
         user.accountStatus(),
         user.onboardingStatus(),
-        user.phoneCandidateE164(),
+        user.phoneE164(),
         user.phoneStatus(),
+        user.phoneVersion(),
+        user.phoneVerifiedAt(),
+        user.verificationEvidence(),
+        user.assignedRoles(),
+        user.authorizationVersion(),
         user.createdAt(),
         user.updatedAt(),
         user.version());

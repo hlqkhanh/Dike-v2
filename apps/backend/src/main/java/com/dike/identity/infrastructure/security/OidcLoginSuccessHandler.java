@@ -1,5 +1,6 @@
 package com.dike.identity.infrastructure.security;
 
+import com.dike.identity.application.AccountAccessService;
 import com.dike.identity.application.AccountLinkRequiredException;
 import com.dike.identity.application.AuthTelemetry;
 import com.dike.identity.application.DikePrincipal;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,15 +23,14 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 
 final class OidcLoginSuccessHandler implements AuthenticationSuccessHandler {
 
   private final IdentityProvisioningService provisioning;
+  private final AccountAccessService access;
   private final IdentityProperties properties;
-  private final SecurityContextRepository securityContexts;
   private final OAuth2AuthorizedClientRepository authorizedClients;
   private final Clock clock;
   private final FindByIndexNameSessionRepository<? extends Session> sessions;
@@ -39,15 +38,15 @@ final class OidcLoginSuccessHandler implements AuthenticationSuccessHandler {
 
   OidcLoginSuccessHandler(
       IdentityProvisioningService provisioning,
+      AccountAccessService access,
       IdentityProperties properties,
-      SecurityContextRepository securityContexts,
       OAuth2AuthorizedClientRepository authorizedClients,
       Clock clock,
       FindByIndexNameSessionRepository<? extends Session> sessions,
       AuthTelemetry telemetry) {
     this.provisioning = provisioning;
+    this.access = access;
     this.properties = properties;
-    this.securityContexts = securityContexts;
     this.authorizedClients = authorizedClients;
     this.clock = clock;
     this.sessions = sessions;
@@ -99,14 +98,24 @@ final class OidcLoginSuccessHandler implements AuthenticationSuccessHandler {
         SessionAttributes.ABSOLUTE_EXPIRES_AT, now.plus(properties.session().absoluteLifetime()));
     session.setAttribute(
         SessionAttributes.DEVICE_LABEL, deviceLabel(request.getHeader("User-Agent")));
+    session.setAttribute(SessionAttributes.ACCOUNT_ID, user.id());
+    session.setAttribute(SessionAttributes.GOOGLE_AUTHENTICATED_AT, now);
+    session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, user.id());
 
+    var snapshot = access.require(user.id());
     var dikeAuthentication =
         UsernamePasswordAuthenticationToken.authenticated(
-            new DikePrincipal(user.id()), null, List.of());
+            new DikePrincipal(user.id(), snapshot.authorizationVersion()),
+            null,
+            snapshot.authorities().stream()
+                .map(
+                    value ->
+                        new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                            value.name()))
+                .toList());
     SecurityContext context = SecurityContextHolder.createEmptyContext();
     context.setAuthentication(dikeAuthentication);
     SecurityContextHolder.setContext(context);
-    securityContexts.saveContext(context, request, response);
     authorizedClients.removeAuthorizedClient(
         oauth.getAuthorizedClientRegistrationId(), oauth, request, response);
     telemetry.login("success");

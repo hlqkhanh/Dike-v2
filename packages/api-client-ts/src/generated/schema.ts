@@ -30,6 +30,10 @@ export type AuthUser = {
   onboardingStatus: string;
   phoneStatus: string;
   phoneMasked?: string;
+  phoneVersion: number;
+  verificationEvidence: string;
+  authorities: string[];
+  authorizationVersion: number;
   nextAction: string;
 };
 
@@ -49,4 +53,22 @@ export type SessionListResponse = {
 
 export type PhoneRequest = {
   phoneNumber: string;
+  expectedPhoneVersion: number;
+};
+
+export type OtpIssueRequest = {
+  purpose: string;
+  phoneVersion: number;
+};
+
+export type OtpVerifyRequest = {
+  code: string;
+};
+
+export type OtpChallenge = {
+  challengeId: string;
+  status: string;
+  expiresAt: string;
+  resendAfter: string;
+  maskedPhone?: string;
 };
