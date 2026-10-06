@@ -145,6 +145,7 @@ xem các gate còn thiếu trong runbook.
 - [Stage 0 runbook](plan/STAGE_0.md)
 - [Stage 1 runbook](plan/STAGE_1.md)
 - [Stage 2 runbook và kết quả rà soát](plan/STAGE_2.md)
+- [Stage 3 runbook — OTP và phân quyền](plan/STAGE_3.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

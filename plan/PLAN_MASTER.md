@@ -792,6 +792,8 @@ Runbook triển khai và gate đầu vào: [STAGE_2.md](STAGE_2.md).
 
 ### Giai đoạn 3 — OTP và phân quyền tài khoản
 
+Runbook triển khai, dependency và nghiệm thu: [STAGE_3.md](STAGE_3.md).
+
 - Tạo port `OtpProvider` trong module `identity`, adapter fake cho local/test và adapter provider thật cho production.
 - Rate limit theo IP, user, số điện thoại và thiết bị; OTP có hạn dùng, số lần thử và cooldown.
 - Không lưu OTP dạng rõ; số Việt Nam chuẩn hóa E.164 và chỉ unique sau khi xác minh.
