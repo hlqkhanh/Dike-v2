@@ -1,12 +1,14 @@
 package com.dike.identity.api;
 
 import com.dike.identity.application.AuthService;
+import com.dike.shared.api.ApiErrorWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 import org.springframework.security.core.Authentication;
@@ -84,15 +86,23 @@ public class SecurityConfiguration {
                     .denyAll())
         .exceptionHandling(
             errors ->
-                errors.authenticationEntryPoint(
-                    (request, response, e) -> {
-                      response.setStatus(401);
-                      response.setContentType("application/json");
-                      response
-                          .getWriter()
-                          .write(
-                              "{\"error\":{\"code\":\"SESSION_REQUIRED\",\"message\":\"Please sign in\"}}");
-                    }))
+                errors
+                    .authenticationEntryPoint(
+                        (request, response, e) ->
+                            ApiErrorWriter.write(
+                                request,
+                                response,
+                                HttpStatus.UNAUTHORIZED,
+                                "SESSION_REQUIRED",
+                                "Please sign in"))
+                    .accessDeniedHandler(
+                        (request, response, e) ->
+                            ApiErrorWriter.write(
+                                request,
+                                response,
+                                HttpStatus.FORBIDDEN,
+                                "ACCESS_DENIED",
+                                "Access denied")))
         .addFilterBefore(new AuthBoundaryFilter(settings, auth), SecurityContextHolderFilter.class);
     if (!settings.clientId().isBlank() && !settings.clientSecret().isBlank()) {
       ClientRegistration registration =

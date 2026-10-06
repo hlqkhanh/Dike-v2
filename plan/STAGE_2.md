@@ -1,14 +1,19 @@
 # STAGE 2 — Google authentication và session
 
 Ngày rà soát: 06/10/2026.  
-Trạng thái: Kế hoạch triển khai; chưa triển khai auth.  
-Baseline rà soát: `6da8c76`. Điều kiện đóng stage: Stage 1 đạt nghiệm thu thật.
+Trạng thái: Đã triển khai auth; đang sửa và nghiệm thu, chưa đóng stage.
+
+Baseline scan ban đầu: `6da8c76`; implementation tiếp nối: `b8fa7b0`.
+Điều kiện đóng stage: Stage 1 đạt nghiệm thu thật.
 
 `PLAN_MASTER.md` và ADR Accepted là nguồn đặc tả cao nhất. Các giá trị timeout,
 endpoint bổ sung và thiết kế dưới đây là phương án triển khai Stage 2, cần review
 trong PR auth theo `CONTRIBUTING.md`; không thay đổi phạm vi production pilot.
 
 ## 1. Kết quả scan và điều kiện đầu vào
+
+Mục này lưu scan trước implementation. Trạng thái mới nhất nằm tại mục 10;
+không dùng các nhận xét lịch sử bên dưới để kết luận auth chưa tồn tại.
 
 | Hạng mục       | Bằng chứng trong source                                                             | Việc cần làm                                                 |
 | -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -107,12 +112,16 @@ chưa tạo verified-phone unique index trước Stage 3.
 
 ## 5. Vòng đời session và quyền
 
-Ưu tiên Spring Session Data Redis indexed repository theo BOM để quản lý opaque
-cookie `DIKE_SESSION`. DTO principal chỉ chứa định danh tối thiểu; serializer và
-namespace Redis phải được chốt và kiểm thử tương thích trước merge.
+Implementation hiện dùng Spring Session Redis cho cookie OAuth tạm `DIKE_OAUTH`,
+và `RedisSessionStore` với Lua atomic cho opaque cookie `DIKE_SESSION`. Secret
+credential được hash SHA-256 trước khi dùng làm Redis key; rotate/revoke trên cùng
+device record được serialize bởi Redis. Domain không phụ thuộc Redis. Cách này
+thực hiện refresh/revoke không qua cơ chế lưu HttpSession ở cuối request và tránh
+request cũ ghi hồi sinh phiên. Integration test phải xác minh invariant này.
 
 Mặc định đề xuất: idle timeout 30 phút, absolute lifetime 7 ngày, tối đa 5 phiên
-mỗi tài khoản. Các giới hạn cấu hình được, có validation; phiên thứ sáu bị từ chối
+mỗi tài khoản. Hiện các giới hạn này là hằng số trong adapter; chuyển sang typed
+configuration có validation còn pending. Phiên thứ sáu bị từ chối
 với hướng dẫn thu hồi phiên hoặc đăng nhập lại theo quy trình được review.
 
 - Refresh chỉ hợp lệ với session chưa hết idle/absolute expiry, đổi credential và
@@ -127,8 +136,9 @@ với hướng dẫn thu hồi phiên hoặc đăng nhập lại theo quy trình
   refresh đang bay không hồi sinh quyền sau logout-all. Nếu Mongo/Redis lỗi, fail
   closed; không fallback memory. Login đồng thời chỉ hợp lệ nếu phát phiên dựa trên
   version mới sau thời điểm logout-all commit.
-- Revoke từng phiên cần tombstone/atomic fence với refresh đang bay; lưu tombstone
-  tới absolute expiry, test session cũ không được ghi lại sau revoke.
+- Revoke từng phiên dùng Lua atomic cùng device record với refresh: refresh kiểm
+  tra credential/device tồn tại, revoke xóa cả hai trong một script. Không có
+  write-back cuối request. Test cần chứng minh cả hai thứ tự chạy và concurrency.
 - Logout chỉ dùng POST, xóa cookie đúng path/flags. Không tuyên bố có thể hủy thao
   tác nghiệp vụ đã được server chấp nhận trước thời điểm revoke.
 - Mutation yêu cầu CSRF token và Origin khớp allowlist; Origin thiếu thì kiểm tra
@@ -143,13 +153,14 @@ với hướng dẫn thu hồi phiên hoặc đăng nhập lại theo quy trình
 ## 6. Contract dự kiến
 
 Tất cả endpoint dưới `/api/v1`. Tên operation/schema được sinh từ backend; bảng
-dưới là thiết kế, chưa phải API đã có. Lỗi dùng envelope và requestId Stage 1.
+dưới mô tả contract triển khai. Callback do Spring Security filter xử lý và chưa
+có operation riêng trong OpenAPI. Lỗi dùng envelope và requestId Stage 1.
 
 | Method/path                               | Quyền                 | Kết quả                                                           |
 | ----------------------------------------- | --------------------- | ----------------------------------------------------------------- |
 | GET `/auth/google`                        | Public, rate limited  | Redirect Google, lưu state/nonce/PKCE                             |
 | GET `/auth/callback`                      | OAuth request hợp lệ  | Đổi code, tạo session, redirect nội bộ                            |
-| GET `/auth/csrf`                          | Anonymous/session     | Token CSRF gắn session, no-store                                  |
+| GET `/auth/csrf`                          | Session               | Token CSRF gắn session, no-store                                  |
 | GET `/auth/session`                       | Session               | User tối thiểu, onboarding state, thời hạn; 401 nếu thiếu/hết hạn |
 | POST `/auth/refresh`                      | Session + CSRF/Origin | Rotate cookie/token; 401 nếu không còn hợp lệ                     |
 | PUT `/auth/phone`                         | Session + CSRF/Origin | Nhập/chỉnh số của chính mình, UNVERIFIED                          |
@@ -225,7 +236,51 @@ manual acceptance riêng, không nhét credential Google vào CI hoặc repo.
 
 Chạy `pnpm check`, Maven `verify` không skip, Compose fresh start, `pnpm dev` và
 browser E2E. Lưu commit, CI URL, số test pass/fail/skip, cấu hình môi trường không
-nhạy cảm, kết quả Google thật và reviewer. Hiện toàn bộ S2-00 đến S2-09: Pending.
+nhạy cảm, kết quả Google thật và reviewer.
+
+### 10.1. Cập nhật triển khai ngày 06/10/2026
+
+| Work item | Trạng thái                      | Bằng chứng / phần còn thiếu                                                                              |
+| --------- | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| S2-00     | Blocked local                   | Toolchain đúng đã có; Docker Engine chưa sẵn sàng, fresh-start chưa đạt                                  |
+| S2-01     | Implemented                     | RuntimeContractTest so toàn JSON; api:generate xuất runtime rồi sinh TS operations, route/method; cần CI |
+| S2-02     | Implemented                     | MongoAccountStore, unique migration, concurrency IT; chờ Docker test                                     |
+| S2-03     | Implemented, partial acceptance | Google code/PKCE, state/nonce request test, config guards; chưa test token/JWKS end-to-end               |
+| S2-04     | Implemented, partial acceptance | Redis Lua rotation/revoke, version fence; IT và cấu hình timeout còn phải nghiệm thu                     |
+| S2-05     | Implemented, partial acceptance | Origin/CSRF, rate limit, requestId envelope, no-store; chưa đủ toàn bộ security matrix                   |
+| S2-06     | Implemented                     | Phone normalization, UNVERIFIED, application tests                                                       |
+| S2-07     | Implemented, partial acceptance | Login/onboarding/sessions, route sinh tự động, CSRF client tests; chưa browser E2E                       |
+| S2-08     | Pending                         | Chưa có OIDC test server và hai browser context E2E; unit test không thay thế                            |
+| S2-09     | Pending                         | Chưa có bằng chứng Google thật, review và CI xanh                                                        |
+
+Sửa trong lượt hardening: đồng nhất lỗi filter/Security với error envelope, không
+in credential qua AuthSettings.toString, validate origin/callback, public Google
+operation không yêu cầu cookie; sửa response type sinh ra, loại route/method viết
+tay trong UI; khi CSRF cũ thì lần thử có chủ đích tiếp theo lấy token mới, không
+replay mutation. Login phiên bản mới dọn session cũ bị logout-all trước khi xét
+giới hạn 5 phiên để cleanup gián đoạn không khóa người dùng.
+
+Đồng thời bỏ khóa MongoDB legacy còn sót trong base config và chuyển cấu hình
+staging/production sang `spring.mongodb.*` của Boot 4. Test binding xác minh URI,
+database và replica-set option, tránh hosted profile kế thừa default local khi
+thiếu cấu hình bắt buộc.
+
+### 10.2. Bằng chứng kiểm tra lượt hardening
+
+- Toolchain: Node 24.21.0, pnpm 12.9.1 qua Corepack, Java 21.0.8.
+- `pnpm check`: PASS, gồm lint/typecheck, 8 test, Next.js production build và
+  generated-client drift check.
+- `mvnw -B -ntp verify -DskipITs`: PASS, 29 unit/architecture/runtime-contract
+  test, không có failure; integration test không chạy trong lệnh này.
+- Đã thử Maven `verify` đầy đủ: Testcontainers không tìm thấy Docker environment;
+  MongoIdentityIT, RedisSessionIT và MongoFoundationIT không chạy được. Không dùng
+  kết quả skipITs để đóng gate này. Docker service đang dừng và tài khoản hiện tại
+  không có quyền khởi động service; không reset/purge volume.
+- `api:generate` đã xuất contract từ runtime; `RuntimeContractTest` so sánh lại
+  toàn bộ artifact trong lần Maven verify phía trên.
+- Google thật và browser/OIDC E2E: chưa chạy; Stage 2 vẫn chưa được nghiệm thu.
+
+Không đánh dấu Stage 2 Complete cho đến khi các gate Pending ở trên có bằng chứng.
 
 Google Cloud OAuth client, consent screen, callback URI và domain staging cần owner
 cung cấp khi làm S2-09; không chặn model/test bằng dữ liệu tổng hợp. Không yêu cầu

@@ -19,18 +19,14 @@ public record AuthSettings(
       @Value("${DIKE_GOOGLE_CLIENT_SECRET:}") String clientSecret,
       @Value("${REQUIRE_PHONE_OTP:true}") boolean requirePhoneOtp) {
     this(
-        webUrl,
+        normalizeOrigin(webUrl),
         callbackUrl,
         !environment.equals("local") && !environment.equals("test"),
         clientId,
         clientSecret);
-    URI web = URI.create(webUrl), callback = URI.create(callbackUrl);
-    if (web.getHost() == null
-        || web.getUserInfo() != null
-        || web.getQuery() != null
-        || web.getFragment() != null
-        || !(web.getPath().isEmpty() || web.getPath().equals("/")))
-      throw new IllegalArgumentException("Invalid web origin");
+    URI callback = URI.create(callbackUrl);
+    if (clientId.isBlank() != clientSecret.isBlank())
+      throw new IllegalArgumentException("Google client ID and secret must be configured together");
     if (secure
         && (!webUrl.startsWith("https://")
             || !callbackUrl.startsWith("https://")
@@ -39,7 +35,38 @@ public record AuthSettings(
             || !requirePhoneOtp))
       throw new IllegalArgumentException(
           "Hosted authentication requires HTTPS, Google configuration and OTP");
-    if (!"/api/v1/auth/callback".equals(callback.getPath()))
+    if (!validHttpUri(callback)
+        || callback.getQuery() != null
+        || callback.getFragment() != null
+        || !"/api/v1/auth/callback".equals(callback.getRawPath()))
       throw new IllegalArgumentException("Invalid OAuth callback");
+  }
+
+  private static boolean validHttpUri(URI uri) {
+    return ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
+        && uri.getHost() != null
+        && uri.getUserInfo() == null
+        && (uri.getPort() == -1 || uri.getPort() > 0 && uri.getPort() <= 65535);
+  }
+
+  private static String normalizeOrigin(String value) {
+    URI uri = URI.create(value);
+    if (!validHttpUri(uri)
+        || uri.getQuery() != null
+        || uri.getFragment() != null
+        || !(uri.getRawPath().isEmpty() || uri.getRawPath().equals("/")))
+      throw new IllegalArgumentException("Invalid web origin");
+    return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+  }
+
+  @Override
+  public String toString() {
+    return "AuthSettings[webUrl="
+        + webUrl
+        + ", callbackUrl="
+        + callbackUrl
+        + ", secure="
+        + secure
+        + ", credentials=[REDACTED]]";
   }
 }

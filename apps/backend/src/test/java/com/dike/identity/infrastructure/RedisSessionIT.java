@@ -16,7 +16,28 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class RedisSessionIT {
   @Container
   static GenericContainer<?> redis =
-      new GenericContainer<>("redis:7.4-alpine").withExposedPorts(6379);
+      new GenericContainer<>("redis:8.10.2-alpine3.23").withExposedPorts(6379);
+
+  @Test
+  void newVersionCanLoginWhenLogoutAllCleanupWasInterrupted() {
+    var connection = new LettuceConnectionFactory(redis.getHost(), redis.getMappedPort(6379));
+    connection.afterPropertiesSet();
+    try {
+      var store = new RedisSessionStore(new StringRedisTemplate(connection), Clock.systemUTC());
+      var first = store.create("cleanup-user", 0);
+      for (int i = 1; i < 5; i++) store.create("cleanup-user", 0);
+      assertThrows(ApiException.class, () -> store.create("cleanup-user", 0));
+      var current = store.create("cleanup-user", 1);
+      assertEquals(1, store.list("cleanup-user").size());
+      assertEquals(current.session().deviceId(), store.read(current.credential()).deviceId());
+      assertThrows(ApiException.class, () -> store.read(first.credential()));
+      assertThrows(
+          ApiException.class, () -> store.revoke("other-user", current.session().deviceId()));
+      assertEquals(current.session().deviceId(), store.read(current.credential()).deviceId());
+    } finally {
+      connection.destroy();
+    }
+  }
 
   @Test
   void twoInstancesCannotRotateOrResurrectRevokedCredential() throws Exception {

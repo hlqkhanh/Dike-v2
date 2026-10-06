@@ -10,8 +10,6 @@ spring:
   data:
     mongodb:
       auto-index-creation: false
-      database: ${DIKE_MONGODB_DATABASE:dike}
-      uri: ${DIKE_MONGODB_URI:mongodb://localhost:27017/dike?replicaSet=rs0}
     redis:
       host: ${DIKE_REDIS_HOST:localhost}
       port: ${DIKE_REDIS_PORT:6379}

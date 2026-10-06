@@ -75,8 +75,9 @@ public class AuthService {
       if (s.version() <= principal.user().sessionVersion()) {
         try {
           sessions.revoke(principal.user().id(), s.deviceId());
-        } catch (ApiException ignored) {
-          /* Concurrent revoke already removed the session. */
+        } catch (ApiException exception) {
+          // Only a concurrent removal can be ignored; other failures remain visible.
+          if (exception.status() != HttpStatus.NOT_FOUND) throw exception;
         }
       }
     }

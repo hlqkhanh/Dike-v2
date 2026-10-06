@@ -1,8 +1,8 @@
 spring:
+  mongodb:
+    database: ${DIKE_MONGODB_DATABASE}
+    uri: ${DIKE_MONGODB_URI}
   data:
-    mongodb:
-      database: ${DIKE_MONGODB_DATABASE}
-      uri: ${DIKE_MONGODB_URI}
     redis:
       host: ${DIKE_REDIS_HOST}
       port: ${DIKE_REDIS_PORT}

@@ -41,7 +41,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -51,7 +51,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -61,7 +61,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -71,13 +71,23 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "503": {
             "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
             "content": {
               "*/*": {
                 "schema": {
@@ -114,7 +124,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -124,7 +134,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -134,7 +144,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -144,13 +154,23 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "503": {
             "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
             "content": {
               "*/*": {
                 "schema": {
@@ -183,19 +203,54 @@
             }
           },
           "401": {
-            "description": "Session required"
+            "description": "Session required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "CSRF or origin rejected"
+            "description": "CSRF or origin rejected",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Resource unavailable"
+            "description": "Resource unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limited; Retry-After in seconds"
+            "description": "Rate limited; Retry-After in seconds",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Dependency unavailable"
+            "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "204": {
             "description": "No Content"
@@ -224,19 +279,54 @@
             }
           },
           "401": {
-            "description": "Session required"
+            "description": "Session required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "CSRF or origin rejected"
+            "description": "CSRF or origin rejected",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Resource unavailable"
+            "description": "Resource unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limited; Retry-After in seconds"
+            "description": "Rate limited; Retry-After in seconds",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Dependency unavailable"
+            "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "204": {
             "description": "No Content"
@@ -269,10 +359,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DeviceView"
-                  }
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -282,10 +369,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DeviceView"
-                  }
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -295,10 +379,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DeviceView"
-                  }
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -308,16 +389,23 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DeviceView"
-                  }
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "503": {
             "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
             "content": {
               "*/*": {
                 "schema": {
@@ -357,7 +445,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -367,7 +455,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -377,7 +465,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -387,13 +475,23 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "503": {
             "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
             "content": {
               "*/*": {
                 "schema": {
@@ -426,26 +524,60 @@
             }
           },
           "401": {
-            "description": "Session required"
+            "description": "Session required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "CSRF or origin rejected"
+            "description": "CSRF or origin rejected",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Resource unavailable"
+            "description": "Resource unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limited; Retry-After in seconds"
+            "description": "Rate limited; Retry-After in seconds",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Dependency unavailable"
+            "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to Google"
           }
         },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
+        "security": []
       }
     },
     "/api/v1/auth/csrf": {
@@ -468,7 +600,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -478,7 +610,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -488,7 +620,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -498,13 +630,23 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "503": {
             "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
             "content": {
               "*/*": {
                 "schema": {
@@ -547,19 +689,54 @@
             }
           },
           "401": {
-            "description": "Session required"
+            "description": "Session required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "CSRF or origin rejected"
+            "description": "CSRF or origin rejected",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Resource unavailable"
+            "description": "Resource unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Rate limited; Retry-After in seconds"
+            "description": "Rate limited; Retry-After in seconds",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "503": {
-            "description": "Dependency unavailable"
+            "description": "Dependency unavailable",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "204": {
             "description": "No Content"

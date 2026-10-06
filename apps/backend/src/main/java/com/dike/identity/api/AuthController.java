@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @ConditionalOnWebApplication
-@SecurityRequirement(name = "sessionCookie")
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "400",
     description = "Invalid request",
@@ -27,19 +26,44 @@ import org.springframework.web.bind.annotation.*;
                     implementation = com.dike.shared.api.ErrorResponse.class)))
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "401",
-    description = "Session required", content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.dike.shared.api.ErrorResponse.class)))
+    description = "Session required",
+    content =
+        @io.swagger.v3.oas.annotations.media.Content(
+            schema =
+                @io.swagger.v3.oas.annotations.media.Schema(
+                    implementation = com.dike.shared.api.ErrorResponse.class)))
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "403",
-    description = "CSRF or origin rejected", content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.dike.shared.api.ErrorResponse.class)))
+    description = "CSRF or origin rejected",
+    content =
+        @io.swagger.v3.oas.annotations.media.Content(
+            schema =
+                @io.swagger.v3.oas.annotations.media.Schema(
+                    implementation = com.dike.shared.api.ErrorResponse.class)))
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "404",
-    description = "Resource unavailable", content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.dike.shared.api.ErrorResponse.class)))
+    description = "Resource unavailable",
+    content =
+        @io.swagger.v3.oas.annotations.media.Content(
+            schema =
+                @io.swagger.v3.oas.annotations.media.Schema(
+                    implementation = com.dike.shared.api.ErrorResponse.class)))
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "429",
-    description = "Rate limited; Retry-After in seconds", content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.dike.shared.api.ErrorResponse.class)))
+    description = "Rate limited; Retry-After in seconds",
+    content =
+        @io.swagger.v3.oas.annotations.media.Content(
+            schema =
+                @io.swagger.v3.oas.annotations.media.Schema(
+                    implementation = com.dike.shared.api.ErrorResponse.class)))
 @io.swagger.v3.oas.annotations.responses.ApiResponse(
     responseCode = "503",
-    description = "Dependency unavailable", content=@io.swagger.v3.oas.annotations.media.Content(schema=@io.swagger.v3.oas.annotations.media.Schema(implementation=com.dike.shared.api.ErrorResponse.class)))
+    description = "Dependency unavailable",
+    content =
+        @io.swagger.v3.oas.annotations.media.Content(
+            schema =
+                @io.swagger.v3.oas.annotations.media.Schema(
+                    implementation = com.dike.shared.api.ErrorResponse.class)))
 public class AuthController {
   private final AuthService auth;
   private final AuthSettings settings;
@@ -90,6 +114,10 @@ public class AuthController {
       String deviceSessionId, long issuedAt, long lastSeenAt, long expiresAt, boolean current) {}
 
   @GetMapping("/google")
+  @io.swagger.v3.oas.annotations.security.SecurityRequirements
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "302",
+      description = "Redirect to Google")
   @Operation(
       operationId = "startGoogleLogin",
       security = {})
@@ -111,8 +139,12 @@ public class AuthController {
   }
 
   @GetMapping("/session")
+  @SecurityRequirement(name = "sessionCookie")
   @Operation(operationId = "getSession")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Success",useReturnTypeSchema=true)
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Success",
+      useReturnTypeSchema = true)
   public SessionView session(HttpServletRequest request) {
     var p = principal(request);
     return new SessionView(
@@ -124,15 +156,23 @@ public class AuthController {
   }
 
   @GetMapping("/csrf")
+  @SecurityRequirement(name = "sessionCookie")
   @Operation(operationId = "getCsrf")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Success",useReturnTypeSchema=true)
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Success",
+      useReturnTypeSchema = true)
   public CsrfView csrf(HttpServletRequest request) {
     return new CsrfView(principal(request).session().csrf());
   }
 
   @PostMapping("/refresh")
+  @SecurityRequirement(name = "sessionCookie")
   @Operation(operationId = "refreshSession")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Success",useReturnTypeSchema=true)
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Success",
+      useReturnTypeSchema = true)
   public CsrfView refresh(HttpServletRequest request, HttpServletResponse response) {
     var issued = auth.refresh(AuthCookies.credential(request), request.getHeader("X-CSRF-TOKEN"));
     AuthCookies.write(response, issued.credential(), settings.secure());
@@ -140,15 +180,23 @@ public class AuthController {
   }
 
   @PutMapping("/phone")
+  @SecurityRequirement(name = "sessionCookie")
   @Operation(operationId = "updatePhone")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Success",useReturnTypeSchema=true)
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Success",
+      useReturnTypeSchema = true)
   public UserView phone(HttpServletRequest request, @Valid @RequestBody PhoneInput input) {
     return UserView.of(auth.phone(mutation(request), input.phone()));
   }
 
   @GetMapping("/sessions")
+  @SecurityRequirement(name = "sessionCookie")
   @Operation(operationId = "listSessions")
-  @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode="200",description="Success",useReturnTypeSchema=true)
+  @io.swagger.v3.oas.annotations.responses.ApiResponse(
+      responseCode = "200",
+      description = "Success",
+      useReturnTypeSchema = true)
   public List<DeviceView> sessions(HttpServletRequest request) {
     var p = principal(request);
     return auth.list(p).stream()
@@ -164,6 +212,7 @@ public class AuthController {
   }
 
   @DeleteMapping("/sessions/{deviceSessionId}")
+  @SecurityRequirement(name = "sessionCookie")
   @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
   @Operation(operationId = "revokeSession")
   public void revoke(
@@ -177,6 +226,7 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
+  @SecurityRequirement(name = "sessionCookie")
   @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
   @Operation(operationId = "logout")
   public void logout(HttpServletRequest request, HttpServletResponse response) {
@@ -186,6 +236,7 @@ public class AuthController {
   }
 
   @PostMapping("/logout-all")
+  @SecurityRequirement(name = "sessionCookie")
   @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
   @Operation(operationId = "logoutAll")
   public void logoutAll(HttpServletRequest request, HttpServletResponse response) {

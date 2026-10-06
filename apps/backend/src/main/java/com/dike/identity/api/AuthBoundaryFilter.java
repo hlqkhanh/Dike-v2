@@ -1,6 +1,8 @@
 package com.dike.identity.api;
 
 import com.dike.identity.application.AuthService;
+import com.dike.shared.api.ApiErrorWriter;
+import com.dike.shared.api.ApiException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Set;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 final class AuthBoundaryFilter extends OncePerRequestFilter {
@@ -27,30 +30,43 @@ final class AuthBoundaryFilter extends OncePerRequestFilter {
       response.setHeader("Cache-Control", "no-store");
       if (!Set.of("GET", "HEAD", "OPTIONS").contains(request.getMethod())
           && !validOrigin(request)) {
-        response.setStatus(403);
-        response.setContentType("application/json");
-        response
-            .getWriter()
-            .write(
-                "{\"error\":{\"code\":\"ORIGIN_NOT_ALLOWED\",\"message\":\"Request origin is not allowed\"}}");
+        ApiErrorWriter.write(
+            request,
+            response,
+            HttpStatus.FORBIDDEN,
+            "ORIGIN_NOT_ALLOWED",
+            "Request origin is not allowed");
         return;
       }
       if (request.getRequestURI().equals("/api/v1/auth/google")
           || request.getRequestURI().equals("/api/v1/auth/callback")) {
         try {
           auth.rateLimit(request.getRemoteAddr());
+        } catch (ApiException e) {
+          ApiErrorWriter.write(request, response, e.status(), e.code(), e.getMessage());
+          return;
         } catch (RuntimeException e) {
-          response.setStatus(e instanceof com.dike.shared.api.ApiException ? 429 : 503);
-          response.setHeader("Retry-After", "60");
-          response.setContentType("application/json");
-          response
-              .getWriter()
-              .write("{\"error\":{\"code\":\"AUTH_UNAVAILABLE\",\"message\":\"Try again later\"}}");
+          ApiErrorWriter.write(
+              request,
+              response,
+              HttpStatus.SERVICE_UNAVAILABLE,
+              "AUTH_UNAVAILABLE",
+              "Try again later");
           return;
         }
       }
     }
-    chain.doFilter(request, response);
+    try {
+      chain.doFilter(request, response);
+    } catch (org.springframework.dao.DataAccessException e) {
+      if (response.isCommitted()) throw e;
+      ApiErrorWriter.write(
+          request,
+          response,
+          HttpStatus.SERVICE_UNAVAILABLE,
+          "DEPENDENCY_UNAVAILABLE",
+          "Service temporarily unavailable");
+    }
   }
 
   boolean validOrigin(HttpServletRequest request) {
