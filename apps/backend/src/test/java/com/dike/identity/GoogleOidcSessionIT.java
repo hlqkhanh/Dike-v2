@@ -141,7 +141,9 @@ class GoogleOidcSessionIT {
             .header("Origin", app)
             .header("Content-Type", "application/json")
             .header("X-XSRF-TOKEN", URLDecoder.decode(csrf, StandardCharsets.UTF_8))
-            .PUT(HttpRequest.BodyPublishers.ofString("{\"phoneNumber\":\"0901234567\"}"))
+            .PUT(
+                HttpRequest.BodyPublishers.ofString(
+                    "{\"phoneNumber\":\"0901234567\",\"expectedPhoneVersion\":0}"))
             .build();
     HttpResponse<String> phone = browser.send(phoneRequest, HttpResponse.BodyHandlers.ofString());
     assertThat(phone.statusCode()).isEqualTo(200);
