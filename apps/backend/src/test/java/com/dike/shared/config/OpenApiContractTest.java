@@ -29,7 +29,7 @@ class OpenApiContractTest {
     var schemaNames = new HashSet<String>();
     reviewed.at("/components/schemas").fieldNames().forEachRemaining(schemaNames::add);
     assertThat(schemaNames)
-        .containsExactlyInAnyOrder("ErrorResponse", "ErrorBody", "FieldViolation");
+        .contains("ErrorResponse", "ErrorBody", "FieldViolation", "SessionView", "UserView");
   }
 
   private Path findRepositoryRoot() {

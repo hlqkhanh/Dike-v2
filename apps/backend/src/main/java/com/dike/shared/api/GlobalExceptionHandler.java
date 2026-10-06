@@ -58,6 +58,17 @@ public class GlobalExceptionHandler {
         List.of());
   }
 
+  @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+  ResponseEntity<ErrorResponse> handleDependency(
+      org.springframework.dao.DataAccessException exception, HttpServletRequest request) {
+    return response(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "DEPENDENCY_UNAVAILABLE",
+        "Dịch vụ tạm thời không khả dụng",
+        requestId(request),
+        List.of());
+  }
+
   private ErrorResponse.FieldViolation toViolation(FieldError error) {
     return new ErrorResponse.FieldViolation(error.getField(), error.getCode());
   }
@@ -69,6 +80,10 @@ public class GlobalExceptionHandler {
       String requestId,
       List<ErrorResponse.FieldViolation> fields) {
     return ResponseEntity.status(status)
+        .headers(
+            headers -> {
+              if (status == HttpStatus.TOO_MANY_REQUESTS) headers.set("Retry-After", "60");
+            })
         .body(new ErrorResponse(new ErrorResponse.ErrorBody(code, message, requestId, fields)));
   }
 

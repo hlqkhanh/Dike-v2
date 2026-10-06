@@ -1,15 +1,10 @@
 #!/bin/sh
 set -eu
 
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm check
-else
-  corepack pnpm check
-fi
+. "$(dirname "$0")/toolchain.sh"
+corepack pnpm check
 
-if [ -f "./mvnw.cmd" ]; then
-  ./mvnw.cmd -B -ntp verify
-else
-  ./mvnw -B -ntp verify
-fi
-
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) ./mvnw.cmd -B -ntp verify ;;
+  *) ./mvnw -B -ntp verify ;;
+esac

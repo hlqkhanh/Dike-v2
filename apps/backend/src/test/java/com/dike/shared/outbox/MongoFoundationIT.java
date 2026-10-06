@@ -32,7 +32,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 class MongoFoundationIT {
 
   private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");

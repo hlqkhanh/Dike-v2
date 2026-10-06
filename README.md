@@ -7,7 +7,8 @@ Dike là nền tảng kết nối người có xe và người cần đi nhờ t
 Repository được xây mới theo hướng greenfield. Source, dữ liệu và Git history của
 prototype cũ không được khôi phục hoặc migrate. Stage 1 cung cấp app shell, modular
 backend, local infrastructure, transaction/outbox foundation và contract sinh tự
-động; chưa chứa tính năng nghiệp vụ.
+động. Stage 2 đã có Google OAuth, session Redis, nhập số điện thoại chưa xác minh
+và UI quản lý phiên; nghiệm thu Docker/Google thật và browser E2E còn pending.
 
 ## Kiến trúc đã chọn
 
@@ -102,6 +103,26 @@ pnpm api:generate
 pnpm api:check
 ```
 
+`api:generate` cần Java 21: chạy backend trong test context để xuất OpenAPI rồi
+sinh kiểu dữ liệu và route/method TypeScript. `api:check` kiểm tra artifact → TS;
+Maven `verify` kiểm tra toàn bộ runtime contract → artifact. Không sửa JSON hoặc
+client sinh ra để che drift từ controller.
+
+## Google login và Stage 2
+
+Cấu hình `DIKE_GOOGLE_CLIENT_ID`, `DIKE_GOOGLE_CLIENT_SECRET` trong environment
+của API. Đăng ký callback `http://localhost:8080/api/v1/auth/callback` trong OAuth
+client Google dùng cho local. Web mặc định ở `http://localhost:3000`; URL cấu hình
+qua `DIKE_AUTH_WEB_URL` và `DIKE_AUTH_CALLBACK_URL`. Không commit credential.
+
+Vào `/login`, đăng nhập Google, nhập số điện thoại rồi mở `/account/sessions` để
+làm mới hoặc thu hồi phiên. Khi chưa cấu hình Google, endpoint trả lỗi khả dụng;
+không có tài khoản hoặc header đăng nhập giả. Số điện thoại vẫn chưa xác minh.
+
+Staging/production yêu cầu HTTPS, cấu hình Google đầy đủ và
+`REQUIRE_PHONE_OTP=true`. Chưa nghiệm thu Stage 2 không đồng nghĩa sẵn sàng pilot;
+xem các gate còn thiếu trong runbook.
+
 ## Xử lý lỗi thường gặp trên Windows
 
 - Docker đứng ở “Starting the Docker Engine”: thoát Docker Desktop, chạy
@@ -117,6 +138,7 @@ pnpm api:check
 - [Master plan](plan/PLAN_MASTER.md)
 - [Stage 0 runbook](plan/STAGE_0.md)
 - [Stage 1 runbook](plan/STAGE_1.md)
+- [Stage 2 runbook và kết quả rà soát](plan/STAGE_2.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

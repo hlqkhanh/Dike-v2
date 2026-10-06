@@ -24,7 +24,7 @@ public class OpenApiConfiguration {
                 .title("Dike API")
                 .version("v1")
                 .description("Contract for the Dike production API."))
-        .servers(List.of(new Server().url("/api/v1")))
+        .servers(List.of(new Server().url("/")))
         .components(
             new Components()
                 .addSchemas(
