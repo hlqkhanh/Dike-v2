@@ -128,7 +128,7 @@ class GoogleOidcSessionIT {
     assertThat(session.headers().firstValue("cache-control")).contains("no-store");
     JsonNode sessionBody = JSON.readTree(session.body());
     assertThat(sessionBody.at("/user/email").asText()).isEqualTo("rider@example.test");
-    assertThat(sessionBody.at("/user/nextAction").asText()).isEqualTo("SUBMIT_PHONE");
+    assertThat(sessionBody.at("/user/nextAction").asText()).isEqualTo("REVIEW_CONSENT");
 
     String csrf =
         cookies.getCookieStore().getCookies().stream()

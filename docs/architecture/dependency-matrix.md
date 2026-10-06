@@ -28,6 +28,11 @@ kiểm tra compatibility và cập nhật tài liệu này cùng lockfile.
 | MongoDB image       | 8.0.32    | MongoDB 8.0 patch pin cho local                        |
 | Redis image         | 8.10.2    | Redis patch pin cho local                              |
 | MinIO image         | 2025.7.23 | Bitnami legacy; local/test only, không dùng production |
+| TwelveMonkeys WebP  | 3.15.0    | Decode WebP bằng ImageIO trước khi re-encode avatar    |
+
+Stage 4 dùng `S3Presigner` từ cùng AWS SDK BOM, Java ImageIO và TwelveMonkeys WebP
+cho decode/re-encode avatar. Hosted environment phải cung cấp adapter content scanner
+được review trước khi nhận dữ liệu thật.
 
 ## Quy tắc quản lý
 

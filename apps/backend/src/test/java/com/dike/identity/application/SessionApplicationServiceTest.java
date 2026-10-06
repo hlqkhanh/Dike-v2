@@ -38,7 +38,8 @@ class SessionApplicationServiceTest {
             repository,
             mock(IdentityProvisioningService.class),
             mock(AccountAccessService.class),
-            properties());
+            properties(),
+            mock(ConsentService.class));
 
     boolean found = service.revoke(new DikePrincipal("user-1"), "public-handle", request);
 

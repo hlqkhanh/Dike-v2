@@ -29,6 +29,18 @@ public class OutboxPublisher {
       String aggregateId,
       int payloadVersion,
       Map<String, Object> payload) {
+    return publishAt(
+        eventType, aggregateType, aggregateId, payloadVersion, payload, clock.instant());
+  }
+
+  @Transactional
+  public OutboxEvent publishAt(
+      String eventType,
+      String aggregateType,
+      String aggregateId,
+      int payloadVersion,
+      Map<String, Object> payload,
+      Instant availableAt) {
     Instant now = clock.instant();
     OutboxEvent event =
         new OutboxEvent(
@@ -42,7 +54,7 @@ public class OutboxPublisher {
             MDC.get("causationId"),
             OutboxStatus.PENDING,
             0,
-            now,
+            availableAt,
             null,
             null,
             now,

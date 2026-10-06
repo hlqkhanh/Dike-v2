@@ -31,7 +31,9 @@ export function AuthNavigation() {
   }
   return (
     <div className="nav-account">
-      <Link href="/account/sessions">{session.data.user.displayName}</Link>
+      <Link href="/me/profile">{session.data.user.displayName}</Link>
+      <Link href="/settings/privacy">Riêng tư</Link>
+      <Link href="/account/sessions">Thiết bị</Link>
       <button
         type="button"
         disabled={logout.isPending}

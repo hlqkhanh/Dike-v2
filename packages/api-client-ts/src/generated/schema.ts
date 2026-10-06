@@ -72,3 +72,112 @@ export type OtpChallenge = {
   resendAfter: string;
   maskedPhone?: string;
 };
+
+export type MyProfileResponse = {
+  userId: string;
+  displayName: string;
+  bio: string;
+  avatarUrl?: string;
+  version: number;
+  updatedAt: string;
+};
+
+export type UpdateProfileRequest = {
+  displayName: string;
+  bio: string;
+  expectedVersion: number;
+};
+
+export type PrivacyResponse = {
+  profileVisibility: string;
+  discoverableByName: boolean;
+  allowMessageRequests: boolean;
+  version: number;
+  updatedAt: string;
+};
+
+export type UpdatePrivacyRequest = {
+  profileVisibility: string;
+  discoverableByName: boolean;
+  allowMessageRequests: boolean;
+  expectedVersion: number;
+};
+
+export type PublicProfileResponse = {
+  userId: string;
+  displayName: string;
+  bio: string;
+  avatarUrl?: string;
+  verified: boolean;
+};
+
+export type ProfileSearchResponse = {
+  items: PublicProfileResponse[];
+  nextCursor?: string;
+};
+
+export type ConsentRequirementResponse = {
+  type: string;
+  version: string;
+  documentUrl?: string;
+  accepted: boolean;
+};
+
+export type ConsentReceiptResponse = {
+  id: string;
+  type: string;
+  version: string;
+  decision: string;
+  occurredAt: string;
+  source: string;
+  locale: string;
+};
+
+export type ConsentSummaryResponse = {
+  requirements: ConsentRequirementResponse[];
+  receipts: ConsentReceiptResponse[];
+};
+
+export type ConsentDecisionRequest = {
+  consentType: string;
+  decision: string;
+  locale?: string;
+};
+
+export type DeletionResponse = {
+  requestId: string;
+  state: string;
+  requestedAt: string;
+  executeAfter: string;
+  completedAt?: string;
+};
+
+export type CreateUploadRequest = {
+  purpose: string;
+  contentType: string;
+  sizeBytes: number;
+  checksumSha256?: string;
+};
+
+export type UploadIntent = {
+  fileId: string;
+  uploadUrl: string;
+  requiredHeaders: Record<string, string>;
+  expiresAt: string;
+};
+
+export type FileView = {
+  fileId: string;
+  purpose: string;
+  state: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+  updatedAt: string;
+  readyAt?: string;
+};
+
+export type DownloadGrant = {
+  downloadUrl: string;
+  expiresAt: string;
+};

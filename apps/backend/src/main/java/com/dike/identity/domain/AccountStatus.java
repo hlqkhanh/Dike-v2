@@ -2,5 +2,6 @@ package com.dike.identity.domain;
 
 public enum AccountStatus {
   ACTIVE,
-  LOCKED
+  LOCKED,
+  DELETION_REQUESTED
 }

@@ -45,6 +45,7 @@
         <testcontainers.version>1.21.3</testcontainers.version>
         <aws.sdk.version>2.42.23</aws.sdk.version>
         <libphonenumber.version>9.0.17</libphonenumber.version>
+        <twelvemonkeys.version>3.15.0</twelvemonkeys.version>
     </properties>
 
     <dependencyManagement>

@@ -351,3 +351,147 @@ a:focus-visible {
   font: inherit;
   padding: 0.45rem 0.75rem;
 }
+
+.settings-page {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0 auto;
+  max-width: 58rem;
+  min-height: 100vh;
+  padding: clamp(2rem, 7vw, 5rem) 1rem;
+}
+
+.settings-page h1 {
+  font-size: clamp(2.4rem, 7vw, 4.8rem);
+}
+
+.settings-copy,
+.settings-help,
+.settings-card p,
+.receipt-list {
+  color: var(--dike-ink-muted);
+  line-height: 1.6;
+}
+
+.settings-card {
+  display: grid;
+  gap: 1rem;
+  min-height: auto;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.settings-card form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.settings-state {
+  margin: 4rem auto;
+  max-width: 40rem;
+}
+
+.dike-field textarea,
+.dike-field select {
+  background: white;
+  border: 1px solid var(--dike-border);
+  border-radius: var(--dike-radius-sm);
+  font: inherit;
+  padding: 0.85rem;
+  resize: vertical;
+}
+
+.dike-field textarea:focus-visible,
+.dike-field select:focus-visible,
+.setting-toggle input:focus-visible,
+.file-picker input:focus-visible {
+  outline: 3px solid var(--dike-focus);
+  outline-offset: 2px;
+}
+
+.avatar-row,
+.public-profile-card {
+  align-items: center;
+  display: flex;
+  gap: 1.25rem;
+}
+
+.profile-avatar {
+  background: var(--dike-surface-muted);
+  border: 1px solid var(--dike-border);
+  border-radius: 50%;
+  height: 5rem;
+  object-fit: cover;
+  width: 5rem;
+}
+
+.profile-avatar--empty {
+  align-items: center;
+  display: flex;
+  font-size: 2rem;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.profile-avatar--large {
+  height: 8rem;
+  width: 8rem;
+}
+
+.file-picker {
+  display: grid;
+  font-weight: 700;
+  gap: 0.5rem;
+}
+
+.file-picker input {
+  max-width: 100%;
+}
+
+.setting-toggle {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+.setting-toggle input {
+  height: 1.15rem;
+  margin-top: 0.2rem;
+  width: 1.15rem;
+}
+
+.setting-toggle span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.setting-toggle small {
+  color: var(--dike-ink-muted);
+}
+
+.danger-card {
+  border-color: color-mix(in srgb, var(--dike-danger) 45%, var(--dike-border));
+}
+
+.receipt-list {
+  border-top: 1px solid var(--dike-border);
+  padding-top: 1.5rem;
+}
+
+@media (max-width: 44rem) {
+  .avatar-row,
+  .public-profile-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav-account a:not(:first-child) {
+    display: none;
+  }
+}

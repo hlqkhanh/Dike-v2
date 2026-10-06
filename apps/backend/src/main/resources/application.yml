@@ -82,6 +82,26 @@ dike:
     account-id: ${DIKE_ADMIN_BOOTSTRAP_ACCOUNT_ID:}
     operator: ${DIKE_ADMIN_BOOTSTRAP_OPERATOR:}
     reason: ${DIKE_ADMIN_BOOTSTRAP_REASON:}
+  profile:
+    documents:
+      terms-version: ${DIKE_TERMS_VERSION:2026-10-06}
+      terms-url: ${DIKE_TERMS_URL:http://localhost:3000/legal/terms}
+      privacy-version: ${DIKE_PRIVACY_VERSION:2026-10-06}
+      privacy-url: ${DIKE_PRIVACY_URL:http://localhost:3000/legal/privacy}
+      age-version: ${DIKE_AGE_ATTESTATION_VERSION:2026-10-06}
+    files:
+      upload-ttl: ${DIKE_FILE_UPLOAD_TTL:5m}
+      download-ttl: ${DIKE_FILE_DOWNLOAD_TTL:60s}
+      cleanup-age: ${DIKE_FILE_CLEANUP_AGE:24h}
+      cleanup-interval: ${DIKE_FILE_CLEANUP_INTERVAL:1h}
+      public-base-url: ${DIKE_PUBLIC_OBJECT_BASE_URL:http://localhost:9000/dike-public/}
+      inspector: ${DIKE_FILE_INSPECTOR:basic}
+      avatar-maximum-bytes: ${DIKE_AVATAR_MAXIMUM_BYTES:5242880}
+      verification-maximum-bytes: ${DIKE_VERIFICATION_MAXIMUM_BYTES:10485760}
+      maximum-image-pixels: ${DIKE_MAXIMUM_IMAGE_PIXELS:20000000}
+    deletion:
+      waiting-period: ${DIKE_ACCOUNT_DELETION_WAITING_PERIOD:7d}
+      policy-version: ${DIKE_ACCOUNT_DELETION_POLICY_VERSION:account-deletion-v1}
 
 management:
   endpoint:

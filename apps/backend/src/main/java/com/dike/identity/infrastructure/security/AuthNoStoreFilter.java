@@ -11,7 +11,11 @@ final class AuthNoStoreFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/auth/");
+    String path = request.getRequestURI();
+    return !(path.startsWith("/api/v1/auth/")
+        || path.startsWith("/api/v1/me/")
+        || path.startsWith("/api/v1/users")
+        || path.startsWith("/api/v1/files/"));
   }
 
   @Override

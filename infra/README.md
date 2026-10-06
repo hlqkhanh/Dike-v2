@@ -26,6 +26,13 @@ MinIO dùng image Bitnami legacy đã pin vì registry community MinIO hiện kh
 Docker Desktop pull anonymous ổn định. Image này chỉ phục vụ local/test; production
 theo ADR 0007 vẫn dùng Cloudflare R2 và phải qua security review riêng.
 
+Stage 4 yêu cầu `dike-private` không public và chỉ cấp quyền bằng presigned URL;
+`dike-public` chỉ chứa avatar derivative đã inspect. Browser CORS phải giới hạn
+exact origin `http://localhost:3000`, method `PUT/HEAD` và signed headers. Trước
+khi dùng môi trường hosted, chạy storage smoke theo
+[`file-storage-and-account-deletion.md`](../docs/runbooks/file-storage-and-account-deletion.md);
+không coi việc bucket tồn tại là bằng chứng policy/CORS đúng.
+
 ## Port override
 
 Baseline giữ port cố định để Mongo replica set quảng bá địa chỉ có thể truy cập từ

@@ -2,12 +2,33 @@
 
 Ngày lập kế hoạch: 06/10/2026  
 Baseline: `0232d6d` trên `main`  
-Trạng thái: Planned — chưa bắt đầu triển khai
+Trạng thái: In progress — code chính đã triển khai; còn Docker/MinIO IT và nghiệm thu hosted
 
 Tài liệu này là runbook triển khai Stage 4. `PLAN_MASTER.md`, ADR đã Accepted và
 các contract đã phát hành có ưu tiên cao hơn. Mọi hạn mức, retention và quyết định
 pháp lý trong tài liệu này là baseline kỹ thuật cần product/security/legal review;
 không được tự coi là cam kết tuân thủ pháp luật.
+
+## Tiến độ triển khai
+
+Đã triển khai trong working tree:
+
+- Profile/privacy aggregate, optimistic update, policy projection, search và
+  migration backfill.
+- Consent receipt append-only và `REVIEW_CONSENT` trong session onboarding.
+- File metadata, presigned PUT/GET, quarantine, inspection, avatar re-encode,
+  outbox processing/delete, cleanup và quota Redis.
+- Account deletion request, fresh re-auth, session revoke và delayed purge event.
+- OpenAPI, generated schema/operation types, TypeScript API adapter và năm màn hình
+  profile/settings/public profile.
+- ADR 0013, environment example và runbook storage/deletion.
+- 10/10 browser assertion Stage 4 chạy qua trên Chromium desktop/mobile; runner local
+  Node 22/Windows còn treo khi teardown dev server và phải được xác nhận lại bằng
+  toolchain Node 24 trong CI.
+
+Chưa được đánh dấu `Complete` trước khi Testcontainers MinIO/Mongo/Redis không skip,
+browser E2E thoát thành công trong CI, bucket CORS/lifecycle được smoke test và scanner
+hosted đã được chọn/review. Basic inspector hiện chỉ là local/test baseline fail-closed.
 
 ## 1. Mục tiêu
 

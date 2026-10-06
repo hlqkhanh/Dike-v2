@@ -96,6 +96,9 @@ public class SecurityConfiguration {
                     .permitAll()
                     .requestMatchers("/api/v1/auth/**")
                     .authenticated()
+                    .requestMatchers(
+                        "/api/v1/me/**", "/api/v1/users/**", "/api/v1/users", "/api/v1/files/**")
+                    .authenticated()
                     .requestMatchers("/api/**")
                     .denyAll()
                     .anyRequest()

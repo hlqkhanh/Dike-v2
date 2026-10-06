@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, createApiClientConfiguration, createAuthApi } from "./index";
+import {
+  ApiError,
+  createApiClientConfiguration,
+  createAuthApi,
+  createProfileApi,
+} from "./index";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -71,5 +76,56 @@ describe("auth API", () => {
       code: "OTP_RATE_LIMITED",
       retryAfterSeconds: 42,
     } satisfies Partial<ApiError>);
+  });
+});
+
+describe("profile and file API", () => {
+  it("keeps profile mutations on the API origin with CSRF", async () => {
+    vi.stubGlobal("document", { cookie: "XSRF-TOKEN=profile-csrf" });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          userId: "user-1",
+          displayName: "Nguyễn An",
+          bio: "",
+          version: 2,
+          updatedAt: "2026-10-06T00:00:00Z",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createProfileApi({ baseUrl: "/api/v1" });
+
+    await api.updateProfile("Nguyễn An", "", 1);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/me/profile");
+    expect(init.method).toBe("PATCH");
+    expect(new Headers(init.headers).get("X-XSRF-TOKEN")).toBe("profile-csrf");
+  });
+
+  it("uploads bytes only to the fixed presigned URL and without cookies", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createProfileApi({ baseUrl: "/api/v1" });
+    const file = new File(["synthetic"], "avatar.png", { type: "image/png" });
+
+    await api.uploadToGrantedUrl(
+      {
+        fileId: "file-1",
+        uploadUrl: "https://objects.example.test/signed",
+        requiredHeaders: { "content-type": "image/png" },
+        expiresAt: "2026-10-06T00:05:00Z",
+      },
+      file,
+    );
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://objects.example.test/signed");
+    expect(init.method).toBe("PUT");
+    expect(init.credentials).toBeUndefined();
   });
 });

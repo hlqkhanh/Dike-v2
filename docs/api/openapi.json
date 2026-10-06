@@ -283,6 +283,272 @@
           }
         }
       }
+    },
+    "/me/profile": {
+      "get": {
+        "operationId": "getMyProfile",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Owner profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MyProfileResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMyProfile",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MyProfileResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/privacy": {
+      "get": {
+        "operationId": "getMyPrivacy",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Privacy settings",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PrivacyResponse" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMyPrivacy",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePrivacyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated privacy settings",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PrivacyResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/consents": {
+      "get": {
+        "operationId": "getMyConsents",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Consent requirements and receipts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "recordConsent",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentReceiptResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/deletion-requests": {
+      "post": {
+        "operationId": "requestAccountDeletion",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": {
+          "202": {
+            "description": "Deletion request accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeletionResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/deletion-request": {
+      "get": {
+        "operationId": "getAccountDeletionRequest",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Active deletion request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeletionResponse" }
+              }
+            }
+          },
+          "204": { "description": "No active request" }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "getUserProfile",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Policy-filtered profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfileResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "searchUserProfiles",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Policy-filtered profile search",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/uploads": {
+      "post": {
+        "operationId": "createFileUpload",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUploadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Presigned upload grant",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UploadIntent" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{fileId}": {
+      "get": {
+        "operationId": "getFileMetadata",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Safe file metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FileView" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFile",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": { "204": { "description": "Deletion queued" } }
+      }
+    },
+    "/files/{fileId}/complete": {
+      "post": {
+        "operationId": "completeFileUpload",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": {
+          "202": {
+            "description": "Inspection queued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FileView" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{fileId}/download-url": {
+      "post": {
+        "operationId": "createPrivateDownloadUrl",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": {
+          "200": {
+            "description": "Short-lived private download grant",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DownloadGrant" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -417,6 +683,204 @@
           "expiresAt": { "type": "string", "format": "date-time" },
           "resendAfter": { "type": "string", "format": "date-time" },
           "maskedPhone": { "type": "string" }
+        }
+      },
+      "MyProfileResponse": {
+        "type": "object",
+        "required": ["userId", "displayName", "bio", "version", "updatedAt"],
+        "properties": {
+          "userId": { "type": "string" },
+          "displayName": { "type": "string" },
+          "bio": { "type": "string" },
+          "avatarUrl": { "type": "string" },
+          "version": { "type": "integer" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "required": ["displayName", "bio", "expectedVersion"],
+        "properties": {
+          "displayName": { "type": "string" },
+          "bio": { "type": "string" },
+          "expectedVersion": { "type": "integer" }
+        }
+      },
+      "PrivacyResponse": {
+        "type": "object",
+        "required": [
+          "profileVisibility",
+          "discoverableByName",
+          "allowMessageRequests",
+          "version",
+          "updatedAt"
+        ],
+        "properties": {
+          "profileVisibility": { "type": "string" },
+          "discoverableByName": { "type": "boolean" },
+          "allowMessageRequests": { "type": "boolean" },
+          "version": { "type": "integer" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UpdatePrivacyRequest": {
+        "type": "object",
+        "required": [
+          "profileVisibility",
+          "discoverableByName",
+          "allowMessageRequests",
+          "expectedVersion"
+        ],
+        "properties": {
+          "profileVisibility": { "type": "string" },
+          "discoverableByName": { "type": "boolean" },
+          "allowMessageRequests": { "type": "boolean" },
+          "expectedVersion": { "type": "integer" }
+        }
+      },
+      "PublicProfileResponse": {
+        "type": "object",
+        "required": ["userId", "displayName", "bio", "verified"],
+        "properties": {
+          "userId": { "type": "string" },
+          "displayName": { "type": "string" },
+          "bio": { "type": "string" },
+          "avatarUrl": { "type": "string" },
+          "verified": { "type": "boolean" }
+        }
+      },
+      "ProfileSearchResponse": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PublicProfileResponse" }
+          },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "ConsentRequirementResponse": {
+        "type": "object",
+        "required": ["type", "version", "accepted"],
+        "properties": {
+          "type": { "type": "string" },
+          "version": { "type": "string" },
+          "documentUrl": { "type": "string" },
+          "accepted": { "type": "boolean" }
+        }
+      },
+      "ConsentReceiptResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "version",
+          "decision",
+          "occurredAt",
+          "source",
+          "locale"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "version": { "type": "string" },
+          "decision": { "type": "string" },
+          "occurredAt": { "type": "string", "format": "date-time" },
+          "source": { "type": "string" },
+          "locale": { "type": "string" }
+        }
+      },
+      "ConsentSummaryResponse": {
+        "type": "object",
+        "required": ["requirements", "receipts"],
+        "properties": {
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsentRequirementResponse"
+            }
+          },
+          "receipts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConsentReceiptResponse" }
+          }
+        }
+      },
+      "ConsentDecisionRequest": {
+        "type": "object",
+        "required": ["consentType", "decision"],
+        "properties": {
+          "consentType": { "type": "string" },
+          "decision": { "type": "string" },
+          "locale": { "type": "string" }
+        }
+      },
+      "DeletionResponse": {
+        "type": "object",
+        "required": ["requestId", "state", "requestedAt", "executeAfter"],
+        "properties": {
+          "requestId": { "type": "string" },
+          "state": { "type": "string" },
+          "requestedAt": { "type": "string", "format": "date-time" },
+          "executeAfter": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateUploadRequest": {
+        "type": "object",
+        "required": ["purpose", "contentType", "sizeBytes"],
+        "properties": {
+          "purpose": { "type": "string" },
+          "contentType": { "type": "string" },
+          "sizeBytes": { "type": "integer" },
+          "checksumSha256": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          }
+        }
+      },
+      "UploadIntent": {
+        "type": "object",
+        "required": ["fileId", "uploadUrl", "requiredHeaders", "expiresAt"],
+        "properties": {
+          "fileId": { "type": "string" },
+          "uploadUrl": { "type": "string" },
+          "requiredHeaders": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "FileView": {
+        "type": "object",
+        "required": [
+          "fileId",
+          "purpose",
+          "state",
+          "contentType",
+          "sizeBytes",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "fileId": { "type": "string" },
+          "purpose": { "type": "string" },
+          "state": { "type": "string" },
+          "contentType": { "type": "string" },
+          "sizeBytes": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "readyAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DownloadGrant": {
+        "type": "object",
+        "required": ["downloadUrl", "expiresAt"],
+        "properties": {
+          "downloadUrl": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" }
         }
       }
     },

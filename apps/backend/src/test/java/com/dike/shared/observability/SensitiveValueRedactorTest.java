@@ -16,4 +16,16 @@ class SensitiveValueRedactorTest {
         .doesNotContain("abc.def.ghi", "123456", "0912345678", "hunter2")
         .contains("[REDACTED]", "[REDACTED_PHONE]");
   }
+
+  @Test
+  void redactsSignedObjectStorageCredentials() {
+    String raw =
+        "https://objects.example.test/private/file?X-Amz-Credential=credential&X-Amz-Signature=abcdef";
+
+    String redacted = SensitiveValueRedactor.redact(raw);
+
+    assertThat(redacted)
+        .doesNotContain("credential", "abcdef")
+        .contains("X-Amz-Credential=[REDACTED]", "X-Amz-Signature=[REDACTED]");
+  }
 }

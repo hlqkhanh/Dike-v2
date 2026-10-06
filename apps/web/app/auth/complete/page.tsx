@@ -17,11 +17,14 @@ export default function AuthCompletePage() {
 
   useEffect(() => {
     if (!session.data) return;
-    router.replace(
-      session.data.user.nextAction === "SUBMIT_PHONE"
-        ? "/onboarding/phone"
-        : "/",
-    );
+    const destination =
+      session.data.user.nextAction === "REVIEW_CONSENT"
+        ? "/settings/consent"
+        : session.data.user.nextAction === "SUBMIT_PHONE" ||
+            session.data.user.nextAction === "VERIFY_PHONE"
+          ? "/onboarding/phone"
+          : "/";
+    router.replace(destination);
   }, [router, session.data]);
 
   if (session.isError) {

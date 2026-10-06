@@ -39,9 +39,19 @@ class OpenApiContractTest {
             "AuthUser",
             "AuthSession",
             "SessionListResponse",
-            "PhoneRequest");
+            "PhoneRequest",
+            "MyProfileResponse",
+            "PrivacyResponse",
+            "ConsentSummaryResponse",
+            "UploadIntent",
+            "FileView",
+            "DeletionResponse");
     assertThat(reviewed.at("/paths/~1auth~1session/get/operationId").asText())
         .isEqualTo("getAuthSession");
+    assertThat(reviewed.at("/paths/~1me~1profile/get/operationId").asText())
+        .isEqualTo("getMyProfile");
+    assertThat(reviewed.at("/paths/~1files~1uploads/post/operationId").asText())
+        .isEqualTo("createFileUpload");
   }
 
   private Path findRepositoryRoot() {

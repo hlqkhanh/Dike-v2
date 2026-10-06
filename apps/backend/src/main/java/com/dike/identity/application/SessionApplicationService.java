@@ -25,16 +25,19 @@ public class SessionApplicationService {
   private final IdentityProvisioningService identities;
   private final AccountAccessService access;
   private final IdentityProperties properties;
+  private final ConsentService consents;
 
   public SessionApplicationService(
       FindByIndexNameSessionRepository<? extends Session> sessions,
       IdentityProvisioningService identities,
       AccountAccessService access,
-      IdentityProperties properties) {
+      IdentityProperties properties,
+      ConsentService consents) {
     this.sessions = sessions;
     this.identities = identities;
     this.access = access;
     this.properties = properties;
+    this.consents = consents;
   }
 
   public AuthSessionResponse current(DikePrincipal principal, HttpSession session) {
@@ -88,11 +91,16 @@ public class SessionApplicationService {
 
   private UserView userView(UserAccount user) {
     AccountAccessSnapshot snapshot = access.require(user.id());
-    String nextAction =
-        switch (user.onboardingStatus()) {
-          case PHONE_REQUIRED -> "SUBMIT_PHONE";
-          case PHONE_SUBMITTED -> properties.requirePhoneOtp() ? "VERIFY_PHONE" : "NONE";
-        };
+    String nextAction;
+    if (!consents.hasRequiredConsents(user.id())) {
+      nextAction = "REVIEW_CONSENT";
+    } else {
+      nextAction =
+          switch (user.onboardingStatus()) {
+            case PHONE_REQUIRED -> "SUBMIT_PHONE";
+            case PHONE_SUBMITTED -> properties.requirePhoneOtp() ? "VERIFY_PHONE" : "NONE";
+          };
+    }
     return new UserView(
         user.id(),
         user.displayName(),

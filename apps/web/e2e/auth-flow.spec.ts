@@ -141,6 +141,134 @@ test("auth completion routes a new user through phone onboarding", async ({
   await expect(page).toHaveURL("http://127.0.0.1:3100/");
 });
 
+test("consent gate records current receipts before onboarding", async ({
+  context,
+  page,
+}) => {
+  let accepted = false;
+  await context.addCookies([
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+  ]);
+  await page.route("**/api/v1/auth/session", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...session,
+        user: { ...session.user, nextAction: "REVIEW_CONSENT" },
+      }),
+    }),
+  );
+  await page.route("**/api/v1/me/consents", async (route) => {
+    if (route.request().method() === "POST") {
+      expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-e2e");
+      accepted = true;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "receipt-1",
+          type: route.request().postDataJSON().consentType,
+          version: "2026-10-06",
+          decision: "ACCEPTED",
+          occurredAt: "2026-10-06T00:00:00Z",
+          source: "WEB",
+          locale: "vi",
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        requirements: [
+          {
+            type: "TERMS",
+            version: "2026-10-06",
+            documentUrl: "/legal/terms",
+            accepted,
+          },
+        ],
+        receipts: accepted
+          ? [
+              {
+                id: "receipt-1",
+                type: "TERMS",
+                version: "2026-10-06",
+                decision: "ACCEPTED",
+                occurredAt: "2026-10-06T00:00:00Z",
+                source: "WEB",
+                locale: "vi",
+              },
+            ]
+          : [],
+      }),
+    });
+  });
+
+  await page.goto("/auth/complete");
+  await expect(page).toHaveURL(/\/settings\/consent$/);
+  await page.getByRole("button", { name: "Tôi đồng ý" }).click();
+  await expect(page.getByText("Đã ghi nhận")).toBeVisible();
+});
+
+test("member edits profile and privacy through generated-client adapters", async ({
+  context,
+  page,
+}) => {
+  await context.addCookies([
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+  ]);
+  let profile = {
+    userId: "user-1",
+    displayName: "Người lái thử",
+    bio: "",
+    version: 0,
+    updatedAt: "2026-10-06T00:00:00Z",
+  };
+  await page.route("**/api/v1/me/profile", async (route) => {
+    if (route.request().method() === "PATCH") {
+      expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-e2e");
+      profile = { ...profile, ...route.request().postDataJSON(), version: 1 };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(profile),
+    });
+  });
+  await page.route("**/api/v1/me/privacy", async (route) => {
+    const body =
+      route.request().method() === "PATCH"
+        ? route.request().postDataJSON()
+        : {};
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        profileVisibility: body.profileVisibility ?? "MEMBERS",
+        discoverableByName: body.discoverableByName ?? true,
+        allowMessageRequests: body.allowMessageRequests ?? true,
+        version: route.request().method() === "PATCH" ? 1 : 0,
+        updatedAt: "2026-10-06T00:00:00Z",
+      }),
+    });
+  });
+
+  await page.goto("/me/profile");
+  await page.getByLabel("Tên hiển thị").fill("Nguyễn An");
+  await page.getByLabel("Giới thiệu").fill("Đi cùng tuyến mỗi ngày.");
+  await page.getByRole("button", { name: "Lưu hồ sơ" }).click();
+  await expect(page.getByLabel("Tên hiển thị")).toHaveValue("Nguyễn An");
+
+  await page.goto("/settings/privacy");
+  await page.getByLabel("Ai có thể xem hồ sơ cơ bản").selectOption("PRIVATE");
+  await page.getByRole("button", { name: "Lưu quyền riêng tư" }).click();
+  await expect(page.getByLabel("Ai có thể xem hồ sơ cơ bản")).toHaveValue(
+    "PRIVATE",
+  );
+});
+
 test("session management revokes only the selected public handle", async ({
   page,
 }) => {

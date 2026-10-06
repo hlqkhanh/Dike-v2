@@ -24,3 +24,4 @@ ADR trong thư mục này ghi các quyết định kiến trúc và governance h
 - [0010 — Stage 0 governance baseline](0010-stage-0-governance-baseline.md)
 - [0011 — Web same-origin authentication proxy](0011-web-same-origin-auth-proxy.md)
 - [0012 — OTP verification and account authority](0012-otp-verification-and-account-authority.md)
+- [0013 — Profile, privacy, consent and file lifecycle](0013-profile-privacy-consent-and-file-lifecycle.md)
