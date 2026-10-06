@@ -18,7 +18,9 @@ try {
       ["config", "--local", "dike.nodePath", dirname(process.execPath)],
       { stdio: "inherit" },
     );
-    console.log("Saved Node toolchain for Git clients in local Git configuration.");
+    console.log(
+      "Saved Node toolchain for Git clients in local Git configuration.",
+    );
   }
 } catch (error) {
   console.error("Unable to configure Git hooks.");
