@@ -20,6 +20,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.session.web.http.CookieSerializer;
@@ -100,7 +101,11 @@ public class SecurityConfiguration {
                     .denyAll()
                     .anyRequest()
                     .permitAll())
-        .csrf(csrfConfig -> csrfConfig.csrfTokenRepository(csrf))
+        .csrf(
+            csrfConfig ->
+                csrfConfig
+                    .csrfTokenRepository(csrf)
+                    .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
         .oauth2Login(
             oauth ->
                 oauth
