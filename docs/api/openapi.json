@@ -5,32 +5,48 @@
     "description": "Contract for the Dike production API.",
     "version": "v1"
   },
-  "servers": [{ "url": "/api/v1" }],
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
   "paths": {
     "/auth/google": {
       "get": {
         "operationId": "startGoogleLogin",
-        "responses": { "302": { "description": "Redirect to Google" } }
+        "responses": {
+          "302": {
+            "description": "Redirect to Google"
+          }
+        }
       }
     },
     "/auth/callback/google": {
       "get": {
         "operationId": "googleCallback",
         "responses": {
-          "302": { "description": "Redirect to the web application" }
+          "302": {
+            "description": "Redirect to the web application"
+          }
         }
       }
     },
     "/auth/session": {
       "get": {
         "operationId": "getAuthSession",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Current authenticated session",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
               }
             }
           },
@@ -38,7 +54,9 @@
             "description": "Authentication required",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -48,13 +66,20 @@
     "/auth/session/refresh": {
       "post": {
         "operationId": "refreshAuthSession",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Rotated session",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
               }
             }
           }
@@ -64,13 +89,19 @@
     "/auth/sessions": {
       "get": {
         "operationId": "listAuthSessions",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sessions for the current user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SessionListResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponse"
+                }
               }
             }
           }
@@ -80,22 +111,33 @@
     "/auth/sessions/{sessionHandle}": {
       "delete": {
         "operationId": "revokeAuthSession",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "parameters": [
           {
             "name": "sessionHandle",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "204": { "description": "Session revoked" },
+          "204": {
+            "description": "Session revoked"
+          },
           "404": {
             "description": "Session not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -105,26 +147,51 @@
     "/auth/logout": {
       "post": {
         "operationId": "logoutCurrentSession",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
-        "responses": { "204": { "description": "Logged out" } }
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          }
+        }
       }
     },
     "/auth/logout-all": {
       "post": {
         "operationId": "logoutAllSessions",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
-        "responses": { "204": { "description": "All sessions revoked" } }
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "All sessions revoked"
+          }
+        }
       }
     },
     "/auth/phone": {
       "put": {
         "operationId": "submitPhoneCandidate",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PhoneRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/PhoneRequest"
+              }
             }
           }
         },
@@ -133,7 +200,9 @@
             "description": "Updated onboarding state",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
               }
             }
           },
@@ -141,7 +210,9 @@
             "description": "Invalid phone",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -149,7 +220,9 @@
             "description": "Recent Google re-authentication required to replace a verified phone",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -157,7 +230,9 @@
             "description": "Phone version changed",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -167,20 +242,29 @@
     "/auth/otp": {
       "post": {
         "operationId": "issuePhoneOtp",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "parameters": [
           {
             "name": "Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/OtpIssueRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/OtpIssueRequest"
+              }
             }
           }
         },
@@ -189,7 +273,9 @@
             "description": "OTP challenge accepted",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OtpChallenge" }
+                "schema": {
+                  "$ref": "#/components/schemas/OtpChallenge"
+                }
               }
             }
           },
@@ -197,12 +283,17 @@
             "description": "OTP quota or resend cooldown reached",
             "headers": {
               "Retry-After": {
-                "schema": { "type": "integer", "minimum": 1 }
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -212,13 +303,19 @@
     "/auth/otp/{challengeId}": {
       "get": {
         "operationId": "getPhoneOtpStatus",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "challengeId",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -226,7 +323,9 @@
             "description": "Current challenge state",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OtpChallenge" }
+                "schema": {
+                  "$ref": "#/components/schemas/OtpChallenge"
+                }
               }
             }
           }
@@ -234,41 +333,63 @@
       },
       "delete": {
         "operationId": "cancelPhoneOtp",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "parameters": [
           {
             "name": "challengeId",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
-        "responses": { "204": { "description": "Challenge cancelled" } }
+        "responses": {
+          "204": {
+            "description": "Challenge cancelled"
+          }
+        }
       }
     },
     "/auth/otp/{challengeId}/verify": {
       "post": {
         "operationId": "verifyPhoneOtp",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "parameters": [
           {
             "name": "challengeId",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "Idempotency-Key",
             "in": "header",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/OtpVerifyRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyRequest"
+              }
             }
           }
         },
@@ -277,7 +398,9 @@
             "description": "Phone verified",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
               }
             }
           }
@@ -287,13 +410,19 @@
     "/me/profile": {
       "get": {
         "operationId": "getMyProfile",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Owner profile",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MyProfileResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/MyProfileResponse"
+                }
               }
             }
           }
@@ -301,12 +430,19 @@
       },
       "patch": {
         "operationId": "updateMyProfile",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
             }
           }
         },
@@ -315,7 +451,9 @@
             "description": "Updated profile",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MyProfileResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/MyProfileResponse"
+                }
               }
             }
           }
@@ -325,13 +463,19 @@
     "/me/privacy": {
       "get": {
         "operationId": "getMyPrivacy",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Privacy settings",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PrivacyResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyResponse"
+                }
               }
             }
           }
@@ -339,12 +483,19 @@
       },
       "patch": {
         "operationId": "updateMyPrivacy",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdatePrivacyRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePrivacyRequest"
+              }
             }
           }
         },
@@ -353,7 +504,9 @@
             "description": "Updated privacy settings",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PrivacyResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyResponse"
+                }
               }
             }
           }
@@ -363,7 +516,11 @@
     "/me/consents": {
       "get": {
         "operationId": "getMyConsents",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Consent requirements and receipts",
@@ -379,7 +536,12 @@
       },
       "post": {
         "operationId": "recordConsent",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -407,13 +569,20 @@
     "/me/deletion-requests": {
       "post": {
         "operationId": "requestAccountDeletion",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "responses": {
           "202": {
             "description": "Deletion request accepted",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DeletionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionResponse"
+                }
               }
             }
           }
@@ -423,24 +592,36 @@
     "/me/deletion-request": {
       "get": {
         "operationId": "getAccountDeletionRequest",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Active deletion request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DeletionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionResponse"
+                }
               }
             }
           },
-          "204": { "description": "No active request" }
+          "204": {
+            "description": "No active request"
+          }
         }
       }
     },
     "/users/{userId}": {
       "get": {
         "operationId": "getUserProfile",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Policy-filtered profile",
@@ -458,7 +639,11 @@
     "/users": {
       "get": {
         "operationId": "searchUserProfiles",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Policy-filtered profile search",
@@ -476,12 +661,19 @@
     "/files/uploads": {
       "post": {
         "operationId": "createFileUpload",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateUploadRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadRequest"
+              }
             }
           }
         },
@@ -490,7 +682,9 @@
             "description": "Presigned upload grant",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/UploadIntent" }
+                "schema": {
+                  "$ref": "#/components/schemas/UploadIntent"
+                }
               }
             }
           }
@@ -500,13 +694,19 @@
     "/files/{fileId}": {
       "get": {
         "operationId": "getFileMetadata",
-        "security": [{ "sessionCookie": [] }],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Safe file metadata",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/FileView" }
+                "schema": {
+                  "$ref": "#/components/schemas/FileView"
+                }
               }
             }
           }
@@ -514,20 +714,36 @@
       },
       "delete": {
         "operationId": "deleteFile",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
-        "responses": { "204": { "description": "Deletion queued" } }
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deletion queued"
+          }
+        }
       }
     },
     "/files/{fileId}/complete": {
       "post": {
         "operationId": "completeFileUpload",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "responses": {
           "202": {
             "description": "Inspection queued",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/FileView" }
+                "schema": {
+                  "$ref": "#/components/schemas/FileView"
+                }
               }
             }
           }
@@ -537,13 +753,1358 @@
     "/files/{fileId}/download-url": {
       "post": {
         "operationId": "createPrivateDownloadUrl",
-        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Short-lived private download grant",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DownloadGrant" }
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadGrant"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships": {
+      "get": {
+        "operationId": "listFriendships",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/requests": {
+      "get": {
+        "operationId": "listFriendRequests",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "schema": {
+              "type": "string",
+              "enum": ["incoming", "outgoing"],
+              "default": "incoming"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "sendFriendRequest",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFriendRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/users/{target}": {
+      "get": {
+        "operationId": "getSocialRelation",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/requests/{requestId}/accept": {
+      "post": {
+        "operationId": "acceptFriendRequest",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/requests/{requestId}/decline": {
+      "post": {
+        "operationId": "declineFriendRequest",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/requests/{requestId}/cancel": {
+      "post": {
+        "operationId": "cancelFriendRequest",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/friendships/{target}": {
+      "delete": {
+        "operationId": "removeFriend",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blocks": {
+      "get": {
+        "operationId": "listBlocks",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blocks/{target}": {
+      "put": {
+        "operationId": "blockUser",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unblockUser",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/social/revision": {
+      "get": {
+        "operationId": "getSocialRevision",
+        "tags": ["Social"],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current viewer-safe state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -557,19 +2118,29 @@
         "type": "object",
         "required": ["error"],
         "properties": {
-          "error": { "$ref": "#/components/schemas/ErrorBody" }
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
         }
       },
       "ErrorBody": {
         "type": "object",
         "required": ["code", "message", "requestId", "fields"],
         "properties": {
-          "code": { "type": "string" },
-          "message": { "type": "string" },
-          "requestId": { "type": "string" },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
           "fields": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/FieldViolation" }
+            "items": {
+              "$ref": "#/components/schemas/FieldViolation"
+            }
           }
         }
       },
@@ -577,17 +2148,27 @@
         "type": "object",
         "required": ["field", "code"],
         "properties": {
-          "field": { "type": "string" },
-          "code": { "type": "string" }
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
         }
       },
       "AuthSessionResponse": {
         "type": "object",
         "required": ["authenticated", "user", "session"],
         "properties": {
-          "authenticated": { "type": "boolean" },
-          "user": { "$ref": "#/components/schemas/AuthUser" },
-          "session": { "$ref": "#/components/schemas/AuthSession" }
+          "authenticated": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "session": {
+            "$ref": "#/components/schemas/AuthSession"
+          }
         }
       },
       "AuthUser": {
@@ -605,21 +2186,45 @@
           "nextAction"
         ],
         "properties": {
-          "id": { "type": "string" },
-          "displayName": { "type": "string" },
-          "avatarUrl": { "type": "string" },
-          "email": { "type": "string" },
-          "onboardingStatus": { "type": "string" },
-          "phoneStatus": { "type": "string" },
-          "phoneMasked": { "type": "string" },
-          "phoneVersion": { "type": "integer" },
-          "verificationEvidence": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "onboardingStatus": {
+            "type": "string"
+          },
+          "phoneStatus": {
+            "type": "string"
+          },
+          "phoneMasked": {
+            "type": "string"
+          },
+          "phoneVersion": {
+            "type": "integer"
+          },
+          "verificationEvidence": {
+            "type": "string"
+          },
           "authorities": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
-          "authorizationVersion": { "type": "integer" },
-          "nextAction": { "type": "string" }
+          "authorizationVersion": {
+            "type": "integer"
+          },
+          "nextAction": {
+            "type": "string"
+          }
         }
       },
       "AuthSession": {
@@ -634,13 +2239,31 @@
           "current"
         ],
         "properties": {
-          "id": { "type": "string" },
-          "deviceLabel": { "type": "string" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "lastSeenAt": { "type": "string", "format": "date-time" },
-          "idleExpiresAt": { "type": "string", "format": "date-time" },
-          "absoluteExpiresAt": { "type": "string", "format": "date-time" },
-          "current": { "type": "boolean" }
+          "id": {
+            "type": "string"
+          },
+          "deviceLabel": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "idleExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "absoluteExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean"
+          }
         }
       },
       "SessionListResponse": {
@@ -649,7 +2272,9 @@
         "properties": {
           "sessions": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AuthSession" }
+            "items": {
+              "$ref": "#/components/schemas/AuthSession"
+            }
           }
         }
       },
@@ -657,53 +2282,96 @@
         "type": "object",
         "required": ["phoneNumber", "expectedPhoneVersion"],
         "properties": {
-          "phoneNumber": { "type": "string" },
-          "expectedPhoneVersion": { "type": "integer" }
+          "phoneNumber": {
+            "type": "string"
+          },
+          "expectedPhoneVersion": {
+            "type": "integer"
+          }
         }
       },
       "OtpIssueRequest": {
         "type": "object",
         "required": ["purpose", "phoneVersion"],
         "properties": {
-          "purpose": { "type": "string" },
-          "phoneVersion": { "type": "integer" }
+          "purpose": {
+            "type": "string"
+          },
+          "phoneVersion": {
+            "type": "integer"
+          }
         }
       },
       "OtpVerifyRequest": {
         "type": "object",
         "required": ["code"],
-        "properties": { "code": { "type": "string" } }
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
       },
       "OtpChallenge": {
         "type": "object",
         "required": ["challengeId", "status", "expiresAt", "resendAfter"],
         "properties": {
-          "challengeId": { "type": "string" },
-          "status": { "type": "string" },
-          "expiresAt": { "type": "string", "format": "date-time" },
-          "resendAfter": { "type": "string", "format": "date-time" },
-          "maskedPhone": { "type": "string" }
+          "challengeId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maskedPhone": {
+            "type": "string"
+          }
         }
       },
       "MyProfileResponse": {
         "type": "object",
         "required": ["userId", "displayName", "bio", "version", "updatedAt"],
         "properties": {
-          "userId": { "type": "string" },
-          "displayName": { "type": "string" },
-          "bio": { "type": "string" },
-          "avatarUrl": { "type": "string" },
-          "version": { "type": "integer" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "userId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "UpdateProfileRequest": {
         "type": "object",
         "required": ["displayName", "bio", "expectedVersion"],
         "properties": {
-          "displayName": { "type": "string" },
-          "bio": { "type": "string" },
-          "expectedVersion": { "type": "integer" }
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer"
+          }
         }
       },
       "PrivacyResponse": {
@@ -716,11 +2384,22 @@
           "updatedAt"
         ],
         "properties": {
-          "profileVisibility": { "type": "string" },
-          "discoverableByName": { "type": "boolean" },
-          "allowMessageRequests": { "type": "boolean" },
-          "version": { "type": "integer" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "profileVisibility": {
+            "type": "string"
+          },
+          "discoverableByName": {
+            "type": "boolean"
+          },
+          "allowMessageRequests": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "UpdatePrivacyRequest": {
@@ -732,21 +2411,39 @@
           "expectedVersion"
         ],
         "properties": {
-          "profileVisibility": { "type": "string" },
-          "discoverableByName": { "type": "boolean" },
-          "allowMessageRequests": { "type": "boolean" },
-          "expectedVersion": { "type": "integer" }
+          "profileVisibility": {
+            "type": "string"
+          },
+          "discoverableByName": {
+            "type": "boolean"
+          },
+          "allowMessageRequests": {
+            "type": "boolean"
+          },
+          "expectedVersion": {
+            "type": "integer"
+          }
         }
       },
       "PublicProfileResponse": {
         "type": "object",
         "required": ["userId", "displayName", "bio", "verified"],
         "properties": {
-          "userId": { "type": "string" },
-          "displayName": { "type": "string" },
-          "bio": { "type": "string" },
-          "avatarUrl": { "type": "string" },
-          "verified": { "type": "boolean" }
+          "userId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
         }
       },
       "ProfileSearchResponse": {
@@ -755,19 +2452,31 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/PublicProfileResponse" }
+            "items": {
+              "$ref": "#/components/schemas/PublicProfileResponse"
+            }
           },
-          "nextCursor": { "type": "string" }
+          "nextCursor": {
+            "type": "string"
+          }
         }
       },
       "ConsentRequirementResponse": {
         "type": "object",
         "required": ["type", "version", "accepted"],
         "properties": {
-          "type": { "type": "string" },
-          "version": { "type": "string" },
-          "documentUrl": { "type": "string" },
-          "accepted": { "type": "boolean" }
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "documentUrl": {
+            "type": "string"
+          },
+          "accepted": {
+            "type": "boolean"
+          }
         }
       },
       "ConsentReceiptResponse": {
@@ -782,13 +2491,28 @@
           "locale"
         ],
         "properties": {
-          "id": { "type": "string" },
-          "type": { "type": "string" },
-          "version": { "type": "string" },
-          "decision": { "type": "string" },
-          "occurredAt": { "type": "string", "format": "date-time" },
-          "source": { "type": "string" },
-          "locale": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
         }
       },
       "ConsentSummaryResponse": {
@@ -803,7 +2527,9 @@
           },
           "receipts": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ConsentReceiptResponse" }
+            "items": {
+              "$ref": "#/components/schemas/ConsentReceiptResponse"
+            }
           }
         }
       },
@@ -811,29 +2537,54 @@
         "type": "object",
         "required": ["consentType", "decision"],
         "properties": {
-          "consentType": { "type": "string" },
-          "decision": { "type": "string" },
-          "locale": { "type": "string" }
+          "consentType": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
         }
       },
       "DeletionResponse": {
         "type": "object",
         "required": ["requestId", "state", "requestedAt", "executeAfter"],
         "properties": {
-          "requestId": { "type": "string" },
-          "state": { "type": "string" },
-          "requestedAt": { "type": "string", "format": "date-time" },
-          "executeAfter": { "type": "string", "format": "date-time" },
-          "completedAt": { "type": "string", "format": "date-time" }
+          "requestId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "executeAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "CreateUploadRequest": {
         "type": "object",
         "required": ["purpose", "contentType", "sizeBytes"],
         "properties": {
-          "purpose": { "type": "string" },
-          "contentType": { "type": "string" },
-          "sizeBytes": { "type": "integer" },
+          "purpose": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer"
+          },
           "checksumSha256": {
             "type": "string",
             "pattern": "^[A-Fa-f0-9]{64}$"
@@ -844,13 +2595,22 @@
         "type": "object",
         "required": ["fileId", "uploadUrl", "requiredHeaders", "expiresAt"],
         "properties": {
-          "fileId": { "type": "string" },
-          "uploadUrl": { "type": "string" },
+          "fileId": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          },
           "requiredHeaders": {
             "type": "object",
-            "additionalProperties": { "type": "string" }
+            "additionalProperties": {
+              "type": "string"
+            }
           },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "FileView": {
@@ -865,22 +2625,147 @@
           "updatedAt"
         ],
         "properties": {
-          "fileId": { "type": "string" },
-          "purpose": { "type": "string" },
-          "state": { "type": "string" },
-          "contentType": { "type": "string" },
-          "sizeBytes": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "readyAt": { "type": "string", "format": "date-time" }
+          "fileId": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "DownloadGrant": {
         "type": "object",
         "required": ["downloadUrl", "expiresAt"],
         "properties": {
-          "downloadUrl": { "type": "string" },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "downloadUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SendFriendRequest": {
+        "type": "object",
+        "required": ["targetUserId"],
+        "properties": {
+          "targetUserId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,100}$"
+          }
+        }
+      },
+      "RelationView": {
+        "type": "object",
+        "required": [
+          "userId",
+          "displayName",
+          "status",
+          "requestId",
+          "cooldownUntil",
+          "blockedByMe",
+          "version",
+          "allowedActions"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "INCOMING",
+              "OUTGOING",
+              "ACCEPTED",
+              "DECLINED",
+              "CANCELLED",
+              "REMOVED",
+              "BLOCKED"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cooldownUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "blockedByMe": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SEND",
+                "ACCEPT",
+                "DECLINE",
+                "CANCEL",
+                "REMOVE",
+                "BLOCK",
+                "UNBLOCK"
+              ]
+            }
+          }
+        }
+      },
+      "RelationPage": {
+        "type": "object",
+        "required": ["items", "nextCursor"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelationView"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "RevisionView": {
+        "type": "object",
+        "required": ["revision"],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          }
         }
       }
     },

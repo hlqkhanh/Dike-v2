@@ -3,3 +3,4 @@ export * from "./generated/operations";
 export * from "./configuration";
 export * from "./auth";
 export * from "./profile";
+export * from "./social";

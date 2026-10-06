@@ -16,6 +16,27 @@ class OpenApiContractTest {
   private final ObjectMapper mapper = Json.mapper();
 
   @Test
+  void socialContractCoversEveryControllerRouteAndOperation() throws IOException {
+    JsonNode reviewed =
+        mapper.readTree(Files.readString(findRepositoryRoot().resolve("docs/api/openapi.json")));
+    int routes = 0;
+    for (var method : com.dike.community.api.SocialController.class.getDeclaredMethods()) {
+      var mapping =
+          org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation(
+              method, org.springframework.web.bind.annotation.RequestMapping.class);
+      if (mapping == null) continue;
+      routes++;
+      String path = mapping.value()[0];
+      String verb = mapping.method()[0].name().toLowerCase(java.util.Locale.ROOT);
+      var operation = method.getAnnotation(io.swagger.v3.oas.annotations.Operation.class);
+      assertThat(reviewed.path("paths").path(path).path(verb).path("operationId").asText())
+          .as(verb + " " + path)
+          .isEqualTo(operation.operationId());
+    }
+    assertThat(routes).isEqualTo(12);
+  }
+
+  @Test
   void reviewedArtifactMatchesBackendMetadataAndFoundationSchemas() throws IOException {
     JsonNode generated = mapper.valueToTree(new OpenApiConfiguration().dikeOpenApi());
     JsonNode reviewed =

@@ -1,5 +1,7 @@
 package com.dike.identity.application;
 
+import com.dike.community.SocialAccessPolicy;
+import com.dike.community.SocialPrivacyChanges;
 import com.dike.identity.domain.AccountStatus;
 import com.dike.identity.domain.ProfileVisibility;
 import com.dike.identity.domain.UserAccount;
@@ -20,13 +22,22 @@ public class ProfileService {
   private final IdentityStore identities;
   private final AccountAccessService access;
   private final Clock clock;
+  private final SocialAccessPolicy social;
+  private final SocialPrivacyChanges socialPrivacy;
 
   public ProfileService(
-      ProfileDataStore store, IdentityStore identities, AccountAccessService access, Clock clock) {
+      ProfileDataStore store,
+      IdentityStore identities,
+      AccountAccessService access,
+      Clock clock,
+      SocialAccessPolicy social,
+      SocialPrivacyChanges socialPrivacy) {
     this.store = store;
     this.identities = identities;
     this.access = access;
     this.clock = clock;
+    this.social = social;
+    this.socialPrivacy = socialPrivacy;
   }
 
   @Transactional
@@ -36,6 +47,7 @@ public class ProfileService {
 
   public PublicProfile view(String viewerId, String userId) {
     access.require(viewerId);
+    if (social.blocked(viewerId, userId)) throw new NotVisibleException();
     UserAccount account = identities.findUserById(userId).orElseThrow(NotVisibleException::new);
     if (account.accountStatus() != AccountStatus.ACTIVE) throw new NotVisibleException();
     UserPrivacySettings privacy = requirePrivacy(userId);
@@ -53,6 +65,7 @@ public class ProfileService {
     String normalized = normalizeName(query);
     if (normalized.codePointCount(0, normalized.length()) < 2) return List.of();
     return store.searchProfiles(normalized, cursor, Math.min(Math.max(limit, 1), 20)).stream()
+        .filter(profile -> !social.blocked(viewerId, profile.userId()))
         .filter(
             profile ->
                 store
@@ -87,6 +100,7 @@ public class ProfileService {
         .orElseThrow(VersionConflictException::new);
   }
 
+  @Transactional
   public UserPrivacySettings updatePrivacy(
       String userId,
       ProfileVisibility visibility,
@@ -94,10 +108,13 @@ public class ProfileService {
       boolean allowMessages,
       long expectedVersion) {
     requirePrivacy(userId);
-    return store
-        .updatePrivacy(
-            userId, expectedVersion, visibility, discoverable, allowMessages, clock.instant())
-        .orElseThrow(PrivacyVersionConflictException::new);
+    var updated =
+        store
+            .updatePrivacy(
+                userId, expectedVersion, visibility, discoverable, allowMessages, clock.instant())
+            .orElseThrow(PrivacyVersionConflictException::new);
+    socialPrivacy.invalidateProfiles();
+    return updated;
   }
 
   private UserProfile requireProfile(String userId) {

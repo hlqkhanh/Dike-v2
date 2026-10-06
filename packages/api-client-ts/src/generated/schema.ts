@@ -181,3 +181,27 @@ export type DownloadGrant = {
   downloadUrl: string;
   expiresAt: string;
 };
+
+export type SendFriendRequest = {
+  targetUserId: string;
+};
+
+export type RelationView = {
+  userId: string;
+  displayName: string;
+  status: string;
+  requestId: string;
+  cooldownUntil: string;
+  blockedByMe: boolean;
+  version: number;
+  allowedActions: string[];
+};
+
+export type RelationPage = {
+  items: RelationView[];
+  nextCursor: string;
+};
+
+export type RevisionView = {
+  revision: number;
+};

@@ -31,6 +31,7 @@ export function AuthNavigation() {
   }
   return (
     <div className="nav-account">
+      <Link href="/friends">Bạn bè</Link>
       <Link href="/me/profile">{session.data.user.displayName}</Link>
       <Link href="/settings/privacy">Riêng tư</Link>
       <Link href="/account/sessions">Thiết bị</Link>

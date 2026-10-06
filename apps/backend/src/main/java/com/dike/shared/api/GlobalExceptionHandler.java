@@ -7,11 +7,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  @ExceptionHandler({
+    MissingRequestHeaderException.class,
+    MissingServletRequestParameterException.class,
+    MethodArgumentTypeMismatchException.class
+  })
+  ResponseEntity<ErrorResponse> handleInvalidParameter(
+      Exception exception, HttpServletRequest request) {
+    return response(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_REQUEST",
+        "Thiếu hoặc sai tham số yêu cầu",
+        requestId(request),
+        List.of());
+  }
 
   @ExceptionHandler(ApiException.class)
   ResponseEntity<ErrorResponse> handleApi(ApiException exception, HttpServletRequest request) {

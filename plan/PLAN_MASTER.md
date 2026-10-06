@@ -836,6 +836,8 @@ Runbook triển khai, dependency và nghiệm thu: [STAGE_4.md](STAGE_4.md).
 
 ### Giai đoạn 6 — Bạn bè, chặn và quyền truy cập
 
+Kế hoạch triển khai chi tiết: [STAGE_6.md](STAGE_6.md).
+
 - Hoàn thiện gửi, nhận, rút, từ chối, hủy kết bạn và thời gian chờ gửi lại.
 - Chuẩn hóa cặp user; hai lời mời ngược chiều không tự chấp nhận.
 - Block hủy quan hệ/lời mời và ngăn tương tác mới.

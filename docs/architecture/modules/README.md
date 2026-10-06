@@ -30,3 +30,9 @@ dùng abstraction ở đây; AWS SDK, Mongo document, Redis key và object locat
 ## Tài liệu theo feature
 
 - [Stage 4 — Profile, privacy, consent và file](../stage-4-overview.md)
+- [Stage 6 — Social relations và revocation](../adr/0014-social-relations-and-revocation.md)
+
+Identity triển khai port `community.SocialAccounts` và dùng public policy/purge API
+của community. Community không import nội bộ identity; dependency này không tạo
+cycle. Khi thêm membership, giữ ownership trong community và không nhận membership
+assertion từ client.

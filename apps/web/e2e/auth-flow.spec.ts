@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/social/revision", (route) =>
+    route.fulfill({ json: { revision: 0 } }),
+  );
+});
+
 const session = {
   authenticated: true,
   user: {

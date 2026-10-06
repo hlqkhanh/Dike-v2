@@ -2,7 +2,7 @@
 
 import { Button, Card } from "@dike/web-ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
@@ -13,24 +13,23 @@ export default function PrivacyPage() {
     queryKey: ["privacy", "me"],
     queryFn: profileApi.privacy,
   });
-  const [visibility, setVisibility] = useState("MEMBERS");
-  const [discoverable, setDiscoverable] = useState(true);
-  const [messages, setMessages] = useState(true);
-  useEffect(() => {
-    if (!privacy.data) return;
-    setVisibility(privacy.data.profileVisibility);
-    setDiscoverable(privacy.data.discoverableByName);
-    setMessages(privacy.data.allowMessageRequests);
-  }, [privacy.data]);
+  const [draft, setDraft] = useState<typeof privacy.data>();
+  const current = draft ?? privacy.data;
+  const visibility = current?.profileVisibility ?? "MEMBERS";
+  const discoverable = current?.discoverableByName ?? true;
+  const messages = current?.allowMessageRequests ?? true;
   const save = useMutation({
     mutationFn: () =>
       profileApi.updatePrivacy(
         visibility,
         discoverable,
         messages,
-        privacy.data?.version ?? 0,
+        current?.version ?? 0,
       ),
-    onSuccess: (value) => client.setQueryData(["privacy", "me"], value),
+    onSuccess: (value) => {
+      client.setQueryData(["privacy", "me"], value);
+      setDraft(undefined);
+    },
   });
   useAuthFailure(privacy.error);
   useAuthFailure(save.error);
@@ -60,7 +59,13 @@ export default function PrivacyPage() {
               <span>Ai có thể xem hồ sơ cơ bản</span>
               <select
                 value={visibility}
-                onChange={(event) => setVisibility(event.target.value)}
+                onChange={(event) =>
+                  current &&
+                  setDraft({
+                    ...current,
+                    profileVisibility: event.target.value,
+                  })
+                }
               >
                 <option value="MEMBERS">Thành viên đã đăng nhập</option>
                 <option value="PRIVATE">Chỉ mình tôi</option>
@@ -70,7 +75,13 @@ export default function PrivacyPage() {
               <input
                 type="checkbox"
                 checked={discoverable}
-                onChange={(event) => setDiscoverable(event.target.checked)}
+                onChange={(event) =>
+                  current &&
+                  setDraft({
+                    ...current,
+                    discoverableByName: event.target.checked,
+                  })
+                }
               />
               <span>
                 <strong>Cho phép tìm bằng tên</strong>
@@ -81,7 +92,13 @@ export default function PrivacyPage() {
               <input
                 type="checkbox"
                 checked={messages}
-                onChange={(event) => setMessages(event.target.checked)}
+                onChange={(event) =>
+                  current &&
+                  setDraft({
+                    ...current,
+                    allowMessageRequests: event.target.checked,
+                  })
+                }
               />
               <span>
                 <strong>Cho phép yêu cầu nhắn tin</strong>

@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { SocialSessionMonitor } from "../src/social/invalidation";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -13,5 +14,10 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <SocialSessionMonitor />
+      {children}
+    </QueryClientProvider>
+  );
 }

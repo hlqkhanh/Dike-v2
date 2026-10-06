@@ -17,6 +17,10 @@ import type {
   PrivacyResponse,
   ProfileSearchResponse,
   PublicProfileResponse,
+  RelationPage,
+  RelationView,
+  RevisionView,
+  SendFriendRequest,
   SessionListResponse,
   UpdatePrivacyRequest,
   UpdateProfileRequest,
@@ -218,3 +222,84 @@ export const createPrivateDownloadUrlOperation = {
 } as const;
 export type CreatePrivateDownloadUrlRequest = never;
 export type CreatePrivateDownloadUrlResponse = DownloadGrant;
+
+export const listFriendshipsOperation = {
+  method: "GET",
+  path: "/friendships",
+} as const;
+export type ListFriendshipsRequest = never;
+export type ListFriendshipsResponse = RelationPage;
+
+export const listFriendRequestsOperation = {
+  method: "GET",
+  path: "/friendships/requests",
+} as const;
+export type ListFriendRequestsRequest = never;
+export type ListFriendRequestsResponse = RelationPage;
+
+export const sendFriendRequestOperation = {
+  method: "POST",
+  path: "/friendships/requests",
+} as const;
+export type SendFriendRequestRequest = SendFriendRequest;
+export type SendFriendRequestResponse = RelationView;
+
+export const getSocialRelationOperation = {
+  method: "GET",
+  path: "/friendships/users/{target}",
+} as const;
+export type GetSocialRelationRequest = never;
+export type GetSocialRelationResponse = RelationView;
+
+export const acceptFriendRequestOperation = {
+  method: "POST",
+  path: "/friendships/requests/{requestId}/accept",
+} as const;
+export type AcceptFriendRequestRequest = never;
+export type AcceptFriendRequestResponse = RelationView;
+
+export const declineFriendRequestOperation = {
+  method: "POST",
+  path: "/friendships/requests/{requestId}/decline",
+} as const;
+export type DeclineFriendRequestRequest = never;
+export type DeclineFriendRequestResponse = RelationView;
+
+export const cancelFriendRequestOperation = {
+  method: "POST",
+  path: "/friendships/requests/{requestId}/cancel",
+} as const;
+export type CancelFriendRequestRequest = never;
+export type CancelFriendRequestResponse = RelationView;
+
+export const removeFriendOperation = {
+  method: "DELETE",
+  path: "/friendships/{target}",
+} as const;
+export type RemoveFriendRequest = never;
+export type RemoveFriendResponse = RelationView;
+
+export const listBlocksOperation = { method: "GET", path: "/blocks" } as const;
+export type ListBlocksRequest = never;
+export type ListBlocksResponse = RelationPage;
+
+export const blockUserOperation = {
+  method: "PUT",
+  path: "/blocks/{target}",
+} as const;
+export type BlockUserRequest = never;
+export type BlockUserResponse = RelationView;
+
+export const unblockUserOperation = {
+  method: "DELETE",
+  path: "/blocks/{target}",
+} as const;
+export type UnblockUserRequest = never;
+export type UnblockUserResponse = RelationView;
+
+export const getSocialRevisionOperation = {
+  method: "GET",
+  path: "/social/revision",
+} as const;
+export type GetSocialRevisionRequest = never;
+export type GetSocialRevisionResponse = RevisionView;

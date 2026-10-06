@@ -1,5 +1,6 @@
 package com.dike.identity.infrastructure.profile;
 
+import com.dike.community.SocialAccountDeletion;
 import com.dike.identity.application.AccountDeletionService;
 import com.dike.identity.application.ProfileDataStore;
 import com.dike.identity.domain.AccountDeletionRequest;
@@ -22,13 +23,19 @@ class AccountDeletionHandler implements OutboxHandler {
   private final ObjectStorage storage;
   private final StorageLocations locations;
   private final Clock clock;
+  private final SocialAccountDeletion social;
 
   AccountDeletionHandler(
-      ProfileDataStore store, ObjectStorage storage, StorageLocations locations, Clock clock) {
+      ProfileDataStore store,
+      ObjectStorage storage,
+      StorageLocations locations,
+      Clock clock,
+      SocialAccountDeletion social) {
     this.store = store;
     this.storage = storage;
     this.locations = locations;
     this.clock = clock;
+    this.social = social;
   }
 
   @Override
@@ -59,6 +66,7 @@ class AccountDeletionHandler implements OutboxHandler {
         storage.delete(bucket, file.finalLocator());
       }
     }
+    social.purge(request.userId());
     store.purgeIdentityOwnedData(request.userId());
     store.completeDeletion(request.id(), request.userId(), clock.instant());
   }

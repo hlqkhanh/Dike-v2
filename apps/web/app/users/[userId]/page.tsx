@@ -3,9 +3,11 @@
 import { Card } from "@dike/web-ui";
 import { useQuery } from "@tanstack/react-query";
 import { use } from "react";
+import Image from "next/image";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
+import { ProfileSocialActions } from "../../../src/social/actions";
 
 export default function UserProfilePage({
   params,
@@ -34,7 +36,10 @@ export default function UserProfilePage({
       ) : (
         <Card className="public-profile-card">
           {profile.data.avatarUrl ? (
-            <img
+            <Image
+              unoptimized
+              width={128}
+              height={128}
               className="profile-avatar profile-avatar--large"
               src={profile.data.avatarUrl}
               alt={`Ảnh đại diện của ${profile.data.displayName}`}
@@ -45,6 +50,7 @@ export default function UserProfilePage({
               Thành viên {profile.data.verified ? "đã xác minh" : ""}
             </p>
             <h1>{profile.data.displayName}</h1>
+            <ProfileSocialActions userId={userId} />
             <p className="settings-copy">
               {profile.data.bio || "Người dùng chưa thêm phần giới thiệu."}
             </p>

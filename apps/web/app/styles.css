@@ -491,7 +491,40 @@ a:focus-visible {
     flex-direction: column;
   }
 
-  .nav-account a:not(:first-child) {
+  .nav-account a:not(:first-child):not([href="/friends"]) {
     display: none;
   }
+}
+
+.social-tabs,
+.social-actions,
+.social-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.social-tabs button,
+.social-actions button,
+.social-search button {
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--dike-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.social-tabs button[aria-pressed="true"] {
+  outline: 2px solid currentColor;
+  font-weight: 700;
+}
+
+.social-search input {
+  padding: 0.6rem;
+  max-width: 100%;
+}
+
+.social-actions p {
+  flex-basis: 100%;
 }

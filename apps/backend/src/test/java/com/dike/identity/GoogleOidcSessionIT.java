@@ -156,6 +156,32 @@ class GoogleOidcSessionIT {
     assertThat(identity).isNotNull();
     assertThat(identity.keySet())
         .doesNotContain("accessToken", "refreshToken", "idToken", "authorizationCode");
+
+    HttpResponse<String> friends = get(browser, app + "/api/v1/friendships");
+    assertThat(friends.statusCode()).isEqualTo(200);
+    assertThat(friends.headers().firstValue("cache-control")).contains("no-store");
+    assertThat(get(HttpClient.newHttpClient(), app + "/api/v1/friendships").statusCode())
+        .isEqualTo(401);
+    HttpRequest missingCsrf =
+        HttpRequest.newBuilder(URI.create(app + "/api/v1/blocks/other"))
+            .header("Origin", app)
+            .header("Idempotency-Key", "social-test-key")
+            .PUT(HttpRequest.BodyPublishers.noBody())
+            .build();
+    assertThat(browser.send(missingCsrf, HttpResponse.BodyHandlers.ofString()).statusCode())
+        .isEqualTo(403);
+    HttpRequest selfInvite =
+        HttpRequest.newBuilder(URI.create(app + "/api/v1/friendships/requests"))
+            .header("Origin", app)
+            .header("Content-Type", "application/json")
+            .header("X-XSRF-TOKEN", URLDecoder.decode(csrf, StandardCharsets.UTF_8))
+            .header("Idempotency-Key", "social-test-key")
+            .POST(
+                HttpRequest.BodyPublishers.ofString(
+                    "{\"targetUserId\":\"" + sessionBody.at("/user/id").asText() + "\"}"))
+            .build();
+    assertThat(browser.send(selfInvite, HttpResponse.BodyHandlers.ofString()).statusCode())
+        .isEqualTo(422);
   }
 
   private static HttpResponse<String> get(HttpClient client, String uri)

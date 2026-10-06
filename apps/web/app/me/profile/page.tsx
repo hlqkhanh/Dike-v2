@@ -5,7 +5,8 @@ import { Button, Card, Input } from "@dike/web-ui";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import Image from "next/image";
 import { z } from "zod";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
@@ -35,6 +36,7 @@ export default function MyProfilePage() {
     resolver: zodResolver(schema),
     defaultValues: { displayName: "", bio: "" },
   });
+  const bio = useWatch({ control: form.control, name: "bio" });
   useEffect(() => {
     if (profile.data) {
       form.reset({
@@ -94,7 +96,10 @@ export default function MyProfilePage() {
       <Card className="settings-card">
         <div className="avatar-row">
           {profile.data.avatarUrl ? (
-            <img
+            <Image
+              unoptimized
+              width={96}
+              height={96}
               className="profile-avatar"
               src={profile.data.avatarUrl}
               alt="Ảnh đại diện hiện tại"
@@ -147,7 +152,7 @@ export default function MyProfilePage() {
           <label className="dike-field">
             <span>Giới thiệu</span>
             <textarea rows={5} maxLength={300} {...form.register("bio")} />
-            <small>{form.watch("bio").length}/300</small>
+            <small>{bio.length}/300</small>
           </label>
           {save.error instanceof ApiError ? (
             <p className="auth-error" role="alert">
