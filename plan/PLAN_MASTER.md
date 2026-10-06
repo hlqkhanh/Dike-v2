@@ -816,6 +816,8 @@ Quyết định OTP, authority và failure semantics: [ADR 0012](../docs/archite
 
 ### Giai đoạn 4 — Hồ sơ, quyền riêng tư và R2
 
+Runbook triển khai, dependency và nghiệm thu: [STAGE_4.md](STAGE_4.md).
+
 - Xây hồ sơ, avatar, privacy settings, consent và yêu cầu xóa tài khoản.
 - Upload bằng presigned URL; backend kiểm tra MIME, kích thước và ownership.
 - Avatar ở public bucket; hồ sơ xác minh ở private bucket.
