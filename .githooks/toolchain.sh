@@ -1,19 +1,20 @@
 #!/bin/sh
 # Resolve an explicit per-checkout toolchain before the Git client's inherited PATH.
+# Embedded Git clients may omit cygpath. Never put a Windows drive colon into
+# POSIX PATH: it would split C:\Users\... into two unrelated directories.
+dike_posix_path() {
+  printf '%s\n' "$1" | sed 's|\\|/|g; s|^\([A-Za-z]\):/|/\1/|'
+}
 dike_node="$(git config --local --get dike.nodePath || true)"
 if [ -n "$dike_node" ]; then
-  if command -v cygpath >/dev/null 2>&1; then
-    dike_node="$(cygpath -u "$dike_node")"
-  fi
+  dike_node="$(dike_posix_path "$dike_node")"
   PATH="$dike_node:$PATH"
   export PATH
 else
   case "$(uname -s)" in
     MINGW*|MSYS*|CYGWIN*)
       dike_local="${LOCALAPPDATA:-${USERPROFILE:-$HOME}/AppData/Local}"
-      if command -v cygpath >/dev/null 2>&1; then
-        dike_local="$(cygpath -u "$dike_local")"
-      fi
+      dike_local="$(dike_posix_path "$dike_local")"
       dike_node="$dike_local/Dike/toolchains/node-v24.21.0-win-x64"
       if [ -x "$dike_node/node.exe" ]; then
         PATH="$dike_node:$PATH"
