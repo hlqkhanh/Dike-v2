@@ -10,5 +10,6 @@ describe("Stage 1 app shell", () => {
     expect(source).toContain("Đang tải");
     expect(source).toContain("Ngoại tuyến");
     expect(source).toContain("Thử lại");
+    expect(source).toContain("AuthNavigation");
   });
 });

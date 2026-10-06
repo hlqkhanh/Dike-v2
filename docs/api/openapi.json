@@ -5,899 +5,257 @@
     "description": "Contract for the Dike production API.",
     "version": "v1"
   },
-  "servers": [
-    {
-      "url": "/"
-    }
-  ],
+  "servers": [{ "url": "/api/v1" }],
   "paths": {
-    "/api/v1/auth/phone": {
-      "put": {
-        "tags": ["auth-controller"],
-        "operationId": "updatePhone",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PhoneInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserView"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/refresh": {
-      "post": {
-        "tags": ["auth-controller"],
-        "operationId": "refreshSession",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "tags": ["auth-controller"],
-        "operationId": "logout",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No Content"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/logout-all": {
-      "post": {
-        "tags": ["auth-controller"],
-        "operationId": "logoutAll",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No Content"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/sessions": {
+    "/auth/google": {
       "get": {
-        "tags": ["auth-controller"],
-        "operationId": "listSessions",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DeviceView"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/session": {
-      "get": {
-        "tags": ["auth-controller"],
-        "operationId": "getSession",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionView"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/google": {
-      "get": {
-        "tags": ["auth-controller"],
         "operationId": "startGoogleLogin",
-        "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "302": {
-            "description": "Redirect to Google"
-          }
-        },
-        "security": []
+        "responses": { "302": { "description": "Redirect to Google" } }
       }
     },
-    "/api/v1/auth/csrf": {
+    "/auth/callback/google": {
       "get": {
-        "tags": ["auth-controller"],
-        "operationId": "getCsrf",
+        "operationId": "googleCallback",
         "responses": {
-          "400": {
-            "description": "Invalid request",
+          "302": { "description": "Redirect to the web application" }
+        }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "getAuthSession",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Current authenticated session",
             "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
               }
             }
           },
           "401": {
-            "description": "Session required",
+            "description": "Authentication required",
             "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/CsrfView"
-                }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
           }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ]
+        }
       }
     },
-    "/api/v1/auth/sessions/{deviceSessionId}": {
+    "/auth/session/refresh": {
+      "post": {
+        "operationId": "refreshAuthSession",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": {
+          "200": {
+            "description": "Rotated session",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sessions": {
+      "get": {
+        "operationId": "listAuthSessions",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Sessions for the current user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionListResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sessions/{sessionHandle}": {
       "delete": {
-        "tags": ["auth-controller"],
-        "operationId": "revokeSession",
+        "operationId": "revokeAuthSession",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
         "parameters": [
           {
-            "name": "deviceSessionId",
+            "name": "sessionHandle",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "CSRF or origin rejected",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
+          "204": { "description": "Session revoked" },
           "404": {
-            "description": "Resource unavailable",
+            "description": "Session not found",
             "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
               }
             }
-          },
-          "429": {
-            "description": "Rate limited; Retry-After in seconds",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutCurrentSession",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": { "204": { "description": "Logged out" } }
+      }
+    },
+    "/auth/logout-all": {
+      "post": {
+        "operationId": "logoutAllSessions",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "responses": { "204": { "description": "All sessions revoked" } }
+      }
+    },
+    "/auth/phone": {
+      "put": {
+        "operationId": "submitPhoneCandidate",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PhoneRequest" }
             }
-          },
-          "503": {
-            "description": "Dependency unavailable",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "No Content"
           }
         },
-        "security": [
-          {
-            "sessionCookie": []
+        "responses": {
+          "200": {
+            "description": "Updated onboarding state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthSessionResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid phone",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
           }
-        ]
+        }
       }
     }
   },
   "components": {
     "schemas": {
-      "FieldViolation": {
+      "ErrorResponse": {
         "type": "object",
+        "required": ["error"],
         "properties": {
-          "field": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          }
+          "error": { "$ref": "#/components/schemas/ErrorBody" }
         }
       },
       "ErrorBody": {
         "type": "object",
+        "required": ["code", "message", "requestId", "fields"],
         "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "requestId": {
-            "type": "string"
-          },
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "requestId": { "type": "string" },
           "fields": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FieldViolation"
-            }
+            "items": { "$ref": "#/components/schemas/FieldViolation" }
           }
         }
       },
-      "ErrorResponse": {
+      "FieldViolation": {
         "type": "object",
+        "required": ["field", "code"],
         "properties": {
-          "error": {
-            "$ref": "#/components/schemas/ErrorBody"
+          "field": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      },
+      "AuthSessionResponse": {
+        "type": "object",
+        "required": ["authenticated", "user", "session"],
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "user": { "$ref": "#/components/schemas/AuthUser" },
+          "session": { "$ref": "#/components/schemas/AuthSession" }
+        }
+      },
+      "AuthUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "email",
+          "onboardingStatus",
+          "phoneStatus",
+          "nextAction"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "displayName": { "type": "string" },
+          "avatarUrl": { "type": "string" },
+          "email": { "type": "string" },
+          "onboardingStatus": { "type": "string" },
+          "phoneStatus": { "type": "string" },
+          "phoneMasked": { "type": "string" },
+          "nextAction": { "type": "string" }
+        }
+      },
+      "AuthSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "deviceLabel",
+          "createdAt",
+          "lastSeenAt",
+          "idleExpiresAt",
+          "absoluteExpiresAt",
+          "current"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "deviceLabel": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "lastSeenAt": { "type": "string", "format": "date-time" },
+          "idleExpiresAt": { "type": "string", "format": "date-time" },
+          "absoluteExpiresAt": { "type": "string", "format": "date-time" },
+          "current": { "type": "boolean" }
+        }
+      },
+      "SessionListResponse": {
+        "type": "object",
+        "required": ["sessions"],
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AuthSession" }
           }
         }
       },
-      "PhoneInput": {
+      "PhoneRequest": {
         "type": "object",
-        "properties": {
-          "phone": {
-            "type": "string",
-            "maxLength": 32,
-            "minLength": 0
-          }
-        },
-        "required": ["phone"]
-      },
-      "UserView": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "phoneE164": {
-            "type": "string"
-          },
-          "phoneStatus": {
-            "type": "string",
-            "enum": ["NONE", "UNVERIFIED", "VERIFIED"]
-          }
-        },
-        "required": ["displayName", "email", "id", "phoneStatus"]
-      },
-      "CsrfView": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": ["token"]
-      },
-      "DeviceView": {
-        "type": "object",
-        "properties": {
-          "deviceSessionId": {
-            "type": "string"
-          },
-          "issuedAt": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "lastSeenAt": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "expiresAt": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "current": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "current",
-          "deviceSessionId",
-          "expiresAt",
-          "issuedAt",
-          "lastSeenAt"
-        ]
-      },
-      "SessionView": {
-        "type": "object",
-        "properties": {
-          "user": {
-            "$ref": "#/components/schemas/UserView"
-          },
-          "deviceSessionId": {
-            "type": "string"
-          },
-          "issuedAt": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "expiresAt": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "onboardingRequired": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "deviceSessionId",
-          "expiresAt",
-          "issuedAt",
-          "onboardingRequired",
-          "user"
-        ]
+        "required": ["phoneNumber"],
+        "properties": { "phoneNumber": { "type": "string" } }
       }
     },
     "securitySchemes": {
       "sessionCookie": {
         "type": "apiKey",
-        "name": "DIKE_SESSION",
-        "in": "cookie"
+        "in": "cookie",
+        "name": "DIKE_SESSION"
+      },
+      "csrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-XSRF-TOKEN"
       }
     }
   }

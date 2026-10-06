@@ -13,11 +13,11 @@ public class ApiException extends RuntimeException {
     this.code = code;
   }
 
-  public HttpStatus status() {
+  HttpStatus status() {
     return status;
   }
 
-  public String code() {
+  String code() {
     return code;
   }
 }

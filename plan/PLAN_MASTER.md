@@ -411,7 +411,7 @@ Modular monolith là ranh giới kiến trúc chính: backend được deploy nh
 ```text
 Next.js Web — Vercel
         │
-        ├── REST /api/v1
+        ├── same-origin proxy /api/* ── REST /api/v1
         └── WebSocket/STOMP /ws
                 │
         Spring Boot API — Render Web Service
@@ -672,6 +672,13 @@ Các nhóm endpoint:
 - `/contribution-quotes`, `/payment-acknowledgements`.
 - `/reviews`, `/reports`, `/admin`.
 
+Browser web không gọi hostname Render trực tiếp. Next.js dành namespace `/api/*`
+làm same-origin reverse proxy cố định tới Spring Boot; cả Google authorization và
+callback đều đi qua origin web. Proxy chỉ chuyển tiếp transport, không sở hữu auth
+hoặc nghiệp vụ. Chi tiết tại
+[Web authentication qua same-origin proxy](../docs/architecture/auth/web-same-origin-proxy.md)
+và ADR 0011.
+
 Danh sách dùng cursor pagination. Các lệnh tạo bài, gửi/nhận proposal, hoàn thành chuyến và gửi tin nhắn hỗ trợ idempotency key.
 
 Quy tắc contract:
@@ -718,7 +725,9 @@ review.published
 
 ### 11.9. Bảo mật bắt buộc
 
-- Web dùng cookie `HttpOnly`, `Secure`, `SameSite`; mutation kiểm tra CSRF/Origin.
+- Web dùng cookie `HttpOnly`, `Secure`, `SameSite=Lax` qua same-origin proxy;
+  mutation kiểm tra CSRF/Origin. Không dựa vào third-party cookie
+  `SameSite=None` giữa Vercel và Render.
 - Spring Security xử lý OAuth2/OIDC Google bằng Authorization Code + PKCE, state và nonce; không tự viết lại protocol.
 - Session là opaque ID, lưu server-side và có revoke theo thiết bị/toàn tài khoản; không để access token Google trong JavaScript.
 - Backend kiểm tra quyền, giá, trạng thái và số chỗ; không tin dữ liệu tính từ client.
@@ -780,9 +789,10 @@ Chi tiết task, dependency, ownership và nghiệm thu: [STAGE_1.md](STAGE_1.md
 
 ### Giai đoạn 2 — Google authentication và session
 
-Runbook triển khai và gate đầu vào: [STAGE_2.md](STAGE_2.md).
+Chi tiết task, dependency, public contract và nghiệm thu: [STAGE_2.md](STAGE_2.md).
 
 - Spring Security OAuth2 Client thực hiện Google Authorization Code + PKCE, kiểm tra state, nonce và OIDC claims.
+- Web dành `/api/*` làm same-origin proxy cố định tới Spring Boot; OAuth callback cũng đi qua origin web. Next.js không sở hữu session hoặc logic xác thực.
 - Backend quản lý `AuthIdentity`, `User` và opaque session; session production lưu server-side trong Redis.
 - Web dùng cookie `HttpOnly`, `Secure`, `SameSite`; mutation kiểm tra CSRF/Origin; thiết lập refresh, logout từng thiết bị, logout toàn bộ và revoke.
 - Sau Google login, người dùng nhập số điện thoại ở trạng thái `UNVERIFIED`.

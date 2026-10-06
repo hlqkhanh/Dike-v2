@@ -24,7 +24,7 @@ public class OpenApiConfiguration {
                 .title("Dike API")
                 .version("v1")
                 .description("Contract for the Dike production API."))
-        .servers(List.of(new Server().url("/")))
+        .servers(List.of(new Server().url("/api/v1")))
         .components(
             new Components()
                 .addSchemas(
@@ -52,6 +52,12 @@ public class OpenApiConfiguration {
                     new SecurityScheme()
                         .type(SecurityScheme.Type.APIKEY)
                         .in(SecurityScheme.In.COOKIE)
-                        .name("DIKE_SESSION")));
+                        .name("DIKE_SESSION"))
+                .addSecuritySchemes(
+                    "csrfHeader",
+                    new SecurityScheme()
+                        .type(SecurityScheme.Type.APIKEY)
+                        .in(SecurityScheme.In.HEADER)
+                        .name("X-XSRF-TOKEN")));
   }
 }

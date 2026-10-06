@@ -1,312 +1,660 @@
 # STAGE 2 — Google authentication và session
 
-Ngày rà soát: 06/10/2026.  
-Trạng thái: Đã triển khai auth; đang sửa và nghiệm thu, chưa đóng stage.
+Ngày lập kế hoạch: 06/10/2026
+Trạng thái: In progress — implementation đã có; còn nghiệm thu Docker/CI, Google smoke và backlog
+Điều kiện bắt đầu: Stage 1 đã hoàn thành và ADR 0006/0011 ở trạng thái Accepted
 
-Baseline scan ban đầu: `6da8c76`; implementation tiếp nối: `b8fa7b0`.
-Điều kiện đóng stage: Stage 1 đạt nghiệm thu thật.
+Tài liệu này là runbook triển khai Stage 2. `PLAN_MASTER.md` vẫn là nguồn đặc tả
+sản phẩm và kiến trúc cao nhất. Nếu runbook mâu thuẫn với master plan hoặc ADR đã
+Accepted thì master plan và ADR được ưu tiên, đồng thời phải sửa runbook trong
+cùng thay đổi.
 
-`PLAN_MASTER.md` và ADR Accepted là nguồn đặc tả cao nhất. Các giá trị timeout,
-endpoint bổ sung và thiết kế dưới đây là phương án triển khai Stage 2, cần review
-trong PR auth theo `CONTRIBUTING.md`; không thay đổi phạm vi production pilot.
+## Tiến độ triển khai
 
-## 1. Kết quả scan và điều kiện đầu vào
+Đã triển khai trong working tree:
 
-Mục này lưu scan trước implementation. Trạng thái mới nhất nằm tại mục 10;
-không dùng các nhận xét lịch sử bên dưới để kết luận auth chưa tồn tại.
+- Identity domain, Mongo documents/index migration và transactional provisioning.
+- Spring Security Google OIDC, PKCE S256, opaque Spring Session Redis, CSRF/origin
+  protection, absolute expiry, giới hạn session và rate limit khởi tạo login.
+- Session/phone REST API, OpenAPI contract và TypeScript client.
+- Next.js same-origin proxy, login, auth completion, phone onboarding và quản lý
+  session.
+- Unit/architecture/contract tests và Testcontainers integration test với mock OIDC,
+  MongoDB, Redis, PKCE, session, CSRF và phone onboarding.
 
-| Hạng mục       | Bằng chứng trong source                                                             | Việc cần làm                                                 |
-| -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Module backend | Có Modulith, ArchUnit và marker `identity`                                          | Bổ sung domain, application, adapter trong identity          |
-| Persistence    | Có transaction manager, migration, outbox và Mongo IT                               | Chạy IT trên replica set thật trước nghiệm thu               |
-| Authentication | Chưa có Spring Security/OAuth2 Client/Spring Session trong POM                      | Thêm dependency theo BOM, không tự viết OIDC validator       |
-| API contract   | Script chỉ đọc JSON và sinh schema TS; parity test chỉ kiểm tra metadata/tên schema | Xuất contract từ runtime, so sánh toàn bộ và sinh operations |
-| Web            | Có app shell, primitive và cấu hình API dùng chung                                  | Thêm login, onboarding và quản lý phiên                      |
-| CI             | Có Maven verify; Mongo IT dùng `disabledWithoutDocker = true`                       | Gate phải thất bại khi IT bị skip vì thiếu Docker            |
-| Local          | Docker pipe không tồn tại lúc scan                                                  | Khôi phục engine, không reset/purge volume                   |
-| Toolchain      | PATH: Node 22.20.0, pnpm 11.25.0, Java 25; pnpm báo runtime Node 24.19.0            | Dùng đúng Node 24.21.0, pnpm 12.9.1, Java 21                 |
+Chưa được phép đánh dấu `Completed` cho tới khi integration test chạy trên CI có
+Docker, Google development OAuth smoke test được ghi nhận, backlog/milestone được
+đóng và toàn bộ acceptance gate ở mục 14 đạt. Browser E2E hiện chạy trên Chromium
+desktop và mobile viewport trong CI.
 
-Đường dẫn JDK 21 trong dependency matrix không sử dụng được trên máy lúc scan;
-lần gọi đầu Maven dừng ở kiểm tra `JAVA_HOME`. Đã tìm thấy JDK tại
-`C:\Program Files\Java\jdk-21` và chạy lại với biến môi trường riêng cho process.
-Đây là bằng chứng môi trường hiện tại, không
-phủ nhận kết quả test lịch sử trong Stage 1. Chưa có bằng chứng CI từ lần rà soát
-này. Không đổi các mục Stage 1 đang Pending/Implemented thành Complete.
+Nghiệm thu local ngày 06/10/2026:
 
-Bằng chứng kiểm tra trong lượt scan:
+- `pnpm check`: pass.
+- Playwright: 6/6 test pass trên Chromium desktop và mobile viewport.
+- `mvnw verify`: pass 22 unit/architecture test; 5 integration test bị skip vì máy
+  local không có Docker daemon.
+- GitHub backlog/CI chưa thể cập nhật vì credential `gh` của owner đã hết hiệu lực.
+- Google OAuth thật chưa chạy vì repository không chứa và không được phép tự tạo
+  development client secret.
 
-- Maven `verify -DskipITs` với JDK 21: BUILD SUCCESS, 11 unit/architecture test đạt;
-  integration test được chủ động bỏ qua vì Docker không khả dụng.
-- Format, Markdown lint, repository file policy và action pin policy đạt.
-- `pnpm check` đạt, gồm frontend lint, typecheck, 4 test và production build,
-  trên runtime lệch baseline nêu trên;
-  không thay thế fresh-clone gate với toolchain đã khóa.
-- `node scripts/generate-api-client.mjs --check` đạt với contract hiện có;
-  chưa chứng minh drift của operation vì contract Stage 1 chưa có business API.
+## 1. Mục tiêu
 
-Thứ tự ưu tiên trước khi đóng Stage 2:
+Stage 2 tạo lát cắt xác thực web hoàn chỉnh đầu tiên của Dike:
 
-1. S2-00: khôi phục gate Stage 1 và ghi report không có IT bị skip.
-2. S2-01: sửa pipeline contract trước khi thêm operation auth.
-3. S2-02 đến S2-06: backend identity, OAuth và session security.
-4. S2-07 đến S2-09: web, kiểm thử và nghiệm thu Google thật.
+- Đăng nhập Google OIDC bằng Spring Security Authorization Code + PKCE.
+- Tạo `User` và `AuthIdentity` trong MongoDB.
+- Quản lý opaque web session bằng Spring Session Redis.
+- Web truy cập Spring Boot qua same-origin proxy `/api/*` của Next.js theo ADR 0011.
+- Có CSRF/origin protection, refresh, danh sách thiết bị, revoke, logout hiện tại
+  và logout toàn bộ.
+- Sau đăng nhập, người dùng nhập số điện thoại nhưng trạng thái vẫn là
+  `UNVERIFIED`.
+- Không tồn tại demo header, endpoint giả mạo user hoặc token Google trong browser
+  storage.
 
-## 2. Phạm vi
+## 2. Quyết định và ranh giới đã khóa
 
-Trong phạm vi: Google Authorization Code + PKCE; User/AuthIdentity; session Redis;
-CSRF/Origin; refresh, revoke từng phiên, logout và logout toàn bộ; nhập điện thoại
-UNVERIFIED; giao diện và contract tương ứng.
+### 2.1. Session và cookie
 
-Ngoài phạm vi: gửi/xác minh OTP (Stage 3), profile công khai/R2 (Stage 4), phương
-tiện/eKYC, kết bạn, booking, mobile token exchange, triển khai production và account
-linking nhiều provider. Không tạo demo header, endpoint tự chọn user hoặc login giả
-trong ứng dụng local/staging/production. OIDC server giả chỉ được dùng trong test.
+- Idle timeout là 24 giờ.
+- Absolute lifetime là 30 ngày; refresh không kéo dài mốc tuyệt đối.
+- Refresh xoay session ID và CSRF token.
+- Cookie production là `__Host-DIKE_SESSION`, có `HttpOnly`, `Secure`,
+  `SameSite=Lax`, `Path=/` và không đặt `Domain`.
+- Local HTTP dùng tên `DIKE_SESSION` và `Secure=false`.
+- CSRF dùng cookie `XSRF-TOKEN` đọc được bởi JavaScript và header
+  `X-XSRF-TOKEN`.
+- Session thật nằm trong Redis; cookie chỉ chứa opaque session ID ngẫu nhiên.
+- Không fallback sang session in-memory khi Redis lỗi.
 
-## 3. Thiết kế identity và dữ liệu
+### 2.2. Account provisioning
 
-Ownership nằm trong `com.dike.identity`. Controller gọi application service;
-domain không import Spring/Mongo/Redis. Repository và session/provider port do
-identity sở hữu, adapter nằm trong infrastructure. Shared giữ concern kỹ thuật.
+- Identity key duy nhất là `issuer + subject`, không phải email hoặc số điện thoại.
+- Không tự liên kết tài khoản bằng email hoặc số điện thoại, kể cả email Google đã
+  xác minh.
+- Google identity mới có email trùng user hiện hữu trả
+  `ACCOUNT_LINK_REQUIRED`; không merge và không tạo user trùng.
+- CI dùng OIDC test server; nghiệm thu có thêm một manual smoke test bằng Google
+  OAuth thật.
+- Google token và authorization code không được lưu trong MongoDB, Redis log hoặc
+  browser storage.
 
-| Model        | Trường tối thiểu                                                                                               | Invariant/index                             |
-| ------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| User         | id, displayName, email, phoneE164, phoneStatus, createdAt, updatedAt, version, sessionVersion                  | id unique; phone chưa xác minh không unique |
-| AuthIdentity | id, provider, subject, userId, createdAt                                                                       | Unique `(provider, subject)`; index userId  |
-| Session      | secret ID server-side, public deviceSessionId, userId, sessionVersion, issuedAt, lastSeenAt, absoluteExpiresAt | TTL Redis; public ID không phải credential  |
+### 2.3. Phone onboarding
 
-Google `sub` là khóa nhận diện, email chỉ là thuộc tính. Không merge tài khoản theo
-email hay số điện thoại. Hai callback đầu tiên đồng thời phải tạo đúng một identity
-và một user: ghi trong Mongo transaction, unique index làm trọng tài, transaction
-thua rollback rồi đọc identity đã commit với retry hữu hạn.
+- Local/test dùng `REQUIRE_PHONE_OTP=false`; staging/production dùng `true`.
+- Khi OTP không bắt buộc, user được đi tiếp nhưng `phoneStatus` vẫn là
+  `UNVERIFIED` và không nhận quyền verified.
+- Số điện thoại được chuẩn hóa E.164 nhưng chưa unique khi chưa xác minh.
+- Không tạo fake OTP provider hoặc endpoint tự xác minh trong Stage 2.
 
-Chỉ phát session sau Mongo commit. Redis lỗi sau commit trả lỗi có thể thử lại;
-lần login kế tiếp tìm lại user, không tạo bản sao. Không giả định transaction bao
-trùm Mongo và Redis. Không lưu Google access/refresh token khi không có nhu cầu gọi
-Google API; không đưa token/claims nguyên bản vào DTO hoặc log.
+### 2.4. Ngoài phạm vi
 
-Số điện thoại chuẩn hóa Việt Nam E.164, lưu `UNVERIFIED`. Endpoint không nhận
-`phoneStatus`, role hoặc userId từ client. Đổi số luôn giữ trạng thái chưa xác minh;
-chưa tạo verified-phone unique index trước Stage 3.
+- Gửi/xác minh OTP, brute-force OTP, cooldown và phone uniqueness sau xác minh —
+  Stage 3.
+- Role nghiệp vụ `VERIFIED_MEMBER`, `APPROVED_DRIVER`, `MODERATOR`, `ADMIN` —
+  Stage 3.
+- Hồ sơ đầy đủ, consent, privacy và avatar — Stage 4.
+- Account-linking UI hoặc khôi phục tài khoản.
+- Social login ngoài Google.
+- Mobile login/token; Flutter credential transport được thực hiện ở giai đoạn
+  mobile.
 
-## 4. OAuth và topology trình duyệt
+## 3. Kiến trúc đích
 
-- Dùng Spring Security OAuth2 Client, scope tối thiểu `openid profile email`.
-- Bật PKCE S256 tường minh và test authorization request có challenge; không suy
-  luận confidential client sẽ tự bật PKCE.
-- State, nonce và verifier gắn với phiên trước login, hết hạn sau 5 phút và chỉ
-  sử dụng một lần. Callback sai/replay/thiếu cookie phải bị từ chối.
-- Kiểm tra chữ ký, issuer, audience, expiry và nonce qua thư viện OIDC; issuer/token
-  endpoints production cố định Google, không lấy từ request.
-- Sau login đổi session ID, loại bỏ authentication request cũ và cấp CSRF mới.
-- Redirect sau login dùng đường dẫn nội bộ allowlist; từ chối absolute URL, `//`,
-  URL encode vượt allowlist. Không đưa code/token vào URL đích hoặc error message.
-- Local: web localhost:3000, API localhost:8080, origin allowlist chính xác.
-  Cookie HTTP ngoại lệ chỉ dành cho profile local/test.
-- Staging/production: web và API dùng HTTPS trên cùng site với custom domain;
-  cookie host-only trên API, `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`.
-  Không mặc định cookie hoạt động giữa domain Vercel/Render khác site. Chốt domain
-  và callback allowlist trước E2E staging; proxy phải lọc forwarded headers.
-- CORS chỉ cho origin được cấu hình, credentials bật, không wildcard/reflection.
-  API 401 trả envelope JSON, không tự redirect sang Google; login là điều hướng
-  trình duyệt tới endpoint bắt đầu OAuth.
+### 3.1. Luồng web
 
-## 5. Vòng đời session và quyền
+```text
+Browser
+  │ first-party cookie, /api/*
+  ▼
+Next.js/Vercel same-origin proxy
+  │ server-to-server HTTP
+  ▼
+Spring Boot API/Render
+  ├── Spring Security OAuth2/OIDC
+  ├── identity module
+  ├── MongoDB: User + AuthIdentity
+  └── Redis: opaque session + rate limit
+```
 
-Implementation hiện dùng Spring Session Redis cho cookie OAuth tạm `DIKE_OAUTH`,
-và `RedisSessionStore` với Lua atomic cho opaque cookie `DIKE_SESSION`. Secret
-credential được hash SHA-256 trước khi dùng làm Redis key; rotate/revoke trên cùng
-device record được serialize bởi Redis. Domain không phụ thuộc Redis. Cách này
-thực hiện refresh/revoke không qua cơ chế lưu HttpSession ở cuối request và tránh
-request cũ ghi hồi sinh phiên. Integration test phải xác minh invariant này.
+Next.js chỉ chuyển tiếp transport. Spring Boot là nơi duy nhất sở hữu OAuth,
+session, user, CSRF, authorization và nghiệp vụ. Biết URL Render không được phép
+bỏ qua security; proxy không phải authorization boundary.
 
-Mặc định đề xuất: idle timeout 30 phút, absolute lifetime 7 ngày, tối đa 5 phiên
-mỗi tài khoản. Hiện các giới hạn này là hằng số trong adapter; chuyển sang typed
-configuration có validation còn pending. Phiên thứ sáu bị từ chối
-với hướng dẫn thu hồi phiên hoặc đăng nhập lại theo quy trình được review.
+### 3.2. Ranh giới identity module
 
-- Refresh chỉ hợp lệ với session chưa hết idle/absolute expiry, đổi credential và
-  CSRF token, không kéo dài absolute lifetime. Credential cũ mất hiệu lực.
-- Hai refresh đồng thời: tối đa một thành công; client gom refresh thành một
-  request, không dùng refresh loop tự động khi 401. Redis atomic operation/lock
-  cần test với nhiều instance, không chỉ `synchronized` trong một JVM.
-- Revoke từng phiên kiểm tra owner và public deviceSessionId. Không trả secret
-  session ID trong danh sách thiết bị. Phiên đang dùng cũng có thể bị revoke.
-- Logout toàn bộ tăng `User.sessionVersion` bền vững trong Mongo trước khi xóa
-  session Redis; mỗi request đã xác thực kiểm tra version hiện hành. Nhờ đó request
-  refresh đang bay không hồi sinh quyền sau logout-all. Nếu Mongo/Redis lỗi, fail
-  closed; không fallback memory. Login đồng thời chỉ hợp lệ nếu phát phiên dựa trên
-  version mới sau thời điểm logout-all commit.
-- Revoke từng phiên dùng Lua atomic cùng device record với refresh: refresh kiểm
-  tra credential/device tồn tại, revoke xóa cả hai trong một script. Không có
-  write-back cuối request. Test cần chứng minh cả hai thứ tự chạy và concurrency.
-- Logout chỉ dùng POST, xóa cookie đúng path/flags. Không tuyên bố có thể hủy thao
-  tác nghiệp vụ đã được server chấp nhận trước thời điểm revoke.
-- Mutation yêu cầu CSRF token và Origin khớp allowlist; Origin thiếu thì kiểm tra
-  Referer hợp lệ, thiếu cả hai thì từ chối đối với browser mutation. OAuth callback
-  GET dùng state/nonce và không bị ép qua mutation policy.
-- Response auth đặt `Cache-Control: no-store`; không log Cookie, Authorization,
-  OAuth code, state, nonce, CSRF, session credential hoặc số điện thoại rõ.
-- `REQUIRE_PHONE_OTP=false` chỉ local/test. Staging/production bật true; Stage 2
-  cho phép onboarding/session management nhưng chưa cấp quyền pilot cho UNVERIFIED.
-  Stage 3 sẽ bổ sung OTP, role và policy đầy đủ.
+```text
+identity/
+  api/              REST DTO/controller, OAuth success/failure adapter
+  application/      provisioning, session và phone onboarding use case
+  domain/           User, AuthIdentity, enum và policy
+  infrastructure/
+    mongo/          document/repository
+    redis/          Spring Session và session lookup
+    security/       Spring Security, OIDC và CSRF
+```
 
-## 6. Contract dự kiến
+Ràng buộc:
 
-Tất cả endpoint dưới `/api/v1`. Tên operation/schema được sinh từ backend; bảng
-dưới mô tả contract triển khai. Callback do Spring Security filter xử lý và chưa
-có operation riêng trong OpenAPI. Lỗi dùng envelope và requestId Stage 1.
+- Controller chỉ gọi application service.
+- Domain không phụ thuộc Spring Security, MongoDB, Redis hoặc servlet API.
+- Infrastructure triển khai port do identity module sở hữu.
+- Module khác chỉ dùng public API/principal contract được identity công bố.
+- Worker profile không tạo servlet security chain hoặc web session.
 
-| Method/path                               | Quyền                 | Kết quả                                                           |
-| ----------------------------------------- | --------------------- | ----------------------------------------------------------------- |
-| GET `/auth/google`                        | Public, rate limited  | Redirect Google, lưu state/nonce/PKCE                             |
-| GET `/auth/callback`                      | OAuth request hợp lệ  | Đổi code, tạo session, redirect nội bộ                            |
-| GET `/auth/csrf`                          | Session               | Token CSRF gắn session, no-store                                  |
-| GET `/auth/session`                       | Session               | User tối thiểu, onboarding state, thời hạn; 401 nếu thiếu/hết hạn |
-| POST `/auth/refresh`                      | Session + CSRF/Origin | Rotate cookie/token; 401 nếu không còn hợp lệ                     |
-| PUT `/auth/phone`                         | Session + CSRF/Origin | Nhập/chỉnh số của chính mình, UNVERIFIED                          |
-| GET `/auth/sessions`                      | Session               | Danh sách phiên với public ID và nhãn thiết bị đã sanitize        |
-| DELETE `/auth/sessions/{deviceSessionId}` | Owner + CSRF/Origin   | 204; 404 cho ID không thuộc user                                  |
-| POST `/auth/logout`                       | CSRF/Origin           | 204, kết thúc phiên và xóa cookie                                 |
-| POST `/auth/logout-all`                   | Session + CSRF/Origin | 204, revoke mọi phiên gồm phiên hiện tại                          |
+### 3.3. Dependency cần bổ sung
 
-Chốt status/error code qua contract test: 400 validation, 401 unauthenticated,
-403 CSRF/Origin, 404 session không thuộc owner, 409 conflict, 429 rate limited,
-503 dependency unavailable. OAuth browser failure redirect tới trang lỗi cố định
-với mã lỗi allowlist, không phản chiếu provider error description.
+- `spring-boot-starter-security`.
+- `spring-boot-starter-oauth2-client`.
+- `spring-session-data-redis`.
+- Libphonenumber được pin trong dependency matrix.
+- OIDC HTTP mock server chỉ cho test.
+- Testcontainers Redis cho integration test.
+- TanStack Query, React Hook Form và Zod cho web.
+- Playwright cho browser E2E.
 
-## 7. Work breakdown và thứ tự PR
+Không override dependency do Spring Boot BOM quản lý nếu chưa có compatibility
+test và lý do được ghi trong dependency matrix.
 
-Mỗi work item có owner/reviewer do nhóm gán; auth/CI qua PR có reviewer ngoài người
-triển khai. Không tự nhận các mục dưới đã hoàn thành vì có kế hoạch.
+## 4. Dữ liệu và persistence
 
-| ID    | Nội dung và sản phẩm                                                                              | Phụ thuộc      | Hoàn thành khi                                                            |
-| ----- | ------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------- |
-| S2-00 | Đóng gap Stage 1: toolchain, Docker, fail-on-skip IT, fresh-start drill                           | Stage 1 source | Root gates xanh; report IT không skip; API/worker/web healthy             |
-| S2-01 | Export OpenAPI từ runtime; generator pin version; sinh TS operations và drift check toàn contract | S2-00          | Thêm/sửa operation chưa regenerate làm CI đỏ; hai lần generate không diff |
-| S2-02 | Identity model, repository ports, migration mới và concurrency test                               | S2-00          | Callback race chỉ tạo một user/identity; rollback không orphan            |
-| S2-03 | Security chain, Google OIDC/PKCE, callback và startup config guards                               | S2-02          | Test state/nonce/claims/replay/fixation đều đạt                           |
-| S2-04 | Redis session, expiry, rotation, danh sách/revoke/logout-all                                      | S2-03          | Multi-instance và refresh/revoke race đạt trên Redis thật                 |
-| S2-05 | CSRF/Origin/CORS, error handlers, rate limit, redaction                                           | S2-03, S2-04   | Negative security matrix đạt; worker không cần Google secret              |
-| S2-06 | Phone onboarding UNVERIFIED và session DTO                                                        | S2-02, S2-05   | Không mass assignment hoặc merge bằng phone/email                         |
-| S2-07 | Web login, onboarding, thiết bị và trạng thái lỗi                                                 | S2-01, S2-06   | Dùng generated client; keyboard/mobile; token không vào storage JS        |
-| S2-08 | OIDC test server riêng trong test, browser E2E và CI gate                                         | S2-07          | Hai browser context, refresh/logout/revoke và dependency failure đạt      |
-| S2-09 | Google thật, README/env mẫu, bằng chứng và handoff Stage 3                                        | S2-08          | Callback đã đăng ký chạy thật; root gates/review/CI đạt                   |
+### 4.1. User
 
-Rate limit S2-05 giới hạn login/callback/refresh theo IP đã qua trusted proxy và
-user/session khi có; trả Retry-After. Không mở rộng sang thuật toán OTP Stage 3.
-Dependency mới ưu tiên BOM; xác minh Spring Session/Security với Boot đang khóa.
-Không nâng stack toàn dự án như một phần ngầm của auth.
+`User` có:
 
-## 8. Web và UX
+- `id`.
+- `canonicalEmail`.
+- `displayName`.
+- `avatarUrl`.
+- `accountStatus`: `ACTIVE | LOCKED`.
+- `onboardingStatus`: `PHONE_REQUIRED | PHONE_SUBMITTED`.
+- `phoneCandidateE164`, nullable.
+- `phoneStatus`: `NOT_PROVIDED | UNVERIFIED`.
+- `createdAt`, `updatedAt`.
+- Version cho optimistic concurrency.
 
-- `/login`: nút Google, trạng thái đang chuyển hướng, người dùng hủy hoặc lỗi
-  provider, thử lại có chủ đích; không lộ lỗi kỹ thuật.
-- `/onboarding/phone`: label, validation tại client và server; thông báo rõ chưa
-  xác minh, submit chống lặp; không hiển thị trạng thái đã xác minh giả.
-- `/account/sessions`: phiên hiện tại, thời gian hoạt động, logout và revoke.
-  Nhãn thiết bị chỉ mang tính mô tả, không phải bằng chứng danh tính thiết bị.
-- Tải session khi vào app; 401 xóa state người dùng, quay về login; 503 hiển thị
-  mất kết nối và retry, không coi là logout thành công.
-- Cookie quản lý bởi trình duyệt; session credential không dùng localStorage.
-  CSRF token chỉ trong memory, nạp lại sau login/rotation. Không tự động retry
-  mutation khi chưa biết request trước đã được thực thi hay chưa.
-- Nội dung auth riêng tư không qua cache SSR dùng chung; kiểm thử back navigation
-  và tab khác sau logout. Client state chỉ hỗ trợ UX, server là nơi kiểm tra quyền.
+Stage 2 chỉ giữ snapshot tên/avatar từ Google để hiển thị onboarding. Profile đầy
+đủ và quyền chỉnh sửa thuộc Stage 4.
 
-## 9. Ma trận kiểm thử bắt buộc
+### 4.2. AuthIdentity
 
-| Nhóm       | Ca kiểm thử                                                                                                             |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| OIDC       | Happy path; user hủy; state/nonce sai hoặc thiếu; issuer/audience/expiry/signature sai; callback replay; challenge S256 |
-| Identity   | Hai login mới đồng thời; cùng sub đổi email; khác sub cùng email không merge; Mongo rollback                            |
-| Session    | Fixation; idle/absolute expiry; rotation invalidates old ID; hai API instance; refresh race; Redis restart/outage       |
-| Revoke     | Owner/IDOR; revoke phiên hiện tại/khác; logout-all; refresh đang bay không hồi sinh session                             |
-| Browser    | Cookie flags; CORS origin sai; mutation thiếu CSRF/Origin; open redirect; không cache dữ liệu user                      |
-| Onboarding | E.164; input sai; client gán verified/role; trùng số chưa xác minh không merge; production vẫn khóa pilot               |
-| Privacy    | Log/envelope/URL không có credential hoặc phone; public session ID không sử dụng để xác thực được                       |
-| Runtime    | Worker không mở HTTP hoặc khởi tạo OAuth client; production thiếu secret/unsafe config phải fail startup                |
-| Contract   | Paths, required, enum, nullable, security scheme, status codes và operation TS khớp backend                             |
+`AuthIdentity` có:
 
-Unit test dùng Clock inject. Integration test dùng Mongo replica set và Redis thật;
-không chấp nhận skip để đóng gate. Browser CI dùng OIDC test server với signing key
-tổng hợp, đi qua redirect/token/JWKS thực; không dùng header bypass. Google thật là
-manual acceptance riêng, không nhét credential Google vào CI hoặc repo.
+- `id`.
+- `provider`: `GOOGLE`.
+- `issuer`.
+- `subject`.
+- `userId`.
+- `emailSnapshot`.
+- `emailVerified`.
+- `createdAt`, `lastLoginAt`.
 
-## 10. Nghiệm thu, vận hành và rollback
+Không lưu Google access token, refresh token, authorization code hoặc raw ID token.
 
-Chạy `pnpm check`, Maven `verify` không skip, Compose fresh start, `pnpm dev` và
-browser E2E. Lưu commit, CI URL, số test pass/fail/skip, cấu hình môi trường không
-nhạy cảm, kết quả Google thật và reviewer.
+### 4.3. Index migration
 
-### 10.1. Cập nhật triển khai ngày 06/10/2026
+Thêm migration versioned, idempotent:
 
-| Work item | Trạng thái                      | Bằng chứng / phần còn thiếu                                                                              |
-| --------- | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| S2-00     | Blocked local                   | Toolchain đúng đã có; Docker Engine chưa sẵn sàng, fresh-start chưa đạt                                  |
-| S2-01     | Implemented                     | RuntimeContractTest so toàn JSON; api:generate xuất runtime rồi sinh TS operations, route/method; cần CI |
-| S2-02     | Implemented                     | MongoAccountStore, unique migration, concurrency IT; chờ Docker test                                     |
-| S2-03     | Implemented, partial acceptance | Google code/PKCE, state/nonce request test, config guards; chưa test token/JWKS end-to-end               |
-| S2-04     | Implemented, partial acceptance | Redis Lua rotation/revoke, version fence; IT và cấu hình timeout còn phải nghiệm thu                     |
-| S2-05     | Implemented, partial acceptance | Origin/CSRF, rate limit, requestId envelope, no-store; chưa đủ toàn bộ security matrix                   |
-| S2-06     | Implemented                     | Phone normalization, UNVERIFIED, application tests                                                       |
-| S2-07     | Implemented, partial acceptance | Login/onboarding/sessions, route sinh tự động, CSRF client tests; chưa browser E2E                       |
-| S2-08     | Pending                         | Chưa có OIDC test server và hai browser context E2E; unit test không thay thế                            |
-| S2-09     | Pending                         | Chưa có bằng chứng Google thật, review và CI xanh                                                        |
+- Unique `(issuer, subject)` trên `auth_identities`.
+- Index `userId` trên `auth_identities`.
+- Index tra cứu `canonicalEmail` trên `users`.
+- Ràng buộc chống tạo đồng thời hai user cùng canonical Google email.
+- Không tạo unique index cho `phoneCandidateE164`; Stage 3 chỉ unique số đã xác
+  minh.
 
-Sửa trong lượt hardening: đồng nhất lỗi filter/Security với error envelope, không
-in credential qua AuthSettings.toString, validate origin/callback, public Google
-operation không yêu cầu cookie; sửa response type sinh ra, loại route/method viết
-tay trong UI; khi CSRF cũ thì lần thử có chủ đích tiếp theo lấy token mới, không
-replay mutation. Login phiên bản mới dọn session cũ bị logout-all trước khi xét
-giới hạn 5 phiên để cleanup gián đoạn không khóa người dùng.
+Migration phải chạy an toàn khi API và worker cùng khởi động theo cơ chế lock/checksum
+của Stage 1.
 
-Đồng thời bỏ khóa MongoDB legacy còn sót trong base config và chuyển cấu hình
-staging/production sang `spring.mongodb.*` của Boot 4. Test binding xác minh URI,
-database và replica-set option, tránh hosted profile kế thừa default local khi
-thiếu cấu hình bắt buộc.
+### 4.4. Transaction provisioning
 
-### 10.2. Bằng chứng kiểm tra lượt hardening
+Token exchange và gọi Google diễn ra trước transaction. Sau khi Spring xác minh
+OIDC, provisioning chạy trong Mongo transaction:
 
-- Toolchain: Node 24.21.0, pnpm 12.9.1 qua Corepack, Java 21.0.8.
-- `pnpm check`: PASS, gồm lint/typecheck, 8 test, Next.js production build và
-  generated-client drift check.
-- `mvnw -B -ntp verify -DskipITs`: PASS, 29 unit/architecture/runtime-contract
-  test, không có failure; integration test không chạy trong lệnh này.
-- Đã thử Maven `verify` đầy đủ: Testcontainers không tìm thấy Docker environment;
-  MongoIdentityIT, RedisSessionIT và MongoFoundationIT không chạy được. Không dùng
-  kết quả skipITs để đóng gate này. Docker service đang dừng và tài khoản hiện tại
-  không có quyền khởi động service; không reset/purge volume.
-- `api:generate` đã xuất contract từ runtime; `RuntimeContractTest` so sánh lại
-  toàn bộ artifact trong lần Maven verify phía trên.
-- Google thật và browser/OIDC E2E: chưa chạy; Stage 2 vẫn chưa được nghiệm thu.
+1. Tìm `AuthIdentity` bằng `(issuer, subject)`.
+2. Nếu tồn tại, tải đúng user và cập nhật `lastLoginAt`.
+3. Nếu chưa tồn tại, kiểm tra collision theo canonical email.
+4. Nếu collision, trả `ACCOUNT_LINK_REQUIRED`, không ghi dữ liệu.
+5. Nếu không collision, tạo `User` và `AuthIdentity` nguyên tử.
+6. Map duplicate-key race thành conflict ổn định, không retry mù.
 
-Không đánh dấu Stage 2 Complete cho đến khi các gate Pending ở trên có bằng chứng.
+Nếu identity hiện hữu đổi email thành email đang thuộc user khác, vẫn cho login
+bằng `issuer + subject`, giữ email hiện tại và ghi audit/metric; không tự chuyển
+ownership.
 
-Google Cloud OAuth client, consent screen, callback URI và domain staging cần owner
-cung cấp khi làm S2-09; không chặn model/test bằng dữ liệu tổng hợp. Không yêu cầu
-người dùng gửi secret trong chat; cấu hình qua environment/secret manager.
+## 5. Google OIDC và Spring Security
 
-Metrics chỉ dùng nhãn hữu hạn: login success/failure code, refresh/revoke count,
-Redis latency và session failure; không gắn userId/phone/token làm label. Cảnh báo
-trên failure rate; log audit dùng ID nội bộ với retention được review.
+- Dùng Spring Security OAuth2 Client; không tự viết token exchange hoặc JWT
+  verification.
+- Scope tối thiểu: `openid`, `email`, `profile`.
+- PKCE bắt buộc với `S256` qua authorization request resolver.
+- State và authorization request lưu trong server-side session.
+- Nonce và OIDC claims được Spring Security xác minh.
+- Chỉ chấp nhận issuer Google đã cấu hình, audience đúng client ID, token chưa hết
+  hạn và `email_verified=true`.
+- Không yêu cầu Google hosted domain.
+- Sau provisioning, chuyển principal thành Dike principal chứa `userId`; không
+  dùng Google token làm application credential.
+- Xóa authorized client/token Google khỏi session sau khi đã lấy claims cần thiết.
+- Session-fixation protection phải đổi session ID sau login.
+- Redirect thành công cố định tới `/auth/complete`; không nhận arbitrary redirect
+  URL từ client.
+- Failure redirect chỉ chứa error code an toàn, không chứa provider response hoặc
+  token.
 
-Rollback giữ collection identity và migration đã áp dụng; sửa bằng migration kế
-tiếp, không drop dữ liệu. Session serializer thay đổi không tương thích phải có
-chiến lược namespace/version và đăng nhập lại có chủ đích. Không rollback về bản
-API mất authentication mà vẫn mở endpoint riêng tư ra public.
+OAuth client ID/secret và public callback base URL đọc từ typed configuration và
+environment. Production/staging fail fast khi thiếu hoặc dùng cấu hình không an
+toàn.
 
-Handoff Stage 3: phone UNVERIFIED, user/session identity ổn định, policy điểm vào rõ,
-config OTP gate bật ở production; chưa tuyên bố user đủ điều kiện pilot.
+## 6. Public API và contract
 
-## 11. Nguồn kỹ thuật để triển khai
+| Method   | Endpoint                                | Hành vi                                     |
+| -------- | --------------------------------------- | ------------------------------------------- |
+| `GET`    | `/api/v1/auth/google`                   | Khởi tạo Google login và redirect           |
+| `GET`    | `/api/v1/auth/callback/google`          | Spring Security xử lý callback              |
+| `GET`    | `/api/v1/auth/session`                  | Trả user/session và tạo CSRF cookie         |
+| `POST`   | `/api/v1/auth/session/refresh`          | Xoay session ID và CSRF token               |
+| `GET`    | `/api/v1/auth/sessions`                 | Liệt kê session/thiết bị của user           |
+| `DELETE` | `/api/v1/auth/sessions/{sessionHandle}` | Revoke một thiết bị                         |
+| `POST`   | `/api/v1/auth/logout`                   | Logout session hiện tại                     |
+| `POST`   | `/api/v1/auth/logout-all`               | Revoke toàn bộ session của user             |
+| `PUT`    | `/api/v1/auth/phone`                    | Lưu phone candidate ở trạng thái UNVERIFIED |
 
-- [ADR auth của dự án](../docs/architecture/adr/0006-auth-and-session-model.md).
-- [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect):
-  kiểm tra token và dùng sub làm định danh ổn định.
-- [Spring Security authorization grants](https://docs.spring.io/spring-security/reference/7.0/servlet/oauth2/client/authorization-grants.html):
-  cấu hình authorization request và PKCE; đối chiếu version thực tế do BOM resolve.
-- [Spring Session API](https://docs.spring.io/spring-session/reference/api.html):
-  Redis indexed repository và tra session theo principal.
+`GET /auth/session` trả tối thiểu:
 
-Các timeout, endpoint và concurrency fence là đề xuất của dự án; không phải mặc
-định được bảo đảm sẵn bởi các thư viện trên.
+```json
+{
+  "authenticated": true,
+  "user": {
+    "id": "...",
+    "displayName": "...",
+    "avatarUrl": "...",
+    "email": "...",
+    "onboardingStatus": "PHONE_REQUIRED",
+    "phoneStatus": "NOT_PROVIDED",
+    "phoneMasked": null,
+    "nextAction": "SUBMIT_PHONE"
+  },
+  "session": {
+    "id": "...",
+    "createdAt": "...",
+    "lastSeenAt": "...",
+    "idleExpiresAt": "...",
+    "absoluteExpiresAt": "..."
+  }
+}
+```
+
+Unauthenticated request trả `401 AUTHENTICATION_REQUIRED`, không trả giả
+`authenticated=false` với HTTP 200.
+
+`PUT /auth/phone` nhận:
+
+```json
+{
+  "phoneNumber": "0901234567"
+}
+```
+
+Số được chuẩn hóa với region mặc định `VN`, lưu E.164 và chỉ trả lại dạng mask.
+Người dùng được đổi candidate khi chưa verified.
+
+Error code ổn định:
+
+- `AUTHENTICATION_REQUIRED`.
+- `AUTH_SESSION_EXPIRED`.
+- `AUTH_SESSION_REVOKED`.
+- `OIDC_LOGIN_FAILED`.
+- `OIDC_CLAIM_INVALID`.
+- `ACCOUNT_LINK_REQUIRED`.
+- `AUTH_RATE_LIMITED`.
+- `CSRF_INVALID`.
+- `ORIGIN_NOT_ALLOWED`.
+- `PHONE_INVALID`.
+- `SESSION_NOT_FOUND`.
+
+OpenAPI mô tả cookie security scheme, CSRF header, operation, DTO và response lỗi.
+Generated client là nguồn type/operation mặc định của web.
+
+## 7. Session Redis
+
+Dùng Spring Session Redis indexed repository:
+
+- Namespace chứa environment để các môi trường không dùng chung key.
+- Principal index là Dike `userId` để liệt kê và revoke toàn bộ session.
+- Mỗi session có public `sessionHandle` ngẫu nhiên riêng; API không trả raw cookie
+  ID.
+- Metadata: `createdAt`, `lastSeenAt`, `deviceLabel`, `absoluteExpiresAt`.
+- `deviceLabel` suy ra từ User-Agent đã sanitize; không fingerprint người dùng.
+- Không trả hoặc log IP đầy đủ.
+- Giới hạn 10 active sessions/user; session thứ 11 thu hồi session cũ nhất.
+- `lastSeenAt` cập nhật tối đa một lần mỗi 5 phút để tránh ghi Redis mỗi request.
+- Filter kiểm tra account status, idle timeout, absolute expiry và revoked state.
+- Cookie còn tồn tại nhưng Redis session mất/hết hạn phải trả 401 và được clear.
+- Danh sách session chỉ trả public handle, label và timestamp.
+- Revoke session hiện tại phải clear cookie browser.
+- Refresh đổi session ID và CSRF token nhưng giữ `absoluteExpiresAt` ban đầu.
+
+## 8. Phone onboarding
+
+- Chuẩn hóa số bằng libphonenumber với region `VN`.
+- Lưu dạng E.164, ví dụ `+84901234567`.
+- Không dùng phone để tìm, merge hoặc đăng nhập.
+- Không kiểm tra uniqueness trong Stage 2.
+- Sau submit: `PHONE_SUBMITTED` và `UNVERIFIED`.
+- `REQUIRE_PHONE_OTP=true` trả `nextAction=VERIFY_PHONE`.
+- `REQUIRE_PHONE_OTP=false` trả `nextAction=NONE` nhưng không cấp verified
+  authority.
+- Staging/production từ chối khởi động nếu `REQUIRE_PHONE_OTP=false`.
+
+## 9. CSRF, origin và security hardening
+
+- Mọi mutation dùng cookie auth phải có CSRF token hợp lệ.
+- Chỉ bỏ CSRF cho OAuth authorization/callback đúng endpoint; không ignore toàn
+  bộ `/auth/**`.
+- Kiểm tra `Origin`, fallback `Referer` khi phù hợp, bằng exact allowlist.
+- Mutation thiếu cả Origin và Referer bị từ chối trong web flow.
+- Không dùng wildcard origin với credentials.
+- Auth/session response dùng `Cache-Control: no-store`.
+- Logout/revoke clear cookie bằng cùng name/path/secure/same-site khi tạo.
+- Chỉ tin forwarded headers từ proxy đã cấu hình; callback URL lấy từ public base
+  URL typed property.
+- Login initiation rate limit 10 lần/10 phút/IP tin cậy.
+- Failure callback rate limit 20 lần/10 phút/IP tin cậy.
+- Redis rate-limit failure phải fail-closed cho auth initiation.
+- UI chỉ nhận lỗi account-linking tổng quát, không xác nhận email nào đã tồn tại.
+- Không có `X-User-Id`, demo token, fake-login endpoint hoặc test controller trong
+  production source.
+
+Log không chứa Google secret, authorization code, ID/access token, session ID,
+CSRF token, email hoặc phone đầy đủ.
+
+## 10. Next.js same-origin proxy và web
+
+### 10.1. Proxy
+
+- Browser chỉ dùng URL tương đối `/api/...`.
+- `DIKE_API_INTERNAL_ORIGIN` là server-side environment variable, không dùng
+  `NEXT_PUBLIC_`.
+- Local mặc định `http://localhost:8080`.
+- Proxy chỉ forward `/api/:path*` tới một upstream cố định; client không chọn
+  upstream.
+- Giữ method, query, body, cookie, `Set-Cookie`, CSRF header, request ID và status.
+- Không retry mutation, không cache authenticated response và không log
+  cookie/code/token.
+- OAuth redirect URI công khai đi qua Next.js origin.
+- Không tạo Next.js business API hoặc auth session riêng.
+
+### 10.2. Web screens
+
+- `/login`: nút “Tiếp tục với Google”, trạng thái lỗi an toàn.
+- `/auth/complete`: tải session rồi điều hướng theo `nextAction`.
+- `/onboarding/phone`: nhập số Việt Nam, validation accessible, loading/error/retry.
+- `/account/sessions`: danh sách thiết bị, revoke từng session, logout tất cả.
+- App shell hiển thị trạng thái signed-in và logout.
+
+Frontend rules:
+
+- Không lưu token/session trong `localStorage`, `sessionStorage`, Zustand hoặc
+  React state dài hạn.
+- Session state lấy từ generated API client qua TanStack Query.
+- Form dùng React Hook Form + Zod; backend vẫn là nguồn validation cuối.
+- Mutation đọc CSRF cookie và gửi `X-XSRF-TOKEN`.
+- Sau 401, xóa query cache nhạy cảm và chuyển về `/login`; không refresh vô hạn.
+- Refresh chỉ chạy có chủ đích khi app khởi động hoặc gần idle expiry và chỉ có
+  một request đồng thời.
+- UI có keyboard navigation, focus management, label và thông báo lỗi cho screen
+  reader.
+
+## 11. Thứ tự triển khai
+
+Thực hiện theo lát cắt nhỏ, luôn giữ `main` xanh:
+
+1. Đồng bộ ADR/runbook và dependency matrix.
+2. Tạo identity domain, persistence và indexes.
+3. Dựng Spring Security + Redis session foundation.
+4. Tích hợp Google OIDC + PKCE.
+5. Thêm session lifecycle API.
+6. Thêm phone onboarding.
+7. Hoàn thiện CSRF/origin/rate limit.
+8. Sinh OpenAPI operation client.
+9. Dựng Next.js proxy và web flow.
+10. Thêm automated E2E, Google smoke, observability và acceptance.
+
+Mỗi work item dưới đây là một issue độc lập. Auth, security, dependency và ADR
+phải qua PR/review/CI theo quy ước nhóm.
+
+## 12. Work breakdown
+
+### S2-00 — Preflight và đồng bộ quyết định
+
+**Phụ thuộc:** Stage 1, ADR 0006 và ADR 0011.
+
+- Commit/merge ADR 0011, tài liệu same-origin proxy và cập nhật master plan hiện
+  có trong working tree.
+- Tạo runbook này và liên kết từ `PLAN_MASTER.md`.
+- Chạy Stage 1 acceptance, Mongo/Redis health và toàn bộ quality gate.
+- Cập nhật dependency matrix với Security, Session, libphonenumber, OIDC test
+  server và Playwright.
+- Tạo issue S2-00 đến S2-11 trong milestone Stage 2.
+
+**Hoàn thành khi:** baseline sạch, CI xanh và không còn quyết định auth mâu thuẫn.
+
+### S2-01 — Identity domain, Mongo documents và indexes
+
+**Phụ thuộc:** S2-00.
+
+- Tạo domain model, application ports và Mongo adapters.
+- Thêm migration indexes cho identity/user.
+- Implement transactional provisioning và collision policy.
+- Test create, repeat login, concurrent first login, email collision và rollback.
+
+**Hoàn thành khi:** cùng `issuer + subject` luôn trả cùng user và collision không
+tạo dữ liệu một phần.
+
+### S2-02 — Spring Security và Redis session foundation
+
+**Phụ thuộc:** S2-00, S2-01.
+
+- Thêm security dependencies và typed auth/session properties.
+- Cấu hình Spring Session Redis indexed repository, namespace và TTL.
+- Tạo Dike principal, absolute-expiry filter, session metadata và maximum-session
+  policy.
+- Phân tách API/worker configuration.
+- Thêm production guard cho cookie, origin, public URL và `REQUIRE_PHONE_OTP`.
+
+**Hoàn thành khi:** restart API không mất session Redis và worker không mở auth
+web stack.
+
+### S2-03 — Google OIDC + PKCE
+
+**Phụ thuộc:** S2-01, S2-02.
+
+- Cấu hình Google client từ environment secrets.
+- Thêm authorization resolver bắt buộc PKCE S256.
+- Cấu hình callback, success/failure handlers và Dike principal.
+- Validate claims và xóa Google authorized client sau provisioning.
+- Không thêm mock auth vào main runtime.
+
+**Hoàn thành khi:** mock OIDC flow chứng minh state, nonce, PKCE và claims được
+kiểm tra.
+
+### S2-04 — Session lifecycle APIs
+
+**Phụ thuộc:** S2-02, S2-03.
+
+- Implement current session, refresh, list devices, revoke, current logout và
+  global logout.
+- Xoay session/CSRF khi refresh.
+- Bảo đảm revoke có hiệu lực ngay trên request tiếp theo.
+- Xử lý Redis failure fail-closed, không tạo in-memory fallback.
+
+**Hoàn thành khi:** per-device và global logout hoạt động với nhiều browser
+context.
+
+### S2-05 — Phone onboarding
+
+**Phụ thuộc:** S2-01, S2-04.
+
+- Thêm phone normalization/validation.
+- Implement submit/update candidate và trạng thái onboarding.
+- Thêm môi trường `REQUIRE_PHONE_OTP`.
+- Không cấp verified role hoặc tạo fake OTP.
+
+**Hoàn thành khi:** local flow đi tiếp với phone vẫn `UNVERIFIED`, còn
+staging/production yêu cầu bước OTP chưa được Stage 3 triển khai.
+
+### S2-06 — CSRF, origin và security hardening
+
+**Phụ thuộc:** S2-02, S2-04.
+
+- Cấu hình CSRF cookie/header, exact origin allowlist và trusted proxy.
+- Thêm auth rate limit Redis.
+- Thêm no-store headers, safe redirect/error mapping và log redaction.
+- Kiểm tra session fixation, open redirect, host-header poisoning và cache leakage.
+
+**Hoàn thành khi:** toàn bộ negative security test trả status/error code đúng và
+không tạo session ngoài ý muốn.
+
+### S2-07 — OpenAPI và TypeScript client
+
+**Phụ thuộc:** S2-04, S2-05, S2-06.
+
+- Mô tả toàn bộ auth/session/phone DTO và security scheme.
+- Nâng generator để sinh typed operations deterministic, không chỉ schema.
+- Thêm auth API wrapper duy nhất trong `api-client-ts`.
+- CI fail khi OpenAPI/client stale.
+
+**Hoàn thành khi:** web không tự định nghĩa auth response hoặc tự ghép backend
+URL.
+
+### S2-08 — Next.js proxy
+
+**Phụ thuộc:** S2-00, S2-03.
+
+- Thêm fixed upstream proxy `/api/*`.
+- Cấu hình local, preview, staging và production origin.
+- Preserve cookie/header/status; không cache/retry mutation.
+- Thêm proxy contract test và open-proxy negative test.
+
+**Hoàn thành khi:** OAuth callback và session cookie đi qua web origin, không qua
+browser cross-site fetch.
+
+### S2-09 — Web login, onboarding và session management
+
+**Phụ thuộc:** S2-07, S2-08.
+
+- Implement bốn screen auth.
+- Thêm session bootstrap, protected-page behavior, form validation và error UX.
+- Hỗ trợ keyboard, focus, screen reader, loading/offline/retry.
+- Không hiển thị hoặc lưu credential phía client.
+
+**Hoàn thành khi:** user mới login → nhập phone → reload → quản lý session được
+trên desktop/mobile viewport.
+
+### S2-10 — Automated E2E và Google smoke
+
+**Phụ thuộc:** S2-03 đến S2-09.
+
+- Dựng OIDC test server có authorization, token, JWKS và UserInfo endpoint.
+- Thêm Redis/Mongo Testcontainers integration suite.
+- Playwright chạy Next proxy + Spring + mock OIDC với nhiều browser context.
+- Viết runbook Google Console và chạy một manual smoke bằng development OAuth
+  client.
+- Secret chỉ nằm trong environment; evidence không chứa token/email thật.
+
+**Hoàn thành khi:** CI E2E xanh và issue nghiệm thu ghi nhận Google smoke thật.
+
+### S2-11 — Observability, CI và acceptance
+
+**Phụ thuộc:** S2-10.
+
+- Metric: login success/failure reason, active session, refresh, revoke, expiry,
+  Redis failure và auth rate limit.
+- Log audit không chứa token, cookie, code, email/phone đầy đủ.
+- Thêm CI job auth integration/E2E với timeout và artifact không nhạy cảm.
+- Cập nhật README, environment example và troubleshooting.
+- Chạy fresh-clone drill và đóng milestone Stage 2.
+
+**Hoàn thành khi:** toàn bộ acceptance gate tại mục 14 đạt.
+
+## 13. Test plan
+
+### 13.1. Positive
+
+- Google user mới tạo đúng một `User` và một `AuthIdentity`.
+- Login lặp lại trả cùng user.
+- Session sống qua API restart và mất khi Redis key hết hạn.
+- Refresh đổi cookie ID, giữ user và absolute expiry.
+- Hai browser tạo hai session; revoke một session không ảnh hưởng session kia.
+- Logout-all vô hiệu toàn bộ session.
+- Phone Việt Nam được chuẩn hóa E.164 và lưu `UNVERIFIED`.
+- Same-origin proxy hoạt động trên local và production-like HTTPS.
+- Reload browser vẫn authenticated.
+- Manual Google development login thành công.
+
+### 13.2. Negative và security
+
+- State, nonce, PKCE verifier, issuer, audience, expiry hoặc `email_verified` sai
+  không tạo user/session.
+- Concurrent first login không tạo duplicate.
+- Email collision trả `ACCOUNT_LINK_REQUIRED`, không merge.
+- Session fixation ID trước/sau login khác nhau.
+- Session quá idle/absolute expiry bị xóa và cookie được clear.
+- Revoke cookie cũ không sử dụng lại được.
+- Mutation thiếu/sai CSRF hoặc origin ngoài allowlist trả 403.
+- Callback/login không tạo open redirect.
+- Host/forwarded header giả không thay đổi callback URL.
+- Proxy không nhận arbitrary upstream và không cache auth response.
+- Production không khởi động với cookie insecure, wildcard origin, thiếu OAuth
+  secret hoặc `REQUIRE_PHONE_OTP=false`.
+- Không có demo auth shortcut trong production source.
+- Secret scan/log test không thấy Google secret, auth code, token, session ID hoặc
+  phone đầy đủ.
+
+### 13.3. Contract và accessibility
+
+- Error envelope tiếp tục đúng contract Stage 1 và luôn có request ID.
+- OpenAPI generation chạy hai lần không sinh diff.
+- TypeScript client compile và mặc định gửi credentials.
+- Login/phone/session pages dùng được bằng bàn phím, có focus/error announcement
+  và không có accessibility violation nghiêm trọng.
+- Viewport mobile/desktop không làm mất thao tác logout/revoke.
+
+## 14. Acceptance gate cuối
+
+- `pnpm check`, `pnpm api:check` và Maven `verify` xanh.
+- Auth integration và Playwright E2E xanh trong CI.
+- Login, onboarding phone, refresh, revoke, current logout và global logout chạy
+  qua UI.
+- Cookie/CSRF/origin policy đúng ADR 0006 và 0011.
+- MongoDB không chứa Google token; browser storage không chứa credential.
+- Real Google smoke được ghi nhận mà không commit secret/PII.
+- OpenAPI và generated TypeScript client đồng bộ.
+- `PLAN_MASTER.md`, ADR và runbook này thống nhất.
+- Milestone Stage 2 không còn issue mở.
+
+## 15. Failure handling và rollback
+
+- Google unavailable/token exchange lỗi: không tạo user/session; redirect về login
+  với safe error code và retry action.
+- Redis unavailable: auth/session operation fail-closed; readiness báo degraded,
+  không fallback in-memory.
+- Mongo transaction lỗi: không phát session cho user chưa provision thành công.
+- Email collision: không merge; trả `ACCOUNT_LINK_REQUIRED` và giữ dữ liệu nguyên
+  trạng.
+- Proxy upstream timeout: trả lỗi gateway có request ID, không retry mutation.
+- Deploy lỗi auth: rollback API và web cùng contract-compatible version; Redis
+  session format phải đọc tương thích trong rolling deploy.
+- Nếu secret bị lộ: revoke/rotate Google client secret và invalidate session nếu
+  phạm vi ảnh hưởng yêu cầu; xóa file khỏi history không thay thế rotation.
+- Không rollback bằng cách bật demo auth, bỏ CSRF hoặc dùng header giả mạo user.
+
+## 16. Giả định
+
+- Stage 1 đã hoàn tất; Mongo replica set, Redis, API, web và CI hoạt động ổn định.
+- Nhóm tạo riêng Google OAuth client cho development và production; redirect URI
+  không dùng wildcard.
+- Session policy 24 giờ idle/30 ngày absolute áp dụng cho web; mobile có policy
+  riêng khi triển khai Flutter.
+- Account linking được hoãn nhưng collision phải fail-safe ngay từ Stage 2.
+- ADR 0011 và tài liệu same-origin proxy được merge trước code auth đầu tiên.

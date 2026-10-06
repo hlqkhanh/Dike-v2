@@ -1,6 +1,6 @@
 # Dependency matrix
 
-Ngày xác minh: 05/10/2026
+Ngày xác minh: 06/10/2026
 
 Các phiên bản dưới đây là baseline của Stage 1. Mọi thay đổi major/minor phải được
 kiểm tra compatibility và cập nhật tài liệu này cùng lockfile.
@@ -15,12 +15,16 @@ kiểm tra compatibility và cập nhật tài liệu này cùng lockfile.
 | ArchUnit            | 1.4.1     | Test dependency, pin trực tiếp                         |
 | Testcontainers Java | 1.21.3    | Test dependency, dùng BOM                              |
 | AWS SDK for Java    | 2.42.23   | S3-compatible adapter, dùng BOM                        |
+| Spring Security     | Boot BOM  | OAuth2 Client/OIDC và servlet authorization            |
+| Spring Session      | Boot BOM  | Redis indexed repository cho opaque web session        |
+| libphonenumber      | 9.0.17    | Chuẩn hóa số Việt Nam sang E.164                       |
 | Node.js             | 24.21.0   | Stage 0 toolchain                                      |
 | pnpm                | 12.9.1    | Root `packageManager`                                  |
 | Next.js             | 16.3.8    | Active LTS, gồm bản vá bảo mật tháng 09/2026           |
 | React / React DOM   | 19.3.0    | Registry stable tương thích Next.js 16.3               |
 | TypeScript          | 6.0.3     | Bản mới nhất trong peer range của typescript-eslint    |
 | ESLint              | 9.39.5    | Bản maintenance mới nhất hỗ trợ bởi Next plugins       |
+| Playwright          | 1.63.0    | Chromium desktop/mobile cho Stage 2 browser E2E        |
 | MongoDB image       | 8.0.32    | MongoDB 8.0 patch pin cho local                        |
 | Redis image         | 8.10.2    | Redis patch pin cho local                              |
 | MinIO image         | 2025.7.23 | Bitnami legacy; local/test only, không dùng production |

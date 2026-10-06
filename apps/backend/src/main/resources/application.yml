@@ -1,18 +1,28 @@
 spring:
-  jackson:
-    deserialization:
-      fail-on-unknown-properties: true
-  mongodb:
-    database: ${DIKE_MONGODB_DATABASE:dike}
-    uri: ${DIKE_MONGODB_URI:mongodb://localhost:27017/dike?replicaSet=rs0}
   application:
     name: dike-backend
   data:
     mongodb:
       auto-index-creation: false
+      database: ${DIKE_MONGODB_DATABASE:dike}
+      uri: ${DIKE_MONGODB_URI:mongodb://localhost:27017/dike?replicaSet=rs0}
     redis:
       host: ${DIKE_REDIS_HOST:localhost}
       port: ${DIKE_REDIS_PORT:6379}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${DIKE_GOOGLE_CLIENT_ID:local-not-configured}
+            client-secret: ${DIKE_GOOGLE_CLIENT_SECRET:local-not-configured}
+            scope: openid,email,profile
+            redirect-uri: "{baseUrl}/api/v1/auth/callback/{registrationId}"
+  session:
+    timeout: 24h
+    redis:
+      repository-type: indexed
+      namespace: dike:${dike.environment}:session
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
@@ -36,6 +46,22 @@ dike:
     max-backoff: ${DIKE_OUTBOX_MAX_BACKOFF:5m}
     max-attempts: ${DIKE_OUTBOX_MAX_ATTEMPTS:8}
     batch-size: ${DIKE_OUTBOX_BATCH_SIZE:20}
+  auth:
+    public-base-url: ${DIKE_AUTH_PUBLIC_BASE_URL:http://localhost:3000}
+    allowed-origins: ${DIKE_AUTH_ALLOWED_ORIGINS:http://localhost:3000}
+    require-phone-otp: ${REQUIRE_PHONE_OTP:false}
+    session:
+      idle-timeout: 24h
+      absolute-lifetime: 30d
+      last-seen-write-interval: 5m
+      maximum-per-user: 10
+    cookie:
+      name: ${DIKE_SESSION_COOKIE_NAME:DIKE_SESSION}
+      secure: ${DIKE_SESSION_COOKIE_SECURE:false}
+      same-site: Lax
+    google:
+      issuer: https://accounts.google.com
+      registration-id: google
 
 management:
   endpoint:

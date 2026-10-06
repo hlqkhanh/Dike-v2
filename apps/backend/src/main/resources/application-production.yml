@@ -1,14 +1,21 @@
 spring:
-  mongodb:
-    database: ${DIKE_MONGODB_DATABASE}
-    uri: ${DIKE_MONGODB_URI}
   data:
+    mongodb:
+      database: ${DIKE_MONGODB_DATABASE}
+      uri: ${DIKE_MONGODB_URI}
     redis:
       host: ${DIKE_REDIS_HOST}
       port: ${DIKE_REDIS_PORT}
 
 dike:
   environment: production
+  auth:
+    public-base-url: ${DIKE_AUTH_PUBLIC_BASE_URL}
+    allowed-origins: ${DIKE_AUTH_ALLOWED_ORIGINS}
+    require-phone-otp: true
+    cookie:
+      name: __Host-DIKE_SESSION
+      secure: true
   storage:
     endpoint: ${DIKE_STORAGE_ENDPOINT}
     region: ${DIKE_STORAGE_REGION}

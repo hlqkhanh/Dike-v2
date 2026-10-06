@@ -26,10 +26,22 @@ class OpenApiContractTest {
     assertThat(reviewed.at("/servers/0/url")).isEqualTo(generated.at("/servers/0/url"));
     assertThat(reviewed.at("/components/securitySchemes/sessionCookie/name"))
         .isEqualTo(generated.at("/components/securitySchemes/sessionCookie/name"));
+    assertThat(reviewed.at("/components/securitySchemes/csrfHeader/name"))
+        .isEqualTo(generated.at("/components/securitySchemes/csrfHeader/name"));
     var schemaNames = new HashSet<String>();
     reviewed.at("/components/schemas").fieldNames().forEachRemaining(schemaNames::add);
     assertThat(schemaNames)
-        .contains("ErrorResponse", "ErrorBody", "FieldViolation", "SessionView", "UserView");
+        .contains(
+            "ErrorResponse",
+            "ErrorBody",
+            "FieldViolation",
+            "AuthSessionResponse",
+            "AuthUser",
+            "AuthSession",
+            "SessionListResponse",
+            "PhoneRequest");
+    assertThat(reviewed.at("/paths/~1auth~1session/get/operationId").asText())
+        .isEqualTo("getAuthSession");
   }
 
   private Path findRepositoryRoot() {
