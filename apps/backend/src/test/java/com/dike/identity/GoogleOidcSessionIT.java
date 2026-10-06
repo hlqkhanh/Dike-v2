@@ -70,8 +70,8 @@ class GoogleOidcSessionIT {
     registry.add("dike.auth.public-base-url", () -> app);
     registry.add("dike.auth.allowed-origins", () -> app);
     registry.add("dike.auth.google.issuer", OIDC::issuer);
-    registry.add("spring.data.mongodb.uri", MONGO::getReplicaSetUrl);
-    registry.add("spring.data.mongodb.database", () -> "dike_stage2_oidc_test");
+    registry.add("spring.mongodb.uri", MONGO::getReplicaSetUrl);
+    registry.add("spring.mongodb.database", () -> "dike_stage2_oidc_test");
     registry.add("spring.data.redis.host", REDIS::getHost);
     registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
     registry.add("spring.security.oauth2.client.registration.google.client-id", () -> "dike-test");
