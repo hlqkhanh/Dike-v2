@@ -24,6 +24,53 @@ class RuntimeContractTest {
   org.springframework.web.context.WebApplicationContext context;
 
   @Test
+  void securityChainRejectsUnauthenticatedRequestsAndInvalidOrigins() throws Exception {
+    var mvc =
+        org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup(context)
+            .apply(
+                org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers
+                    .springSecurity())
+            .addFilters(new com.dike.shared.api.RequestIdFilter())
+            .build();
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                    "/api/v1/auth/session")
+                .header("X-Request-ID", "runtime-test-123"))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status()
+                .isUnauthorized())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                    "$.error.code")
+                .value("SESSION_REQUIRED"))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                    "$.error.requestId")
+                .value("runtime-test-123"));
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
+                    "/api/v1/auth/logout")
+                .header("Origin", "http://localhost:3000.evil.invalid"))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status()
+                .isForbidden())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                    "$.error.code")
+                .value("ORIGIN_NOT_ALLOWED"));
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                "/api/v1/private"))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.status()
+                .isUnauthorized())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                    "$.error.code")
+                .value("SESSION_REQUIRED"));
+  }
+
+  @Test
   void exportedRuntimeContractMatchesReviewedArtifact() throws Exception {
     var response =
         org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup(context)
@@ -43,5 +90,11 @@ class RuntimeContractTest {
     if (Boolean.getBoolean("dike.contract.write"))
       Files.writeString(path, Json.pretty(generated) + "\n");
     assertThat(Json.mapper().readTree(Files.readString(path))).isEqualTo(generated);
+    assertThat(generated.at("/paths/~1api~1v1~1auth~1google/get/security").isEmpty()).isTrue();
+    assertThat(
+            generated
+                .at("/paths/~1api~1v1~1auth~1session/get/responses/200/content/*~1*/schema/$ref")
+                .asText())
+        .endsWith("/SessionView");
   }
 }

@@ -17,7 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
 class MongoIdentityIT {
-  @Container static MongoDBContainer mongo = new MongoDBContainer("mongo:8.0");
+  @Container static MongoDBContainer mongo = new MongoDBContainer("mongo:8.0.32-noble");
 
   @Test
   void sameSubjectHasOneAccountAndEmailDoesNotMergeIdentity() throws Exception {

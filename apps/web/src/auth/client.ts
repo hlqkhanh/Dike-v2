@@ -1,5 +1,5 @@
 "use client";
-import type { Operations } from "@dike/api-client-ts";
+import { operationDefinitions, type Operations } from "@dike/api-client-ts";
 import { publicConfiguration } from "../config/public";
 const base = publicConfiguration().apiBaseUrl;
 let csrf: string | undefined;
@@ -16,18 +16,33 @@ export function clearAuth() {
   csrf = undefined;
 }
 export function googleLoginUrl() {
-  return base + "/auth/google";
+  return operationUrl("startGoogleLogin");
+}
+function operationUrl(
+  operation: keyof Operations,
+  parameters: Record<string, string> = {},
+) {
+  const path = operationDefinitions[operation].path.replace(
+    /\{([^}]+)\}/gu,
+    (_, name: string) => {
+      const value = parameters[name];
+      if (!value) throw new Error(`Missing path parameter: ${name}`);
+      return encodeURIComponent(value);
+    },
+  );
+  if (!path.startsWith("/api/v1/")) throw new Error("Unsupported API path");
+  return base + path.slice("/api/v1".length);
 }
 export async function authRequest<K extends keyof Operations>(
   operation: K,
-  method: Operations[K]["method"],
-  path: string,
-  body?: Operations[K]["body"],
+  options: { body?: Operations[K]["body"]; path?: Record<string, string> } = {},
 ): Promise<Operations[K]["response"]> {
-  void operation;
+  const { method } = operationDefinitions[operation];
+  const url = operationUrl(operation, options.path);
+  const { body } = options;
   const mutation = method !== "GET";
   if (mutation && !csrf) {
-    const response = await fetch(base + "/auth/csrf", {
+    const response = await fetch(operationUrl("getCsrf"), {
       credentials: "include",
       cache: "no-store",
     });
@@ -40,7 +55,7 @@ export async function authRequest<K extends keyof Operations>(
     }
     csrf = ((await response.json()) as { token: string }).token;
   }
-  const response = await fetch(base + path, {
+  const response = await fetch(url, {
     method,
     credentials: "include",
     cache: "no-store",
@@ -54,7 +69,8 @@ export async function authRequest<K extends keyof Operations>(
     const value = (await response.json().catch(() => ({}))) as {
       error?: { code?: string };
     };
-    if (response.status === 401) clearAuth();
+    if (response.status === 401 || value.error?.code === "CSRF_INVALID")
+      clearAuth();
     throw new AuthError(response.status, value.error?.code ?? "UNAVAILABLE");
   }
   if (response.status === 204) {
@@ -65,7 +81,7 @@ export async function authRequest<K extends keyof Operations>(
 }
 export function refreshSession() {
   if (!refreshPending)
-    refreshPending = authRequest("refreshSession", "POST", "/auth/refresh")
+    refreshPending = authRequest("refreshSession")
       .then((value) => {
         csrf = value.token;
         return value;

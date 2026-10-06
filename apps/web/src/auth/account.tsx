@@ -2,7 +2,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import type { SessionView, DeviceView } from "@dike/api-client-ts";
-import { authRequest, authMessage, AuthError, refreshSession, clearAuth } from "./client";
+import {
+  authRequest,
+  authMessage,
+  AuthError,
+  refreshSession,
+  clearAuth,
+} from "./client";
 export function Account({ devices = false }: { devices?: boolean }) {
   const [session, setSession] = useState<SessionView>();
   const [sessions, setSessions] = useState<DeviceView[]>([]);
@@ -12,11 +18,10 @@ export function Account({ devices = false }: { devices?: boolean }) {
   const [saved, setSaved] = useState(false);
   const load = useCallback(async () => {
     try {
-      const value = await authRequest("getSession", "GET", "/auth/session");
+      const value = await authRequest("getSession");
       setSession(value);
       setError("");
-      if (devices)
-        setSessions(await authRequest("listSessions", "GET", "/auth/sessions"));
+      if (devices) setSessions(await authRequest("listSessions"));
     } catch (e) {
       setSession(undefined);
       setSessions([]);
@@ -64,13 +69,19 @@ export function Account({ devices = false }: { devices?: boolean }) {
       }
     } catch (e) {
       setError(authMessage(e));
+      if (e instanceof AuthError && e.status === 401) {
+        clearAuth();
+        setSession(undefined);
+        setSessions([]);
+        window.location.replace("/login");
+      }
     } finally {
       setBusy(false);
     }
   }
   function submit(event: FormEvent) {
     event.preventDefault();
-    void run(() => authRequest("updatePhone", "PUT", "/auth/phone", { phone }));
+    void run(() => authRequest("updatePhone", { body: { phone } }));
   }
   return (
     <main className="shell auth-shell">
@@ -136,12 +147,9 @@ export function Account({ devices = false }: { devices?: boolean }) {
                         if (window.confirm("Đăng xuất thiết bị này?"))
                           void run(
                             () =>
-                              authRequest(
-                                "revokeSession",
-                                "DELETE",
-                                "/auth/sessions/" +
-                                  encodeURIComponent(s.deviceSessionId ?? ""),
-                              ),
+                              authRequest("revokeSession", {
+                                path: { deviceSessionId: s.deviceSessionId },
+                              }),
                             !!s.current,
                           );
                       }}
@@ -156,12 +164,7 @@ export function Account({ devices = false }: { devices?: boolean }) {
               </button>
               <button
                 disabled={busy}
-                onClick={() =>
-                  void run(
-                    () => authRequest("logout", "POST", "/auth/logout"),
-                    true,
-                  )
-                }
+                onClick={() => void run(() => authRequest("logout"), true)}
               >
                 Đăng xuất
               </button>
@@ -169,11 +172,7 @@ export function Account({ devices = false }: { devices?: boolean }) {
                 disabled={busy}
                 onClick={() => {
                   if (window.confirm("Đăng xuất tất cả thiết bị?"))
-                    void run(
-                      () =>
-                        authRequest("logoutAll", "POST", "/auth/logout-all"),
-                      true,
-                    );
+                    void run(() => authRequest("logoutAll"), true);
                 }}
               >
                 Đăng xuất tất cả

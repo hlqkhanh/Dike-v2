@@ -81,7 +81,12 @@ public class RedisSessionStore implements SessionStore {
      local active = redis.call('SMEMBERS', KEYS[1])
      local count = 0
      for _,key in ipairs(active) do
-       if redis.call('EXISTS',key)==1 then count=count+1 else redis.call('SREM',KEYS[1],key) end
+       if redis.call('EXISTS',key)==0 then
+         redis.call('SREM',KEYS[1],key)
+       elseif tonumber(redis.call('HGET',key,'version')) < tonumber(ARGV[3]) then
+         redis.call('DEL',redis.call('HGET',key,'credential'),key)
+         redis.call('SREM',KEYS[1],key)
+       else count=count+1 end
      end
      if count >= 5 then return 'LIMIT' end
      local k=KEYS[2]

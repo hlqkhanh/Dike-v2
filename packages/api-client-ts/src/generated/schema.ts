@@ -53,13 +53,13 @@ export type Operations = {
     method: "PUT";
     path: "/api/v1/auth/phone";
     body: PhoneInput;
-    response: void;
+    response: UserView;
   };
   refreshSession: {
     method: "POST";
     path: "/api/v1/auth/refresh";
     body: never;
-    response: void;
+    response: CsrfView;
   };
   logout: {
     method: "POST";
@@ -77,13 +77,13 @@ export type Operations = {
     method: "GET";
     path: "/api/v1/auth/sessions";
     body: never;
-    response: void;
+    response: DeviceView[];
   };
   getSession: {
     method: "GET";
     path: "/api/v1/auth/session";
     body: never;
-    response: void;
+    response: SessionView;
   };
   startGoogleLogin: {
     method: "GET";
@@ -95,7 +95,7 @@ export type Operations = {
     method: "GET";
     path: "/api/v1/auth/csrf";
     body: never;
-    response: void;
+    response: CsrfView;
   };
   revokeSession: {
     method: "DELETE";
@@ -104,3 +104,18 @@ export type Operations = {
     response: void;
   };
 };
+
+export const operationDefinitions = {
+  updatePhone: { method: "PUT", path: "/api/v1/auth/phone" },
+  refreshSession: { method: "POST", path: "/api/v1/auth/refresh" },
+  logout: { method: "POST", path: "/api/v1/auth/logout" },
+  logoutAll: { method: "POST", path: "/api/v1/auth/logout-all" },
+  listSessions: { method: "GET", path: "/api/v1/auth/sessions" },
+  getSession: { method: "GET", path: "/api/v1/auth/session" },
+  startGoogleLogin: { method: "GET", path: "/api/v1/auth/google" },
+  getCsrf: { method: "GET", path: "/api/v1/auth/csrf" },
+  revokeSession: {
+    method: "DELETE",
+    path: "/api/v1/auth/sessions/{deviceSessionId}",
+  },
+} as const;
