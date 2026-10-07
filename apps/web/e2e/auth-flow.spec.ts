@@ -163,7 +163,10 @@ test("consent gate records current receipts before onboarding", async ({
       contentType: "application/json",
       body: JSON.stringify({
         ...session,
-        user: { ...session.user, nextAction: "REVIEW_CONSENT" },
+        user: {
+          ...session.user,
+          nextAction: accepted ? "SUBMIT_PHONE" : "REVIEW_CONSENT",
+        },
       }),
     }),
   );
@@ -215,9 +218,9 @@ test("consent gate records current receipts before onboarding", async ({
   });
 
   await page.goto("/auth/complete");
-  await expect(page).toHaveURL(/\/settings\/consent$/);
+  await expect(page).toHaveURL(/\/settings\/consent\?flow=onboarding$/);
   await page.getByRole("button", { name: "Tôi đồng ý" }).click();
-  await expect(page.getByText("Đã ghi nhận")).toBeVisible();
+  await expect(page).toHaveURL(/\/onboarding\/phone$/);
 });
 
 test("member edits profile and privacy through generated-client adapters", async ({

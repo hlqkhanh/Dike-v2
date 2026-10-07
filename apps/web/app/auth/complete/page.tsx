@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { authApi } from "../../../src/auth/api";
+import { onboardingDestination } from "../../../src/auth/onboarding-destination";
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 
 export default function AuthCompletePage() {
@@ -17,14 +18,7 @@ export default function AuthCompletePage() {
 
   useEffect(() => {
     if (!session.data) return;
-    const destination =
-      session.data.user.nextAction === "REVIEW_CONSENT"
-        ? "/settings/consent"
-        : session.data.user.nextAction === "SUBMIT_PHONE" ||
-            session.data.user.nextAction === "VERIFY_PHONE"
-          ? "/onboarding/phone"
-          : "/";
-    router.replace(destination);
+    router.replace(onboardingDestination(session.data.user.nextAction));
   }, [router, session.data]);
 
   if (session.isError) {
