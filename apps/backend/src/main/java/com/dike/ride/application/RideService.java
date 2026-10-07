@@ -54,6 +54,7 @@ public class RideService {
     this.clock = clock;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "TripCreate")
   public record CreateTrip(
       String vehicleId,
       String routeId,
@@ -67,6 +68,7 @@ public class RideService {
       String visibility,
       String communityId) {}
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "ProposalCreate")
   public record CreateProposal(String postId, String tripId, String quoteId) {}
 
   public record TripView(
@@ -131,6 +133,8 @@ public class RideService {
             .route(actor, input.routeId())
             .orElseThrow(() -> unavailable("ROUTING_SOURCE_UNAVAILABLE"));
     if (input.offeredSeats() < 1
+        || route.durationSeconds() <= 0
+        || !vehicle.type().equals(route.vehicleType())
         || input.offeredSeats() > vehicle.passengerCapacity()
         || !resources.contributionAllowed(vehicle, input.contributionPerKm()))
       throw invalid("INVALID_CAPACITY_OR_CONTRIBUTION");
@@ -160,8 +164,8 @@ public class RideService {
                       0,
                       input.departureAt(),
                       input.departureAt().plusSeconds(route.durationSeconds()),
-                      input.originLabel(),
-                      input.destinationLabel(),
+                      route.originLabel(),
+                      route.destinationLabel(),
                       input.visibility(),
                       input.communityId(),
                       input.contributionPerKm(),
@@ -204,6 +208,101 @@ public class RideService {
     return trip(actor, id);
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "TripEdit")
+  public record EditTrip(long version, CreateTrip trip) {}
+
+  public TripView editTrip(String actor, String id, EditTrip input, String key) {
+    driver(actor);
+    if (input.trip() == null) throw invalid("INVALID_TRIP");
+    var edit = input.trip();
+    validateTrip(edit, actor);
+    var vehicle =
+        resources
+            .vehicle(actor, edit.vehicleId())
+            .filter(v -> v.ownerId().equals(actor))
+            .orElseThrow(() -> unavailable("VEHICLE_SOURCE_UNAVAILABLE"));
+    var route =
+        journeys
+            .route(actor, edit.routeId())
+            .orElseThrow(() -> unavailable("ROUTING_SOURCE_UNAVAILABLE"));
+    if (!vehicle.type().equals(route.vehicleType())
+        || route.durationSeconds() <= 0
+        || edit.offeredSeats() < 1
+        || edit.offeredSeats() > vehicle.passengerCapacity()
+        || !resources.contributionAllowed(vehicle, edit.contributionPerKm()))
+      throw invalid("INVALID_CAPACITY_OR_CONTRIBUTION");
+    commands.execute(
+        actor,
+        "trip.edit",
+        key,
+        id + ":" + input,
+        () -> {
+          var before = ownedTrip(actor, id, input.version());
+          eligibility.fence(actor);
+          driver(actor);
+          resources.fenceVehicle(vehicle.id(), vehicle.approvalVersion());
+          if ((before.status() != Trip.Status.DRAFT && before.status() != Trip.Status.OPEN)
+              || !store.tripBookings(id).isEmpty()
+              || !clock.instant().isBefore(route.expiresAt()))
+            throw conflict("TRIP_HAS_COMMITMENTS_OR_CHANGED");
+          var next =
+              new Trip(
+                  id,
+                  actor,
+                  vehicle.id(),
+                  vehicle.type(),
+                  vehicle.approvalVersion(),
+                  before.status(),
+                  edit.offeredSeats(),
+                  edit.offeredSeats(),
+                  route.id(),
+                  before.routeVersion() + 1,
+                  before.termsVersion() + 1,
+                  edit.departureAt(),
+                  edit.departureAt().plusSeconds(route.durationSeconds()),
+                  route.originLabel(),
+                  route.destinationLabel(),
+                  edit.visibility(),
+                  edit.communityId(),
+                  edit.contributionPerKm(),
+                  edit.detourMeters(),
+                  edit.detourSeconds(),
+                  List.of(),
+                  before.version() + 1);
+          if (next.status() == Trip.Status.OPEN)
+            store.reserveInterval(
+                actor, "trip:" + id, next.departureAt(), next.arrivalAt().plusSeconds(900), id);
+          store.saveTrip(before, next);
+          posts.refreshTrip(id);
+          for (var p : store.pendingTrip(id)) {
+            var expired = p.transition(Proposal.Status.EXPIRED, "TERMS_CHANGED");
+            store.saveProposal(p, expired);
+            event("proposal.closed", p.id(), expired.version());
+          }
+          event("trip.changed", id, next.version());
+          return id;
+        });
+    return trip(actor, id);
+  }
+
+  @io.swagger.v3.oas.annotations.media.Schema(name = "TripStops")
+  public record Stops(List<RideResources.Stop> items, long routeVersion) {}
+
+  public Stops stops(String actor, String id) {
+    active(actor);
+    var trip = store.trip(id).orElseThrow(RideService::missing);
+    if (actor.equals(trip.driverId())) return new Stops(trip.stops(), trip.routeVersion());
+    var owned =
+        store.tripBookings(id).stream()
+            .filter(b -> b.passengerId().equals(actor))
+            .map(Booking::id)
+            .collect(java.util.stream.Collectors.toSet());
+    if (owned.isEmpty()) throw missing();
+    return new Stops(
+        trip.stops().stream().filter(s -> owned.contains(s.bookingId())).toList(),
+        trip.routeVersion());
+  }
+
   public TripView trip(String actor, String id) {
     active(actor);
     var t = store.trip(id).orElseThrow(RideService::missing);
@@ -223,6 +322,8 @@ public class RideService {
 
   public ProposalView propose(String actor, CreateProposal input, String key) {
     verified(actor);
+    if (input.postId() == null || input.tripId() == null || input.quoteId() == null)
+      throw invalid("INVALID_PROPOSAL");
     // Provider calls belong outside Mongo transaction; quote is immutable server evidence.
     var quote =
         resources
@@ -497,6 +598,9 @@ public class RideService {
         id + ":" + version + ":" + reason,
         () -> {
           var b = participantBooking(actor, id);
+          eligibility.fence(actor);
+          active(actor);
+          commands.fence("trip", b.tripId());
           if (b.version() != version) throw conflict("BOOKING_CHANGED");
           var t = store.trip(b.tripId()).orElseThrow(RideService::missing);
           Booking next;
@@ -510,7 +614,8 @@ public class RideService {
           if (action == Booking.Action.BOARD) secrets.consume(id);
           if (!next.active()) {
             commands.fence("availability", b.passengerId());
-            store.releaseInterval("booking:" + id);
+            if (next.status() == Booking.Status.CANCELLED
+                || next.status() == Booking.Status.NO_SHOW) store.releaseInterval("booking:" + id);
             if (!b.seatReleased()
                 && (next.status() == Booking.Status.CANCELLED
                     || next.status() == Booking.Status.NO_SHOW)
@@ -539,6 +644,7 @@ public class RideService {
         key,
         id + ":" + version + ":" + reason,
         () -> {
+          commands.fence("trip", id);
           var t = ownedTrip(actor, id, version);
           var bookings = store.tripBookings(id);
           Trip next;
@@ -581,8 +687,7 @@ public class RideService {
             default -> throw invalid("INVALID_TRIP_ACTION");
           }
           commands.fence("availability", actor);
-          if (next.status() == Trip.Status.COMPLETED || next.status() == Trip.Status.CANCELLED)
-            store.releaseInterval("trip:" + id);
+          if (next.status() == Trip.Status.CANCELLED) store.releaseInterval("trip:" + id);
           store.saveTrip(t, next);
           posts.invalidateTrip(id);
           for (var p : store.pendingTrip(id))

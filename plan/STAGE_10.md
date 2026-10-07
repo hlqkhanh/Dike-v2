@@ -1,8 +1,10 @@
 # STAGE 10 — Trip và quản lý chỗ
 
 Ngày lập: 07/10/2026. Baseline: `4ccb525` trên `main`.
-Trạng thái: Kế hoạch, chưa triển khai. Master/ADR Accepted ưu tiên hơn đề xuất
+Trạng thái: Đã có triển khai nền và tích hợp, chưa đóng toàn bộ gate nghiệm thu. Master/ADR Accepted ưu tiên hơn đề xuất
 thiết kế dưới đây. Đọc cùng [Stage 9](STAGE_9.md) và [Stage 11](STAGE_11.md).
+
+Bằng chứng và phần còn lại: [runbook Stage 9–11](../docs/runbooks/posts-trips-bookings.md).
 
 ## 1. Mục tiêu, scope và gate
 

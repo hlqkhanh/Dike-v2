@@ -34,6 +34,7 @@ public interface RideResources {
     }
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "TripStop")
   record Stop(String id, String bookingId, String kind, String publicLabel, Instant eta) {}
 
   Optional<Vehicle> vehicle(String actor, String id);

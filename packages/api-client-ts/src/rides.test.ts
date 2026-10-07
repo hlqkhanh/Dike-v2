@@ -36,16 +36,14 @@ it("accepts empty save responses", async () => {
 it("surfaces conflict errors without treating stale data as success", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            error: { code: "CONCURRENT_CHANGE", message: "Tải lại" },
-          }),
-          { status: 409 },
-        ),
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: "CONCURRENT_CHANGE", message: "Tải lại" },
+        }),
+        { status: 409 },
       ),
+    ),
   );
   await expect(
     createRideApi({ baseUrl: "/api/v1" }).accept("p", 1, "retry-key-1"),

@@ -26,6 +26,7 @@ public class RideCapabilities {
     boardingReady = valid;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RideCapabilities")
   public record View(boolean posting, boolean trips, boolean proposals, String message) {}
 
   public View view() {

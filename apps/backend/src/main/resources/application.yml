@@ -31,6 +31,8 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 dike:
+  ride:
+    boarding-key: ${DIKE_RIDE_BOARDING_KEY:}
   environment: ${DIKE_ENVIRONMENT:local}
   workload: ${DIKE_WORKLOAD:api}
   service:

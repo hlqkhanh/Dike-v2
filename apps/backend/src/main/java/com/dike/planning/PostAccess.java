@@ -24,5 +24,7 @@ public interface PostAccess {
 
   void invalidateTrip(String tripId);
 
+  void refreshTrip(String tripId);
+
   String draftAgain(String actor, String postId);
 }

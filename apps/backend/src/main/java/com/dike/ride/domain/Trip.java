@@ -42,7 +42,7 @@ public record Trip(
     if (offeredSeats < 1
         || remainingSeats < 0
         || remainingSeats > offeredSeats
-        || (!arrivalAt.isAfter(departureAt()))
+        || (!arrivalAt.isAfter(departureAt))
         || contributionPerKm < 0
         || detourMeters < 0
         || detourSeconds < 0) throw new IllegalArgumentException("Invalid trip");

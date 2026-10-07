@@ -22,6 +22,7 @@ class OpenApiContractTest {
     for (Class<?> controller :
         java.util.List.of(
             com.dike.planning.api.PostController.class,
+            com.dike.planning.api.PostSourceController.class,
             com.dike.ride.api.RideController.class,
             com.dike.ride.api.RideCapabilitiesController.class,
             com.dike.trust.api.PostReportController.class)) {
@@ -33,7 +34,8 @@ class OpenApiContractTest {
                 method, org.springframework.web.bind.annotation.RequestMapping.class);
         if (mapping == null) continue;
         String path =
-            ((base == null ? "" : base.value()[0]) + mapping.value()[0])
+            ((base == null ? "" : base.value()[0])
+                    + (mapping.value().length == 0 ? "" : mapping.value()[0]))
                 .replaceFirst("^/api/v1", "");
         String verb = mapping.method()[0].name().toLowerCase(java.util.Locale.ROOT);
         assertThat(reviewed.path("paths").path(path).path(verb).path("operationId").asText())

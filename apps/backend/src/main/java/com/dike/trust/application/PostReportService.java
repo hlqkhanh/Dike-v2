@@ -19,8 +19,10 @@ public class PostReportService {
         String id, String reporter, String post, String reason, String note, java.time.Instant now);
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "PostReportInput")
   public record Input(String postId, String reason, String note) {}
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "PostReportReceipt")
   public record Receipt(String id, String status) {}
 
   private final Store store;

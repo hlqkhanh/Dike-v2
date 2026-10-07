@@ -50,6 +50,8 @@ public class AtomicCommands {
         if (attempt == 4)
           throw new ApiException(
               HttpStatus.CONFLICT, "CONCURRENT_CHANGE", "Dữ liệu đã thay đổi, vui lòng tải lại");
+        java.util.concurrent.locks.LockSupport.parkNanos(
+            java.time.Duration.ofMillis(10L << attempt).toNanos());
       }
     }
     throw new IllegalStateException();

@@ -191,7 +191,13 @@ public class MongoPlanningStore implements PlanningStore {
   @Override
   public TravelIntent replaceIntent(TravelIntent before, TravelIntent after) {
     replace(
-        Query.query(Criteria.where("_id").is(before.id()).and("version").is(before.version())),
+        Query.query(
+            Criteria.where("_id")
+                .is(before.id())
+                .and("version")
+                .is(before.version())
+                .and("commitmentState")
+                .is(before.commitmentState())),
         map(after),
         "travel_intents",
         "Travel intent changed");

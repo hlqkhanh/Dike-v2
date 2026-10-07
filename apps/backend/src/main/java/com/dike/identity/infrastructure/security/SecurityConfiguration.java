@@ -104,13 +104,16 @@ public class SecurityConfiguration {
                     .authenticated()
                     .requestMatchers(
                         "/api/v1/ride-posts/**",
+                        "/api/v1/ride-post-sources/**",
                         "/api/v1/saved-posts/**",
                         "/api/v1/trips/**",
                         "/api/v1/proposals/**",
                         "/api/v1/bookings/**",
                         "/api/v1/ride-capabilities",
                         "/api/v1/reports",
-                        "/api/v1/routing/**", "/api/v1/schedules/**", "/api/v1/intents/**")
+                        "/api/v1/routing/**",
+                        "/api/v1/schedules/**",
+                        "/api/v1/travel-intents/**")
                     .authenticated()
                     .requestMatchers("/api/**")
                     .denyAll()

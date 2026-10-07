@@ -1,8 +1,10 @@
 # STAGE 9 — Bài đăng và bảng tin
 
 Ngày lập: 07/10/2026. Baseline: `4ccb525` trên `main`.
-Trạng thái: Kế hoạch, chưa triển khai/ nghiệm thu. Master plan và ADR Accepted
+Trạng thái: Đã có triển khai nền và tích hợp, chưa đóng toàn bộ gate nghiệm thu. Master plan và ADR Accepted
 có ưu tiên cao hơn các đề xuất schema/API trong tài liệu này.
+
+Bằng chứng và phần còn lại: [runbook Stage 9–11](../docs/runbooks/posts-trips-bookings.md).
 
 ## 1. Mục tiêu và đầu vào
 

@@ -1,8 +1,10 @@
 # STAGE 11 — Proposal và booking
 
 Ngày lập: 07/10/2026. Baseline: `4ccb525` trên `main`.
-Trạng thái: Kế hoạch, chưa triển khai. Master plan/ADR Accepted là nguồn ưu tiên.
+Trạng thái: Đã có triển khai nền và tích hợp, chưa đóng toàn bộ gate nghiệm thu. Master plan/ADR Accepted là nguồn ưu tiên.
 Phụ thuộc [Stage 9](STAGE_9.md), [Stage 10](STAGE_10.md); không tạo booking bằng chat.
+
+Bằng chứng và phần còn lại: [runbook Stage 9–11](../docs/runbooks/posts-trips-bookings.md).
 
 ## 1. Mục tiêu, scope và điều kiện đầu vào
 

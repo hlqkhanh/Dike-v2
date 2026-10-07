@@ -370,3 +370,58 @@ export type BookingPage = {
 export type DraftAgain = {
   postId: string;
 };
+
+export type PostSourceCreate = {
+  routeId: string;
+  departureAt: string;
+  arrivalAt: string;
+};
+
+export type PostSourceBind = {
+  version: number;
+  routeId: string;
+};
+
+export type PostSource = {
+  id: string;
+  ownerId: string;
+  version: number;
+  originLabel: string;
+  destinationLabel: string;
+  departureAt: string;
+  latestDepartureAt: string;
+  arrivalAt: string;
+  vehicleType: string;
+  routeId: string;
+};
+
+export type PostSourceChoice = {
+  id: string;
+  version: number;
+  originLabel: string;
+  destinationLabel: string;
+  departureAt?: string;
+  arrivalAt?: string;
+};
+
+export type PostSourceChoices = {
+  items: PostSourceChoice[];
+};
+
+export type TripEdit = {
+  version: number;
+  trip: TripCreate;
+};
+
+export type TripStop = {
+  id: string;
+  bookingId?: string;
+  kind: string;
+  publicLabel: string;
+  eta: string;
+};
+
+export type TripStops = {
+  items: TripStop[];
+  routeVersion: number;
+};

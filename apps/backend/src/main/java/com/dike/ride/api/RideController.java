@@ -25,6 +25,22 @@ public class RideController {
 
   public record BoardingCode(String code) {}
 
+  @PatchMapping("/trips/{id}")
+  @Operation(operationId = "editTrip")
+  public RideService.TripView edit(
+      Principal p,
+      @PathVariable String id,
+      @RequestBody RideService.EditTrip body,
+      @RequestHeader("Idempotency-Key") String key) {
+    return service.editTrip(p.getName(), id, body, key);
+  }
+
+  @GetMapping("/trips/{id}/stops")
+  @Operation(operationId = "getTripStops")
+  public RideService.Stops stops(Principal p, @PathVariable String id) {
+    return service.stops(p.getName(), id);
+  }
+
   @PostMapping("/bookings/{id}/find-again")
   @Operation(operationId = "findRideAgain")
   public RideService.DraftAgain findAgain(

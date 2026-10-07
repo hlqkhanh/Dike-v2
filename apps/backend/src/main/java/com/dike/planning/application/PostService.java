@@ -49,6 +49,7 @@ public class PostService implements PostAccess {
     this.clock = clock;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostCreate")
   public record Create(
       Type type,
       String sourceId,
@@ -57,8 +58,10 @@ public class PostService implements PostAccess {
       String communityId,
       String note) {}
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostEdit")
   public record Edit(long version, String visibility, String communityId, String note) {}
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostView")
   public record View(
       String id,
       String ownerId,
@@ -77,6 +80,7 @@ public class PostService implements PostAccess {
       Integer remainingSeats,
       Long contributionPerKm) {}
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostPage")
   public record Page(List<View> items, String nextCursor) {}
 
   public View create(String actor, Create input, String key) {
@@ -89,6 +93,11 @@ public class PostService implements PostAccess {
             key,
             input.toString(),
             () -> {
+              accounts.fence(actor);
+              verified(actor);
+              if (input.sourceId() == null || input.sourceId().isBlank())
+                throw error("INVALID_POST", HttpStatus.BAD_REQUEST);
+              commands.fence("intent", input.sourceId());
               Instant now = clock.instant();
               RidePost post;
               if (input.type() == Type.NEED_RIDE) {
@@ -165,6 +174,8 @@ public class PostService implements PostAccess {
         key,
         id + ":" + version,
         () -> {
+          accounts.fence(actor);
+          verified(actor);
           RidePost p = owned(actor, id, version);
           commands.fence("intent", p.sourceId());
           if (p.status() != Status.DRAFT || !clock.instant().isBefore(p.expiresAt()))
@@ -177,6 +188,7 @@ public class PostService implements PostAccess {
                     .orElseThrow(
                         () -> error("JOURNEY_SOURCE_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE));
             if (source.version() != p.sourceVersion()) throw conflict();
+            journeys.commitIntent(actor, p.sourceId(), p.sourceVersion(), "PUBLISHED");
             if (store.bySource(p.sourceId()).stream()
                 .anyMatch(
                     other ->
@@ -206,6 +218,8 @@ public class PostService implements PostAccess {
         key,
         id + input,
         () -> {
+          accounts.fence(actor);
+          verified(actor);
           var p = owned(actor, id, input.version());
           commands.fence("intent", p.sourceId());
           if (p.status() != Status.DRAFT && p.status() != Status.OPEN) throw conflict();
@@ -258,6 +272,8 @@ public class PostService implements PostAccess {
               && p.status() != Status.DRAFT
               && p.status() != Status.MATCHED) throw conflict();
           var next = p.change(Status.CLOSED, "OWNER_CLOSED", clock.instant());
+          if (p.type() == Type.NEED_RIDE && p.status() == Status.OPEN)
+            journeys.releaseIntent(actor, p.sourceId());
           store.save(p, next);
           event(next, "post.closed");
           return id;
@@ -399,6 +415,7 @@ public class PostService implements PostAccess {
   public void book(String id, long terms) {
     var p = store.find(id).orElseThrow(PostService::missing);
     if (!p.live(clock.instant()) || p.termsVersion() != terms) throw conflict();
+    journeys.commitIntent(p.ownerId(), p.sourceId(), p.sourceVersion(), "BOOKED");
     var next = p.change(Status.MATCHED, "BOOKED", clock.instant());
     store.save(p, next);
     event(next, "post.matched");
@@ -427,6 +444,37 @@ public class PostService implements PostAccess {
   }
 
   @Transactional(propagation = Propagation.MANDATORY)
+  public void refreshTrip(String tripId) {
+    var trip = trips.offer(tripId).orElseThrow(PostService::missing);
+    for (var p : store.bySource(tripId))
+      if (p.type() == Type.OFFER_RIDE) {
+        var updated =
+            new RidePost(
+                p.id(),
+                p.ownerId(),
+                p.type(),
+                p.sourceId(),
+                trip.version(),
+                p.status(),
+                trip.visibility(),
+                trip.communityId(),
+                trip.originLabel(),
+                trip.destinationLabel(),
+                trip.vehicleType(),
+                trip.routeId(),
+                trip.departureAt(),
+                trip.departureAt(),
+                p.note(),
+                p.version() + 1,
+                trip.termsVersion(),
+                p.closureReason(),
+                p.publishedAt());
+        store.save(p, updated);
+        event(updated, "post.changed");
+      }
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
   public String draftAgain(String actor, String postId) {
     verified(actor);
     var old =
@@ -434,6 +482,7 @@ public class PostService implements PostAccess {
             .find(postId)
             .filter(p -> p.ownerId().equals(actor) && p.type() == Type.NEED_RIDE)
             .orElseThrow(PostService::missing);
+    journeys.commitIntent(actor, old.sourceId(), old.sourceVersion(), "PRIVATE");
     var source =
         journeys
             .intent(actor, old.sourceId())

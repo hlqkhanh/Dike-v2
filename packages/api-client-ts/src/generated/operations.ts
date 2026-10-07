@@ -21,6 +21,10 @@ import type {
   PhoneRequest,
   PostReportInput,
   PostReportReceipt,
+  PostSource,
+  PostSourceBind,
+  PostSourceChoices,
+  PostSourceCreate,
   PrivacyResponse,
   ProfileSearchResponse,
   ProposalCreate,
@@ -40,7 +44,9 @@ import type {
   SessionListResponse,
   TripAction,
   TripCreate,
+  TripEdit,
   TripPage,
+  TripStops,
   TripView,
   UpdatePrivacyRequest,
   UpdateProfileRequest,
@@ -399,6 +405,13 @@ export const getTripOperation = { method: "GET", path: "/trips/{id}" } as const;
 export type GetTripRequest = never;
 export type GetTripResponse = TripView;
 
+export const editTripOperation = {
+  method: "PATCH",
+  path: "/trips/{id}",
+} as const;
+export type EditTripRequest = TripEdit;
+export type EditTripResponse = TripView;
+
 export const openTripOperation = {
   method: "POST",
   path: "/trips/{id}/open",
@@ -503,3 +516,31 @@ export const findRideAgainOperation = {
 } as const;
 export type FindRideAgainRequest = RideVersion;
 export type FindRideAgainResponse = DraftAgain;
+
+export const listPostSourcesOperation = {
+  method: "GET",
+  path: "/ride-post-sources",
+} as const;
+export type ListPostSourcesRequest = never;
+export type ListPostSourcesResponse = PostSourceChoices;
+
+export const createPostSourceOperation = {
+  method: "POST",
+  path: "/ride-post-sources",
+} as const;
+export type CreatePostSourceRequest = PostSourceCreate;
+export type CreatePostSourceResponse = PostSource;
+
+export const preparePostSourceOperation = {
+  method: "POST",
+  path: "/ride-post-sources/{id}/route",
+} as const;
+export type PreparePostSourceRequest = PostSourceBind;
+export type PreparePostSourceResponse = PostSource;
+
+export const getTripStopsOperation = {
+  method: "GET",
+  path: "/trips/{id}/stops",
+} as const;
+export type GetTripStopsRequest = never;
+export type GetTripStopsResponse = TripStops;

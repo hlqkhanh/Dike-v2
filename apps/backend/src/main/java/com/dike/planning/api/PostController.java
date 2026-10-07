@@ -17,6 +17,7 @@ public class PostController {
     this.service = service;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RideVersion")
   public record Version(long version) {}
 
   @PostMapping("/ride-posts")

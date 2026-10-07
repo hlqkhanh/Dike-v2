@@ -4,6 +4,12 @@ import {
 } from "./configuration";
 import { ApiError } from "./auth";
 import type {
+  PostSource,
+  PostSourceCreate,
+  DraftAgain,
+  TripStops,
+} from "./generated/schema";
+import type {
   RidePostPage,
   RidePostView,
   TripPage,
@@ -64,6 +70,15 @@ export function createRideApi(configuration: ApiClientConfiguration) {
   const id = encodeURIComponent;
   const page = (cursor?: string) => (cursor ? `?cursor=${id(cursor)}` : "");
   return {
+    createSource: (body: PostSourceCreate, key: string) =>
+      request<PostSource>("/ride-post-sources", "POST", body, key),
+    findAgain: (bookingId: string, version: number, key: string) =>
+      request<DraftAgain>(
+        `/bookings/${id(bookingId)}/find-again`,
+        "POST",
+        { version },
+        key,
+      ),
     capabilities: () => request<RideCapabilities>("/ride-capabilities"),
     feed: (tab: string, cursor?: string) =>
       request<RidePostPage>(
@@ -93,6 +108,7 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       request<PostReportReceipt>("/reports", "POST", body, key),
     trips: (cursor?: string) => request<TripPage>(`/trips${page(cursor)}`),
     trip: (tripId: string) => request<TripView>(`/trips/${id(tripId)}`),
+    stops: (tripId: string) => request<TripStops>(`/trips/${id(tripId)}/stops`),
     createTrip: (body: TripCreate, key: string) =>
       request<TripView>("/trips", "POST", body, key),
     openTrip: (tripId: string, version: number, key: string) =>

@@ -1,5 +1,6 @@
 package com.dike.planning.infrastructure;
 
+import com.dike.planning.JourneySources;
 import com.dike.planning.application.PostStore;
 import com.dike.planning.domain.RidePost;
 import com.dike.shared.application.AtomicCommands;
@@ -20,18 +21,21 @@ class PostExpiryWorker {
   private final AtomicCommands commands;
   private final OutboxPublisher events;
   private final Clock clock;
+  private final JourneySources journeys;
 
   PostExpiryWorker(
       MongoTemplate mongo,
       PostStore store,
       AtomicCommands commands,
       OutboxPublisher events,
-      Clock clock) {
+      Clock clock,
+      JourneySources journeys) {
     this.mongo = mongo;
     this.store = store;
     this.commands = commands;
     this.events = events;
     this.clock = clock;
+    this.journeys = journeys;
   }
 
   @Scheduled(fixedDelayString = "${dike.posts.expiry-interval:30s}")
@@ -48,6 +52,8 @@ class PostExpiryWorker {
             commands.fence("intent", p.sourceId());
             if (p.status() == RidePost.Status.OPEN && !p.live(clock.instant())) {
               var next = p.change(RidePost.Status.EXPIRED, "TIME", clock.instant());
+              if (p.type() == RidePost.Type.NEED_RIDE)
+                journeys.releaseIntent(p.ownerId(), p.sourceId());
               store.save(p, next);
               events.publish(
                   "post.closed",

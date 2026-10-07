@@ -49,6 +49,7 @@ export function RideNav() {
   return (
     <nav className="social-tabs" aria-label="Di chuyển">
       <Link href="/feed">Bảng tin</Link>
+      <Link href="/map">Tạo nhu cầu</Link>
       <Link href="/trips">Chuyến của tôi</Link>
       <Link href="/proposals">Đề nghị</Link>
       <Link href="/bookings">Booking</Link>
@@ -187,7 +188,7 @@ export function PostCard({
         {dateTime(post.departureAt)} ·{" "}
         {post.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
       </p>
-      {post.remainingSeats !== undefined ? (
+      {typeof post.remainingSeats === "number" ? (
         <p>
           Còn {post.remainingSeats} chỗ · {money(post.contributionPerKm ?? 0)}
           /km

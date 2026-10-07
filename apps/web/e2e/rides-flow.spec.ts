@@ -18,6 +18,64 @@ test.beforeEach(async ({ page, context }) => {
   );
 });
 
+test("creates a draft from an owned route before publishing", async ({
+  page,
+}) => {
+  const draft = {
+    id: "draft",
+    ownerId: "passenger",
+    type: "NEED_RIDE",
+    status: "DRAFT",
+    visibility: "FRIENDS",
+    originLabel: "Khu A",
+    destinationLabel: "Khu B",
+    vehicleType: "CAR",
+    departureAt: "2026-10-08T01:00:00Z",
+    expiresAt: "2026-10-08T02:00:00Z",
+    note: "Đi cùng",
+    version: 0,
+    termsVersion: 0,
+  };
+  let created = false;
+  await page.route("**/api/v1/routing/routes/route-1", (route) =>
+    route.fulfill({
+      json: {
+        id: "route-1",
+        origin: { publicAreaLabel: "Khu A" },
+        destination: { publicAreaLabel: "Khu B" },
+      },
+    }),
+  );
+  await page.route("**/api/v1/ride-post-sources", (route) => {
+    expect(route.request().postDataJSON().routeId).toBe("route-1");
+    return route.fulfill({ json: { id: "intent-1", version: 0 } });
+  });
+  await page.route("**/api/v1/ride-posts", (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      type: "NEED_RIDE",
+      sourceId: "intent-1",
+      sourceVersion: 0,
+      visibility: "FRIENDS",
+      note: "Đi cùng",
+    });
+    created = true;
+    return route.fulfill({ json: draft });
+  });
+  await page.route("**/api/v1/ride-posts/draft", (route) =>
+    route.fulfill({ json: draft }),
+  );
+  await page.goto("/feed/new?route=route-1");
+  await page.getByLabel("Có thể đi từ").fill("2026-10-08T08:00");
+  await page.getByLabel("Cần đến trước").fill("2026-10-08T10:00");
+  await page.getByLabel("Ghi chú").fill("Đi cùng");
+  await page.getByRole("button", { name: "Lưu bản nháp để kiểm tra" }).click();
+  await expect(page).toHaveURL(/\/feed\/draft$/);
+  await expect(
+    page.getByRole("button", { name: "Đăng bài", exact: true }),
+  ).toBeVisible();
+  expect(created).toBe(true);
+});
+
 test("feed provides unavailable state and never retains a denied post after refresh", async ({
   page,
 }) => {

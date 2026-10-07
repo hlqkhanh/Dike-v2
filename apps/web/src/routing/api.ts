@@ -97,6 +97,8 @@ export function createRoutingApi(configuration: ApiClientConfiguration) {
   }
 
   return {
+    getRoute: (id: string) =>
+      request<RouteResponse>(`/routing/routes/${encodeURIComponent(id)}`),
     createPlaceSession: () =>
       request<PlaceSessionResponse>("/routing/place-sessions", {
         method: "POST",

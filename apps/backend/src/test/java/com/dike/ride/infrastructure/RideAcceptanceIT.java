@@ -37,6 +37,7 @@ class RideAcceptanceIT {
   RideService service;
   OutboxPublisher outbox;
   MongoBoardingSecrets secrets;
+  java.util.concurrent.atomic.AtomicReference<Instant> time;
 
   @BeforeAll
   static void connect() {
@@ -56,7 +57,21 @@ class RideAcceptanceIT {
     new PostMigration().apply(mongo);
     for (String name : List.of("command_guards", "command_receipts", "outbox_events"))
       mongo.createCollection(name);
-    Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+    time = new java.util.concurrent.atomic.AtomicReference<>(NOW);
+    Clock clock =
+        new Clock() {
+          public ZoneId getZone() {
+            return ZoneOffset.UTC;
+          }
+
+          public Clock withZone(ZoneId zone) {
+            return this;
+          }
+
+          public Instant instant() {
+            return time.get();
+          }
+        };
     commands =
         new AtomicCommands(
             mongo, new MongoTransactionManager(mongo.getMongoDatabaseFactory()), clock);
@@ -385,5 +400,38 @@ class RideAcceptanceIT {
       for (var future : futures) if (future.get(30, TimeUnit.SECONDS)) successes++;
       return successes;
     }
+  }
+
+  @Test
+  void tripStartAndBoardingRaceNeverLeavesABoardedPassengerStuck() throws Exception {
+    seedTrip("t", "d", 1);
+    seedProposal("p", "u", "t", "d", "i");
+    var b = service.accept("u", "p", 0, "accept-key");
+    String code = service.code("u", b.id());
+    time.set(NOW.plusSeconds(3500));
+    assertThat(
+            race(
+                () -> service.tripAction("d", "t", 1, "start", null, "start-key"),
+                () ->
+                    service.bookingAction(
+                        "d", b.id(), 0, Booking.Action.BOARD, null, code, "board-key")))
+        .isEqualTo(2);
+    assertThat(store.trip("t").orElseThrow().status()).isEqualTo(Trip.Status.IN_PROGRESS);
+    assertThat(store.booking(b.id()).orElseThrow().status()).isEqualTo(Booking.Status.IN_PROGRESS);
+  }
+
+  @Test
+  void cancellationReplayReturnsSeatOnceAndNeverReopensOwnerClosedOffer() {
+    seedTrip("t", "d", 1);
+    seedProposal("p", "u", "t", "d", "i");
+    var b = service.accept("u", "p", 0, "accept-key");
+    var offer = posts.find("offer-t").orElseThrow();
+    posts.save(offer, offer.change(RidePost.Status.CLOSED, "OWNER_CLOSED", NOW));
+    service.bookingAction(
+        "u", b.id(), 0, Booking.Action.CANCEL, "changed plan", null, "cancel-key");
+    service.bookingAction(
+        "u", b.id(), 0, Booking.Action.CANCEL, "changed plan", null, "cancel-key");
+    assertThat(store.trip("t").orElseThrow().remainingSeats()).isEqualTo(1);
+    assertThat(posts.find("offer-t").orElseThrow().status()).isEqualTo(RidePost.Status.CLOSED);
   }
 }

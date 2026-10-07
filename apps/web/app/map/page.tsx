@@ -265,6 +265,9 @@ export default function MapPage() {
                 }}
               >
                 <RouteSummary route={route} estimate={estimate} />
+                <Link href={`/feed/new?route=${encodeURIComponent(route.id)}`}>
+                  Đăng nhu cầu đi cùng tuyến này
+                </Link>
               </div>
             </div>
           ) : (

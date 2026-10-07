@@ -161,36 +161,10 @@ public class TravelIntentService {
 
   public TravelIntent requestMatch(String requesterUserId, String targetIntentId) {
     accounts.require(requesterUserId);
-    TravelIntent target = store.intent(targetIntentId).orElseThrow(this::notFound);
-    if (target.ownerUserId().equals(requesterUserId)) {
-      throw invalid("Cannot match with your own intent");
-    }
-    if (target.commitmentState() != TravelIntentCommitmentState.PUBLISHED) {
-      throw invalid("Target intent is not published");
-    }
-
-    TravelIntent desired =
-        new TravelIntent(
-            target.id(),
-            target.ownerUserId(),
-            target.sourceType(),
-            target.scheduleId(),
-            target.sourceVersion(),
-            target.localDate(),
-            target.direction(),
-            target.travelRole(),
-            target.origin(),
-            target.destination(),
-            target.earliestDepartureAt(),
-            target.arrivalDeadlineAt(),
-            TravelIntentCommitmentState.BOOKING_PENDING,
-            target.sourceChanged(),
-            target.version() + 1,
-            requesterUserId,
-            target.createdAt(),
-            clock.instant());
-
-    return store.replaceIntent(target, desired);
+    throw new ApiException(
+        HttpStatus.GONE,
+        "USE_PROPOSAL_FLOW",
+        "Hãy gửi đề nghị đi cùng từ bài đăng; thao tác này không tạo booking");
   }
 
   private PlaceSnapshot resolve(String owner, String providerPlaceId) {

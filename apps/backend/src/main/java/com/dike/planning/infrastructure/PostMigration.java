@@ -21,7 +21,8 @@ public class PostMigration implements MongoMigration {
     mongo
         .indexOps("ride_posts")
         .ensureIndex(new Index().on("publishedAt", Direction.DESC).on("_id", Direction.DESC));
-    for (String name : java.util.List.of("ride_posts", "saved_posts"))
+    for (String name :
+        java.util.List.of("ride_posts", "saved_posts", "post_source_routes", "post_revisions"))
       if (!mongo.collectionExists(name)) mongo.createCollection(name);
     mongo
         .indexOps("ride_posts")

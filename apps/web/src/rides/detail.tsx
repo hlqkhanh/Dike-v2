@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { rideApi } from "./api";
 import { authApi } from "../auth/api";
 import { useAuthFailure } from "../auth/use-auth-failure";
@@ -190,6 +191,12 @@ export function TripDetail({ id }: { id: string }) {
 }
 
 export function BookingDetail({ id }: { id: string }) {
+  const router = useRouter();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
   const booking = useQuery({
     queryKey: ["rides", "booking", id],
     queryFn: () => rideApi.booking(id),
@@ -235,6 +242,24 @@ export function BookingDetail({ id }: { id: string }) {
       ) : b ? (
         <article className="settings-card">
           <h2>{statusName(b.status)}</h2>
+          {!driver &&
+          ["CANCELLED", "NO_SHOW", "ENDED_EARLY"].includes(b.status) ? (
+            <button
+              disabled={command.isPending}
+              onClick={() =>
+                command.mutate({
+                  signature: `again:${id}:${b.version}`,
+                  run: async (key) => {
+                    const result = await rideApi.findAgain(id, b.version, key);
+                    router.push(`/feed/${encodeURIComponent(result.postId)}`);
+                    return result;
+                  },
+                })
+              }
+            >
+              Tìm lại chuyến từ bản nháp mới
+            </button>
+          ) : null}
           <p>
             Đón {dateTime(b.pickupAt)} · Đến {dateTime(b.dropoffAt)}
           </p>
@@ -314,7 +339,7 @@ export function BookingDetail({ id }: { id: string }) {
                   disabled={
                     command.isPending ||
                     !reason.trim() ||
-                    Date.now() < new Date(b.pickupAt).getTime() + 600000
+                    now < new Date(b.pickupAt).getTime() + 600000
                   }
                   onClick={() => act("NO_SHOW")}
                 >
