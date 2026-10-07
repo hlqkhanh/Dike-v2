@@ -54,6 +54,49 @@ class AccountAccessServiceTest {
     var snapshot = new AccountAccessService(store, environment("staging")).require("user-1");
 
     assertThat(snapshot.authorities()).containsExactly(AccountAuthority.MEMBER);
+    assertThat(snapshot.driverApprovalEvidence()).isEqualTo(DriverApprovalEvidence.NONE);
+  }
+
+  @Test
+  void derivesSimulatedDriverApprovalForEveryVerifiedLocalUser() {
+    when(store.findUserById("user-1"))
+        .thenReturn(
+            Optional.of(
+                user(
+                    AccountStatus.ACTIVE,
+                    PhoneStatus.VERIFIED,
+                    VerificationEvidence.SIMULATED,
+                    Set.of())));
+
+    var snapshot = new AccountAccessService(store, environment("local")).require("user-1");
+
+    assertThat(snapshot.authorities())
+        .containsExactlyInAnyOrder(
+            AccountAuthority.MEMBER,
+            AccountAuthority.VERIFIED_MEMBER,
+            AccountAuthority.APPROVED_DRIVER);
+    assertThat(snapshot.driverApprovalEvidence()).isEqualTo(DriverApprovalEvidence.SIMULATED);
+  }
+
+  @Test
+  void canDisableSimulatedDriverApprovalLocally() {
+    when(store.findUserById("user-1"))
+        .thenReturn(
+            Optional.of(
+                user(
+                    AccountStatus.ACTIVE,
+                    PhoneStatus.VERIFIED,
+                    VerificationEvidence.SIMULATED,
+                    Set.of())));
+
+    MockEnvironment environment =
+        environment("local")
+            .withProperty("dike.identity.simulated-driver-approval-enabled", "false");
+    var snapshot = new AccountAccessService(store, environment).require("user-1");
+
+    assertThat(snapshot.authorities())
+        .containsExactlyInAnyOrder(AccountAuthority.MEMBER, AccountAuthority.VERIFIED_MEMBER);
+    assertThat(snapshot.driverApprovalEvidence()).isEqualTo(DriverApprovalEvidence.NONE);
   }
 
   @Test

@@ -32,6 +32,7 @@ export type AuthUser = {
   phoneMasked?: string;
   phoneVersion: number;
   verificationEvidence: string;
+  driverApprovalEvidence: string;
   authorities: string[];
   authorizationVersion: number;
   nextAction: string;

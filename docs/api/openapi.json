@@ -2181,6 +2181,7 @@
           "phoneStatus",
           "phoneVersion",
           "verificationEvidence",
+          "driverApprovalEvidence",
           "authorities",
           "authorizationVersion",
           "nextAction"
@@ -2212,6 +2213,10 @@
           },
           "verificationEvidence": {
             "type": "string"
+          },
+          "driverApprovalEvidence": {
+            "type": "string",
+            "enum": ["NONE", "REAL", "SIMULATED"]
           },
           "authorities": {
             "type": "array",

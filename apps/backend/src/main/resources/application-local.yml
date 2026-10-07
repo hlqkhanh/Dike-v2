@@ -1,4 +1,6 @@
 dike:
   environment: local
+  identity:
+    simulated-driver-approval-enabled: ${DIKE_SIMULATED_DRIVER_APPROVAL_ENABLED:true}
   migrations:
     enabled: true

@@ -111,6 +111,7 @@ public class SessionApplicationService {
         mask(user.phoneE164()),
         user.phoneVersion(),
         user.verificationEvidence().name(),
+        snapshot.driverApprovalEvidence().name(),
         snapshot.authorities().stream().map(Enum::name).sorted().toList(),
         snapshot.authorizationVersion(),
         nextAction);

@@ -46,13 +46,13 @@ Người dùng không cần có lịch thường tuần vẫn có thể đăng n
 | Mục tiêu phát hành | Production pilot theo đợt, từ nội bộ đến tối đa khoảng 500 người          |
 | Database           | MongoDB Atlas; MongoDB replica set trong local/test để hỗ trợ transaction |
 | Đăng nhập          | Google trước, thu số điện thoại sau; OTP bắt buộc trước production pilot  |
-| Dịch vụ ngoài      | Goong qua adapter, eKYC sandbox khi phát triển, Cloudflare R2 cho file    |
+| Dịch vụ ngoài      | Goong qua adapter, Cloudflare R2; eKYC đang tạm hoãn theo ADR 0015        |
 | Triển khai         | Web trên Vercel; API, worker, cron và Redis-compatible store trên Render  |
 | Mobile             | Flutter/Dart sau khi backend và web ổn định; dùng chung OpenAPI contract  |
 
 ### 1.2. Phân biệt môi trường phát triển và production pilot
 
-Local/test được phép dùng OTP giả, eKYC sandbox, tuyến cố định và dữ liệu tổng hợp, nhưng phải có nhãn rõ và không được dùng giấy tờ người thật. Staging dùng tích hợp sandbox gần production nhất có thể. Production phải từ chối khởi động nếu fake provider hoặc chế độ demo còn bật.
+Local/test được phép dùng OTP giả, quyền tài xế mô phỏng và dữ liệu tổng hợp, nhưng phải có nhãn rõ và không được dùng giấy tờ người thật. Goong thật được dùng từ Stage 8; test tự động dùng stub xác định. Staging dùng tích hợp gần production nhất có thể. Production phải từ chối khởi động nếu fake provider hoặc chế độ demo còn bật.
 
 Pilot chỉ được mở sau khi auth, OTP, phân quyền, transaction chống trùng chỗ, backup/restore, monitoring, quy trình vận hành và chính sách dữ liệu cá nhân đã đạt điều kiện nghiệm thu. GPS nền chỉ được cam kết trên mobile sau khi kiểm thử Android/iOS thực tế; web không cam kết theo dõi khi trình duyệt đã đóng hoặc thiết bị bị khóa.
 
@@ -60,7 +60,7 @@ Pilot chỉ được mở sau khi auth, OTP, phân quyền, transaction chống 
 
 ### 2.1. Phải có trước production pilot
 
-- Tài khoản, hồ sơ, eKYC sandbox ở development/staging và quy trình xác minh được phê duyệt trước production pilot.
+- Tài khoản và hồ sơ chạy được ở development/staging. eKYC/phê duyệt tài xế thật đang tạm hoãn nhưng vẫn là gate bắt buộc trước production pilot.
 - Lịch thường tuần, ngoại lệ theo ngày và gợi ý nhu cầu đi/về.
 - Bảng tin hai loại bài: tìm người chở và tìm người đi cùng.
 - Đăng, sửa, đóng, lưu, chia sẻ liên kết và báo cáo bài.
@@ -825,9 +825,17 @@ Runbook triển khai, dependency và nghiệm thu: [STAGE_4.md](STAGE_4.md).
 
 **Hoàn thành khi:** người ngoài không đọc được private file dù biết object key; upload sai loại/quá dung lượng bị chặn.
 
-### Giai đoạn 5 — eKYC sandbox, phương tiện và cộng đồng
+### Giai đoạn 5 — eKYC, phương tiện và cộng đồng (tạm hoãn)
 
-- Tạo adapter eKYC, xác thực webhook signature và xử lý callback idempotent.
+Quyết định tạm hoãn và cơ chế tài xế thử nghiệm:
+[ADR 0015](../docs/architecture/adr/0015-deferred-ekyc-and-simulated-driver-approval.md).
+
+- Chưa tích hợp eKYC, chưa nhận giấy tờ thật và chưa cấp `APPROVED_DRIVER` thật.
+- Local/test tạm suy ra `APPROVED_DRIVER` với evidence `SIMULATED` cho mọi
+  `VERIFIED_MEMBER`; không ghi role vào MongoDB và hosted environment không thể bật.
+- Stage 7–14 được phát triển bằng quyền mô phỏng nhưng production pilot vẫn bị
+  chặn đến khi hoàn tất các hạng mục bên dưới.
+- Khi tiếp tục, tạo adapter eKYC, xác thực webhook signature và xử lý callback idempotent.
 - Chỉ dùng dữ liệu tổng hợp trong sandbox.
 - Admin duyệt/từ chối hồ sơ, phương tiện và membership với lý do/audit log.
 - Chỉ `VERIFIED_MEMBER` được đăng nhu cầu; chỉ `APPROVED_DRIVER` được tạo chuyến.
@@ -847,6 +855,8 @@ Kế hoạch triển khai chi tiết: [STAGE_6.md](STAGE_6.md).
 
 ### Giai đoạn 7 — Lịch và nhu cầu di chuyển
 
+Runbook triển khai chung Stage 7–8: [STAGE_7_8.md](STAGE_7_8.md).
+
 - CRUD `ScheduleRule`, khoảng áp dụng, chiều đi/về, buffer và timezone.
 - Hỗ trợ ngoại lệ theo ngày, tạm dừng, kết thúc và xung đột.
 - Worker sinh `TravelIntent` trước 14 ngày với unique key chống trùng.
@@ -855,6 +865,8 @@ Kế hoạch triển khai chi tiết: [STAGE_6.md](STAGE_6.md).
 **Hoàn thành khi:** test timezone, job lặp, ngoại lệ, lịch chồng và thu hồi quyền đều đạt.
 
 ### Giai đoạn 8 — Goong, địa điểm, tuyến và báo giá
+
+Runbook triển khai chung Stage 7–8: [STAGE_7_8.md](STAGE_7_8.md).
 
 - Tạo `RoutingProvider`; production dùng Goong, test dùng deterministic fake.
 - Backend tính tuyến, khoảng cách, ETA, chiều tuyến và detour; lưu route snapshot.
@@ -967,7 +979,8 @@ Kế hoạch triển khai chi tiết: [STAGE_6.md](STAGE_6.md).
 ### 13.2. Luồng E2E bắt buộc
 
 1. Google login → số điện thoại → OTP → hồ sơ.
-2. eKYC → duyệt phương tiện/community.
+2. eKYC → duyệt phương tiện/community (đang tạm hoãn; local/test dùng quyền tài
+   xế mô phỏng có nhãn, không thay thế gate production).
 3. Lịch → intent → bài đăng.
 4. Trip → khách gửi proposal → chủ xe nhận → booking.
 5. Chủ xe đề nghị từ bài cần xe → khách nhận → booking.
@@ -988,7 +1001,8 @@ Không bàn giao nếu còn lỗi nghiêm trọng về quyền truy cập, vư�
 - Web ở Vercel; API, worker, cron và Redis-compatible store ở Render.
 - Routing dùng Goong qua adapter; file dùng Cloudflare R2.
 - Auth bắt đầu bằng Google; development có thể chưa bắt OTP nhưng production pilot bắt buộc OTP.
-- eKYC dùng sandbox khi phát triển và chỉ dùng dữ liệu tổng hợp.
+- eKYC đang tạm hoãn. Khi tiếp tục, development chỉ dùng sandbox/dữ liệu tổng
+  hợp; quyền tài xế mô phỏng hiện tại chỉ tồn tại trong local/test.
 - Thanh toán diễn ra ngoài nền tảng; không làm ví, thu hộ, hoàn tiền hoặc đối soát.
 - Không có source hoặc dữ liệu legacy để migrate; database bắt đầu rỗng và seed local/test phải là dữ liệu tổng hợp mới, có thể tái tạo.
 - Chưa thu giấy tờ thật hoặc mở pilot trước khi hoàn tất rà soát pháp lý, retention và bảo vệ dữ liệu.

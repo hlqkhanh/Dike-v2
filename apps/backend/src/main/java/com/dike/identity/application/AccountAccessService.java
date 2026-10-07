@@ -15,11 +15,16 @@ public class AccountAccessService {
 
   private final IdentityStore store;
   private final boolean simulatedEvidenceAllowed;
+  private final boolean simulatedDriverApprovalEnabled;
 
   public AccountAccessService(IdentityStore store, Environment environment) {
     this.store = store;
     String current = environment.getProperty("dike.environment", "local");
     this.simulatedEvidenceAllowed = "local".equals(current) || "test".equals(current);
+    this.simulatedDriverApprovalEnabled =
+        simulatedEvidenceAllowed
+            && environment.getProperty(
+                "dike.identity.simulated-driver-approval-enabled", Boolean.class, true);
   }
 
   public AccountAccessSnapshot require(String userId) {
@@ -28,12 +33,17 @@ public class AccountAccessService {
             .findUserById(userId)
             .orElseThrow(() -> new IllegalStateException("Authenticated user does not exist"));
     Set<AccountAuthority> authorities = EnumSet.noneOf(AccountAuthority.class);
+    DriverApprovalEvidence driverApprovalEvidence = DriverApprovalEvidence.NONE;
     if (user.accountStatus() == AccountStatus.ACTIVE) {
       authorities.add(AccountAuthority.MEMBER);
       if (isAcceptedVerification(user)) {
         authorities.add(AccountAuthority.VERIFIED_MEMBER);
         if (user.assignedRoles().contains(AccountRole.APPROVED_DRIVER)) {
           authorities.add(AccountAuthority.APPROVED_DRIVER);
+          driverApprovalEvidence = DriverApprovalEvidence.REAL;
+        } else if (simulatedDriverApprovalEnabled) {
+          authorities.add(AccountAuthority.APPROVED_DRIVER);
+          driverApprovalEvidence = DriverApprovalEvidence.SIMULATED;
         }
       }
       if (user.assignedRoles().contains(AccountRole.MODERATOR)) {
@@ -48,6 +58,7 @@ public class AccountAccessService {
         user.accountStatus(),
         authorities,
         user.verificationEvidence(),
+        driverApprovalEvidence,
         user.authorizationVersion());
   }
 

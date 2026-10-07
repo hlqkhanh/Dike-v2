@@ -19,6 +19,7 @@ public final class AuthResponses {
       String phoneMasked,
       long phoneVersion,
       String verificationEvidence,
+      String driverApprovalEvidence,
       List<String> authorities,
       long authorizationVersion,
       String nextAction) {}
