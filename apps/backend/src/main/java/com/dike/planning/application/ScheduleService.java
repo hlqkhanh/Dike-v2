@@ -104,32 +104,44 @@ public class ScheduleService {
       TravelRole targetRole) {
     ScheduleRule mySchedule = get(ownerUserId, scheduleId);
 
-    var matchingSchedules = store.activeSchedules().stream()
-        .filter(s -> !s.ownerUserId().equals(ownerUserId))
-        .filter(s -> s.defaultTravelRole() == targetRole)
-        .filter(s -> hasOverlappingDays(mySchedule.weekdays(), s.weekdays()))
-        .filter(s -> isWithinTimeWindow(mySchedule, s, timeWindowMinutes))
-        .filter(s -> isWithinRadius(mySchedule.activityPlace(), s.activityPlace(), radiusKm))
-        .filter(s -> isWithinRadius(mySchedule.usualOrigin(), s.usualOrigin(), radiusKm))
-        .filter(
-            s ->
-                social.canRead(
-                    ownerUserId,
-                    s.ownerUserId(),
-                    com.dike.community.SocialAccessPolicy.Visibility.valueOf(s.visibility().name()),
-                    true))
-        .toList();
+    var matchingSchedules =
+        store.activeSchedules().stream()
+            .filter(s -> !s.ownerUserId().equals(ownerUserId))
+            .filter(s -> s.defaultTravelRole() == targetRole)
+            .filter(s -> hasOverlappingDays(mySchedule.weekdays(), s.weekdays()))
+            .filter(s -> isWithinTimeWindow(mySchedule, s, timeWindowMinutes))
+            .filter(s -> isWithinRadius(mySchedule.activityPlace(), s.activityPlace(), radiusKm))
+            .filter(s -> isWithinRadius(mySchedule.usualOrigin(), s.usualOrigin(), radiusKm))
+            .filter(
+                s ->
+                    social.canRead(
+                        ownerUserId,
+                        s.ownerUserId(),
+                        com.dike.community.SocialAccessPolicy.Visibility.valueOf(
+                            s.visibility().name()),
+                        true))
+            .toList();
 
-    var matchingIntents = store.activeIntents().stream()
-        .filter(i -> !i.ownerUserId().equals(ownerUserId))
-        .filter(i -> i.travelRole() == targetRole)
-        .filter(i -> mySchedule.weekdays().contains(i.localDate().getDayOfWeek()))
-        .filter(i -> !i.localDate().isBefore(mySchedule.effectiveFrom()) && !i.localDate().isAfter(mySchedule.effectiveUntil()))
-        .filter(i -> isWithinTimeWindow(mySchedule, i, timeWindowMinutes))
-        .filter(i -> isWithinRadius(mySchedule.activityPlace(), i.destination(), radiusKm))
-        .filter(i -> isWithinRadius(mySchedule.usualOrigin(), i.origin(), radiusKm))
-        .filter(i -> social.canRead(ownerUserId, i.ownerUserId(), com.dike.community.SocialAccessPolicy.Visibility.COMMUNITY, true))
-        .toList();
+    var matchingIntents =
+        store.activeIntents().stream()
+            .filter(i -> !i.ownerUserId().equals(ownerUserId))
+            .filter(i -> i.travelRole() == targetRole)
+            .filter(i -> mySchedule.weekdays().contains(i.localDate().getDayOfWeek()))
+            .filter(
+                i ->
+                    !i.localDate().isBefore(mySchedule.effectiveFrom())
+                        && !i.localDate().isAfter(mySchedule.effectiveUntil()))
+            .filter(i -> isWithinTimeWindow(mySchedule, i, timeWindowMinutes))
+            .filter(i -> isWithinRadius(mySchedule.activityPlace(), i.destination(), radiusKm))
+            .filter(i -> isWithinRadius(mySchedule.usualOrigin(), i.origin(), radiusKm))
+            .filter(
+                i ->
+                    social.canRead(
+                        ownerUserId,
+                        i.ownerUserId(),
+                        com.dike.community.SocialAccessPolicy.Visibility.COMMUNITY,
+                        true))
+            .toList();
 
     return new MatchResult(matchingSchedules, matchingIntents);
   }
@@ -146,11 +158,17 @@ public class ScheduleService {
     return startDiff <= timeWindowMinutes && endDiff <= timeWindowMinutes;
   }
 
-  private boolean isWithinTimeWindow(ScheduleRule s, com.dike.planning.domain.TravelIntent i, int timeWindowMinutes) {
+  private boolean isWithinTimeWindow(
+      ScheduleRule s, com.dike.planning.domain.TravelIntent i, int timeWindowMinutes) {
     if (i.earliestDepartureAt() == null || i.arrivalDeadlineAt() == null) return false;
-    java.time.LocalTime departure = java.time.LocalDateTime.ofInstant(i.earliestDepartureAt(), java.time.ZoneId.of("UTC")).toLocalTime();
-    java.time.LocalTime arrival = java.time.LocalDateTime.ofInstant(i.arrivalDeadlineAt(), java.time.ZoneId.of("UTC")).toLocalTime();
-    long startDiff = Math.abs(java.time.Duration.between(s.startLocalTime(), departure).toMinutes());
+    java.time.LocalTime departure =
+        java.time.LocalDateTime.ofInstant(i.earliestDepartureAt(), java.time.ZoneId.of("UTC"))
+            .toLocalTime();
+    java.time.LocalTime arrival =
+        java.time.LocalDateTime.ofInstant(i.arrivalDeadlineAt(), java.time.ZoneId.of("UTC"))
+            .toLocalTime();
+    long startDiff =
+        Math.abs(java.time.Duration.between(s.startLocalTime(), departure).toMinutes());
     long endDiff = Math.abs(java.time.Duration.between(s.endLocalTime(), arrival).toMinutes());
     return startDiff <= timeWindowMinutes && endDiff <= timeWindowMinutes;
   }

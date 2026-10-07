@@ -8,7 +8,20 @@ import dynamic from "next/dynamic";
 
 const DynamicMap = dynamic(() => import("./DynamicMap"), {
   ssr: false,
-  loading: () => <div style={{ height: "400px", background: "#f3f4f6", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>Đang tải bản đồ...</div>
+  loading: () => (
+    <div
+      style={{
+        height: "400px",
+        background: "#f3f4f6",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      Đang tải bản đồ...
+    </div>
+  ),
 });
 
 import { routingApi } from "../../src/routing/client";
@@ -171,22 +184,38 @@ export default function MapPage() {
             label="Điểm đi"
             placeholder="Ví dụ: FPT University Hồ Chí Minh"
             state={origin}
-            onQueryChange={(query) => setOrigin({ ...origin, query, selected: undefined })}
+            onQueryChange={(query) =>
+              setOrigin({ ...origin, query, selected: undefined })
+            }
             onSearch={() => search(origin.query, setOrigin, origin)}
-            onSelect={(suggestion) => selectPlace(suggestion, setOrigin, origin)}
+            onSelect={(suggestion) =>
+              selectPlace(suggestion, setOrigin, origin)
+            }
           />
           <PlacePicker
             label="Điểm đến"
             placeholder="Ví dụ: Landmark 81"
             state={destination}
-            onQueryChange={(query) => setDestination({ ...destination, query, selected: undefined })}
-            onSearch={() => search(destination.query, setDestination, destination)}
-            onSelect={(suggestion) => selectPlace(suggestion, setDestination, destination)}
+            onQueryChange={(query) =>
+              setDestination({ ...destination, query, selected: undefined })
+            }
+            onSearch={() =>
+              search(destination.query, setDestination, destination)
+            }
+            onSelect={(suggestion) =>
+              selectPlace(suggestion, setDestination, destination)
+            }
           />
 
           <label className="dike-field" htmlFor="vehicle-mode">
             <span>Phương tiện</span>
-            <select id="vehicle-mode" value={vehicleMode} onChange={(event) => setVehicleMode(event.target.value as VehicleMode)}>
+            <select
+              id="vehicle-mode"
+              value={vehicleMode}
+              onChange={(event) =>
+                setVehicleMode(event.target.value as VehicleMode)
+              }
+            >
               <option value="MOTORBIKE">Xe máy</option>
               <option value="CAR">Ô tô</option>
             </select>
@@ -194,31 +223,81 @@ export default function MapPage() {
 
           {error ? <p className="auth-error">{error}</p> : null}
 
-          <Button type="submit" disabled={planning || !origin.selected || !destination.selected}>
+          <Button
+            type="submit"
+            disabled={planning || !origin.selected || !destination.selected}
+          >
             {planning ? "Đang tính tuyến…" : "Tính tuyến"}
           </Button>
         </section>
 
-        <section className="dike-card map-preview" aria-label="Bản đồ tuyến" style={{ padding: "0", height: "600px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <section
+          className="dike-card map-preview"
+          aria-label="Bản đồ tuyến"
+          style={{
+            padding: "0",
+            height: "600px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           {route ? (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                position: "relative",
+              }}
+            >
               <DynamicMap route={route.geometry} />
-              <div style={{ position: "absolute", bottom: "16px", left: "16px", right: "16px", background: "white", padding: "16px", borderRadius: "12px", boxShadow: "0 -4px 16px rgba(0,0,0,0.1)", zIndex: 1000 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "16px",
+                  left: "16px",
+                  right: "16px",
+                  background: "white",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  boxShadow: "0 -4px 16px rgba(0,0,0,0.1)",
+                  zIndex: 1000,
+                }}
+              >
                 <RouteSummary route={route} estimate={estimate} />
               </div>
             </div>
           ) : (
-            <div className="map-empty" style={{ flex: 1, position: "relative" }}>
+            <div
+              className="map-empty"
+              style={{ flex: 1, position: "relative" }}
+            >
               <DynamicMap route={undefined} />
-              <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "rgba(255,255,255,0.9)", padding: "24px", borderRadius: "16px", textAlign: "center", zIndex: 1000, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  background: "rgba(255,255,255,0.9)",
+                  padding: "24px",
+                  borderRadius: "16px",
+                  textAlign: "center",
+                  zIndex: 1000,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                }}
+              >
                 <h2>Bản đồ tuyến đường</h2>
-                <p style={{ margin: 0 }}>Chọn điểm đi và điểm đến rồi bấm <strong>Tính tuyến</strong> để xem đường đi trên bản đồ thật.</p>
+                <p style={{ margin: 0 }}>
+                  Chọn điểm đi và điểm đến rồi bấm <strong>Tính tuyến</strong>{" "}
+                  để xem đường đi trên bản đồ thật.
+                </p>
               </div>
             </div>
           )}
         </section>
       </form>
-
     </main>
   );
 }

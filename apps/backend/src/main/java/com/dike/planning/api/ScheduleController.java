@@ -196,34 +196,52 @@ public class ScheduleController {
       String destinationPublicArea) {}
 
   public record MatchResponse(
-      List<FriendScheduleResponse> schedules,
-      List<FriendIntentResponse> intents) {}
+      List<FriendScheduleResponse> schedules, List<FriendIntentResponse> intents) {}
 
   @PostMapping("/{id}/match")
   @Operation(operationId = "matchSchedules")
   public MatchResponse match(
       Principal actor, @PathVariable String id, @Valid @RequestBody MatchRequest request) {
     try {
-      ScheduleService.MatchResult result = schedules.match(
-          actor.getName(),
-          id,
-          request.radiusKm(),
-          request.timeWindowMinutes(),
-          request.targetRole());
-          
-      List<FriendScheduleResponse> matchedSchedules = result.schedules().stream()
-          .map(s -> new FriendScheduleResponse(
-              s.ownerUserId(), s.weekdays(), s.effectiveFrom(), s.effectiveUntil(),
-              s.startLocalTime(), s.endLocalTime(), s.directions(), s.defaultTravelRole(),
-              s.activityCategory(), s.activityPlace().publicAreaLabel()))
-          .toList();
+      ScheduleService.MatchResult result =
+          schedules.match(
+              actor.getName(),
+              id,
+              request.radiusKm(),
+              request.timeWindowMinutes(),
+              request.targetRole());
 
-      List<FriendIntentResponse> matchedIntents = result.intents().stream()
-          .map(i -> new FriendIntentResponse(
-              i.ownerUserId(), i.localDate(), i.direction(), i.travelRole(),
-              i.earliestDepartureAt(), i.arrivalDeadlineAt(),
-              i.origin().publicAreaLabel(), i.destination().publicAreaLabel()))
-          .toList();
+      List<FriendScheduleResponse> matchedSchedules =
+          result.schedules().stream()
+              .map(
+                  s ->
+                      new FriendScheduleResponse(
+                          s.ownerUserId(),
+                          s.weekdays(),
+                          s.effectiveFrom(),
+                          s.effectiveUntil(),
+                          s.startLocalTime(),
+                          s.endLocalTime(),
+                          s.directions(),
+                          s.defaultTravelRole(),
+                          s.activityCategory(),
+                          s.activityPlace().publicAreaLabel()))
+              .toList();
+
+      List<FriendIntentResponse> matchedIntents =
+          result.intents().stream()
+              .map(
+                  i ->
+                      new FriendIntentResponse(
+                          i.ownerUserId(),
+                          i.localDate(),
+                          i.direction(),
+                          i.travelRole(),
+                          i.earliestDepartureAt(),
+                          i.arrivalDeadlineAt(),
+                          i.origin().publicAreaLabel(),
+                          i.destination().publicAreaLabel()))
+              .toList();
 
       return new MatchResponse(matchedSchedules, matchedIntents);
     } catch (RuntimeException error) {

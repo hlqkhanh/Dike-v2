@@ -102,7 +102,8 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/api/v1/me/**", "/api/v1/users/**", "/api/v1/users", "/api/v1/files/**")
                     .authenticated()
-                    .requestMatchers("/api/v1/routing/**", "/api/v1/schedules/**", "/api/v1/intents/**")
+                    .requestMatchers(
+                        "/api/v1/routing/**", "/api/v1/schedules/**", "/api/v1/intents/**")
                     .authenticated()
                     .requestMatchers("/api/**")
                     .denyAll()

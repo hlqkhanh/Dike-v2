@@ -179,7 +179,8 @@ public class MongoPlanningStore implements PlanningStore {
 
   @Override
   public List<TravelIntent> activeIntents() {
-    return mongo.find(
+    return mongo
+        .find(
             Query.query(Criteria.where("commitmentState").is("PUBLISHED")),
             TravelIntentDocument.class)
         .stream()

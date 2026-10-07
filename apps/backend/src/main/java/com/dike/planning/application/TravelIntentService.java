@@ -168,7 +168,7 @@ public class TravelIntentService {
     if (target.commitmentState() != TravelIntentCommitmentState.PUBLISHED) {
       throw invalid("Target intent is not published");
     }
-    
+
     TravelIntent desired =
         new TravelIntent(
             target.id(),
