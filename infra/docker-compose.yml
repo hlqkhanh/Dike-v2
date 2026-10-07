@@ -42,6 +42,7 @@ services:
       MINIO_ROOT_USER: dike-local
       MINIO_ROOT_PASSWORD: dike-local-secret
       MINIO_DEFAULT_BUCKETS: dike-public:download,dike-private:none
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000
     ports:
       - "9000:9000"
       - "9001:9001"

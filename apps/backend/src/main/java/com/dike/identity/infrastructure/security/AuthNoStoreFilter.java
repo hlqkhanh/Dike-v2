@@ -18,7 +18,10 @@ final class AuthNoStoreFilter extends OncePerRequestFilter {
         || path.startsWith("/api/v1/friendships")
         || path.startsWith("/api/v1/blocks")
         || path.startsWith("/api/v1/social/")
-        || path.startsWith("/api/v1/files/"));
+        || path.startsWith("/api/v1/files/")
+        || path.startsWith("/api/v1/schedules")
+        || path.startsWith("/api/v1/travel-intents")
+        || path.startsWith("/api/v1/routing/"));
   }
 
   @Override

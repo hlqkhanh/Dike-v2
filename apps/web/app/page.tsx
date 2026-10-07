@@ -26,6 +26,9 @@ export default function HomePage() {
           <a className="auth-action" href="/login">
             Bắt đầu với Google
           </a>
+          <a className="auth-action auth-action--secondary" href="/map">
+            Xem map
+          </a>
           <span>Web responsive · API contract-first · Dữ liệu riêng tư</span>
         </div>
       </section>

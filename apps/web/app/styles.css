@@ -228,6 +228,11 @@ a:focus-visible {
   cursor: pointer;
 }
 
+.dike-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 @media (max-width: 44rem) {
   .foundation {
     grid-template-columns: 1fr;
@@ -288,6 +293,12 @@ a:focus-visible {
   justify-content: center;
   padding: 0.9rem 1.2rem;
   text-decoration: none;
+}
+
+.auth-action--secondary {
+  background: transparent;
+  border: 1px solid var(--dike-primary);
+  color: var(--dike-primary-strong);
 }
 
 .auth-error {
@@ -527,4 +538,241 @@ a:focus-visible {
 
 .social-actions p {
   flex-basis: 100%;
+}
+
+.map-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.map-hero {
+  max-width: 48rem;
+  padding: clamp(2rem, 7vw, 4.5rem) 0 1rem;
+}
+
+.map-hero h1 {
+  font-size: clamp(2.4rem, 7vw, 4.8rem);
+  margin-bottom: 1rem;
+}
+
+.map-hero p {
+  color: var(--dike-ink-muted);
+  line-height: 1.7;
+}
+
+.map-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(18rem, 0.9fr) minmax(20rem, 1.35fr);
+}
+
+.map-panel,
+.map-preview {
+  display: grid;
+  gap: 1rem;
+  min-height: auto;
+}
+
+.place-picker {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.place-picker__row {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr auto;
+}
+
+.place-picker__selected {
+  color: var(--dike-primary-strong);
+  font-size: 0.9rem;
+  font-weight: 750;
+  margin: 0;
+}
+
+.place-picker__empty {
+  color: var(--dike-ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.place-suggestions {
+  border: 1px solid var(--dike-border);
+  border-radius: var(--dike-radius-sm);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  max-height: 15rem;
+  overflow: auto;
+  padding: 0.35rem;
+}
+
+.place-suggestions button {
+  background: transparent;
+  border: 0;
+  border-radius: 0.55rem;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+
+.place-suggestions button:hover,
+.place-suggestions button:focus-visible {
+  background: var(--dike-surface-muted);
+}
+
+.place-suggestions span,
+.route-summary span {
+  color: var(--dike-ink-muted);
+  font-size: 0.88rem;
+}
+
+.map-empty {
+  display: grid;
+  gap: 1rem;
+  min-height: 28rem;
+}
+
+.map-empty h2 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin: 0 0 0.45rem;
+}
+
+.map-empty p {
+  color: var(--dike-ink-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.map-canvas {
+  background: var(--dike-surface-muted);
+  border: 1px solid var(--dike-border);
+  border-radius: var(--dike-radius-md);
+  min-height: 24rem;
+  width: 100%;
+}
+
+.map-canvas rect {
+  fill: rgb(250 255 252);
+}
+
+.map-canvas__park {
+  fill: rgb(201 242 221 / 76%);
+}
+
+.map-canvas__water {
+  fill: rgb(191 219 254 / 52%);
+}
+
+.map-canvas__road {
+  fill: none;
+  stroke: rgb(100 116 139 / 65%);
+  stroke-linecap: round;
+  stroke-width: 1.2;
+}
+
+.map-canvas__road--wide {
+  stroke: rgb(15 118 110 / 78%);
+  stroke-width: 2.6;
+}
+
+.map-canvas__pin {
+  fill: var(--dike-primary);
+  stroke: white;
+  stroke-width: 0.8;
+}
+
+.route-svg {
+  background:
+    radial-gradient(
+      circle at 78% 15%,
+      rgb(201 242 221 / 82%),
+      transparent 18rem
+    ),
+    var(--dike-surface-muted);
+  border: 1px solid var(--dike-border);
+  border-radius: var(--dike-radius-md);
+  color: rgb(28 90 76 / 16%);
+  min-height: 24rem;
+  width: 100%;
+}
+
+.route-svg rect:first-of-type {
+  fill: rgb(250 255 252);
+}
+
+.route-svg__grid {
+  fill: url("#route-grid");
+}
+
+.route-svg__line-shadow,
+.route-svg__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.route-svg__line-shadow {
+  stroke: rgb(15 23 42 / 18%);
+  stroke-width: 3.2;
+}
+
+.route-svg__line {
+  stroke: var(--dike-primary);
+  stroke-width: 1.8;
+}
+
+.route-svg__pin {
+  stroke: white;
+  stroke-width: 0.8;
+}
+
+.route-svg__pin--origin {
+  fill: var(--dike-primary);
+}
+
+.route-svg__pin--destination {
+  fill: var(--dike-danger);
+}
+
+.route-summary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.route-summary div {
+  background: var(--dike-surface-muted);
+  border-radius: var(--dike-radius-sm);
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem;
+}
+
+.route-summary strong {
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+}
+
+.route-summary p {
+  color: var(--dike-ink-muted);
+  grid-column: 1 / -1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 58rem) {
+  .map-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .route-summary {
+    grid-template-columns: 1fr;
+  }
 }

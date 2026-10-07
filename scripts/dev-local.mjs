@@ -1,6 +1,10 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { once } from "node:events";
+import { existsSync } from "node:fs";
+import { loadEnvFile } from "node:process";
+
+if (existsSync(".env.local")) loadEnvFile(".env.local");
 
 const windows = process.platform === "win32";
 const wrapper = windows ? ".\\mvnw.cmd" : "./mvnw";
@@ -94,9 +98,9 @@ run(wrapper, [
 ]);
 
 const jar = "apps/backend/target/dike-backend-0.0.1-SNAPSHOT.jar";
-start("api", "java", ["-jar", jar], { SPRING_PROFILES_ACTIVE: "local,api" });
-start("worker", "java", ["-jar", jar], {
-  SPRING_PROFILES_ACTIVE: "local,worker",
+start("backend", "java", ["-jar", jar], {
+  SPRING_PROFILES_ACTIVE: "local,combined",
+  DIKE_ROUTING_ALLOW_UNVERIFIED_MEMBERS: "true",
 });
 start("web", windows ? "pnpm.cmd" : "pnpm", ["--filter", "@dike/web", "dev"]);
 

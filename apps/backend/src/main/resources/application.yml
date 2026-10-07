@@ -76,6 +76,26 @@ dike:
     maximum-attempts: ${DIKE_OTP_MAXIMUM_ATTEMPTS:5}
     send-enabled: ${DIKE_OTP_SEND_ENABLED:true}
     daily-cap: ${DIKE_OTP_DAILY_CAP:1000}
+  routing:
+    provider: ${DIKE_ROUTING_PROVIDER:goong}
+    api-key: ${DIKE_GOONG_API_KEY:local-not-configured}
+    base-url: ${DIKE_GOONG_BASE_URL:https://rsapi.goong.io}
+    connect-timeout: ${DIKE_ROUTING_CONNECT_TIMEOUT:2s}
+    request-timeout: ${DIKE_ROUTING_REQUEST_TIMEOUT:5s}
+    place-session-ttl: ${DIKE_PLACE_SESSION_TTL:5m}
+    cache-ttl: ${DIKE_ROUTING_CACHE_TTL:10m}
+    estimate-ttl: ${DIKE_ROUTE_ESTIMATE_TTL:15m}
+    cache-key-secret: ${DIKE_ROUTING_CACHE_KEY_SECRET:local-routing-cache-key-change-me}
+    allow-unverified-members: ${DIKE_ROUTING_ALLOW_UNVERIFIED_MEMBERS:false}
+  planning:
+    materializer-interval: ${DIKE_PLANNING_MATERIALIZER_INTERVAL:15m}
+    contribution:
+      demo: ${DIKE_CONTRIBUTION_DEMO:true}
+      fuel-price-vnd-per-liter: ${DIKE_FUEL_PRICE_VND_PER_LITER:25000}
+      motorbike-liters-per100-km: ${DIKE_MOTORBIKE_LITERS_PER100_KM:2.2}
+      car-liters-per100-km: ${DIKE_CAR_LITERS_PER100_KM:8.0}
+      minimum-per-km-vnd: ${DIKE_CONTRIBUTION_MIN_PER_KM_VND:500}
+      maximum-per-km-vnd: ${DIKE_CONTRIBUTION_MAX_PER_KM_VND:10000}
   admin-bootstrap:
     enabled: ${DIKE_ADMIN_BOOTSTRAP_ENABLED:false}
     dry-run: ${DIKE_ADMIN_BOOTSTRAP_DRY_RUN:true}
