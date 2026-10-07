@@ -30,6 +30,11 @@ class FileAssetDeletionHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "identity.file-asset-deletion.v1";
+  }
+
+  @Override
   public String eventType() {
     return FileAssetService.DELETE_EVENT;
   }

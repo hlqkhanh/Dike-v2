@@ -16,6 +16,10 @@ class RideActivityHandler implements OutboxHandler {
     this.mongo = mongo;
   }
 
+  public String consumerName() {
+    return "ride.activity.v1";
+  }
+
   public String eventType() {
     return "booking.confirmed";
   }

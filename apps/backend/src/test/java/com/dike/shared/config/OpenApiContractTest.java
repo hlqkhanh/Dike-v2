@@ -25,7 +25,7 @@ class OpenApiContractTest {
             com.dike.planning.api.PostSourceController.class,
             com.dike.ride.api.RideController.class,
             com.dike.ride.api.RideCapabilitiesController.class,
-            com.dike.trust.api.PostReportController.class)) {
+            com.dike.trust.api.ModerationController.class)) {
       var base =
           controller.getAnnotation(org.springframework.web.bind.annotation.RequestMapping.class);
       for (var method : controller.getDeclaredMethods()) {

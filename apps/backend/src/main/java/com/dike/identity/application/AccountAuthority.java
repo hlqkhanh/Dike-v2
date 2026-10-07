@@ -5,5 +5,6 @@ public enum AccountAuthority {
   VERIFIED_MEMBER,
   APPROVED_DRIVER,
   MODERATOR,
-  ADMIN
+  ADMIN,
+  LOCKED_ACCOUNT
 }

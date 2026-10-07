@@ -4,6 +4,7 @@ import com.dike.identity.application.DikePrincipal;
 import com.dike.identity.application.FileAssetService;
 import com.dike.identity.application.ProfileRateLimiter;
 import com.dike.shared.api.ApiException;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -33,6 +34,7 @@ public class FileController {
   }
 
   @PostMapping("/uploads")
+  @Operation(operationId = "createFileUpload")
   ResponseEntity<FileAssetService.UploadIntent> upload(
       @AuthenticationPrincipal DikePrincipal principal,
       @Valid @RequestBody FileRequests.CreateUpload body,

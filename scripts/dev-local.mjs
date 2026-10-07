@@ -3,8 +3,10 @@ import { createServer } from "node:net";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
+import { loadLocalGoogleOAuth } from "./load-local-google-oauth.mjs";
 
 if (existsSync(".env.local")) loadEnvFile(".env.local");
+loadLocalGoogleOAuth();
 
 const windows = process.platform === "win32";
 const wrapper = windows ? ".\\mvnw.cmd" : "./mvnw";

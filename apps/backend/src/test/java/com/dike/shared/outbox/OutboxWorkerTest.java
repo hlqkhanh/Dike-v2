@@ -47,6 +47,7 @@ class OutboxWorkerTest {
 
   private OutboxWorker worker(
       OutboxStore store, OutboxHandlerRegistry handlers, SimpleMeterRegistry meters) {
+    OutboxDeliveryStore deliveries = mock(OutboxDeliveryStore.class);
     DikeProperties properties =
         new DikeProperties(
             "test",
@@ -68,7 +69,7 @@ class OutboxWorkerTest {
                 3,
                 1));
     Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-    return new OutboxWorker(store, handlers, properties, clock, meters);
+    return new OutboxWorker(store, handlers, deliveries, properties, clock, meters);
   }
 
   private OutboxEvent event(int attempts) {

@@ -36,11 +36,14 @@ const primitive = (schema) => {
 
 const blocks = Object.entries(schemas).map(([name, schema]) => {
   const required = new Set(schema.required ?? []);
+  const hasExplicitRequiredList = Array.isArray(schema.required);
   const fields = Object.entries(schema.properties ?? {})
-    .map(
-      ([field, value]) =>
-        `  ${field}${required.has(field) ? "" : "?"}: ${primitive(value)};`,
-    )
+    .map(([field, value]) => {
+      const isRequired = hasExplicitRequiredList
+        ? required.has(field)
+        : value.nullable !== true;
+      return `  ${field}${isRequired ? "" : "?"}: ${primitive(value)};`;
+    })
     .join("\n");
   return `export type ${name} = {\n${fields}\n};`;
 });
@@ -62,7 +65,7 @@ const operationBlocks = Object.entries(contract.paths ?? {}).flatMap(
       const name = operation.operationId;
       const title = name[0].toUpperCase() + name.slice(1);
       return [
-        `export const ${name}Operation = { method: "${method.toUpperCase()}", path: "${path}" } as const;\nexport type ${title}Request = ${requestSchema ? primitive(requestSchema) : "never"};\nexport type ${title}Response = ${responseSchema ? primitive(responseSchema) : "void"};`,
+        `export const ${name}Operation = { method: "${method.toUpperCase()}", path: "${path}" } as const;\nexport type ${title}OperationRequest = ${requestSchema ? primitive(requestSchema) : "never"};\nexport type ${title}OperationResponse = ${responseSchema ? primitive(responseSchema) : "void"};`,
       ];
     }),
 );

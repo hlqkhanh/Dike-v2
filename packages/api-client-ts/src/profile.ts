@@ -6,7 +6,7 @@ import { ApiError } from "./auth";
 import type {
   ConsentReceiptResponse,
   ConsentSummaryResponse,
-  CreateUploadRequest,
+  CreateUpload as CreateUploadRequest,
   DeletionResponse,
   FileView,
   MyProfileResponse,
@@ -112,6 +112,8 @@ export function createProfileApi(configuration: ApiClientConfiguration) {
         headers: { "Idempotency-Key": idempotencyKey },
       }),
     uploadToGrantedUrl: async (grant: UploadIntent, file: File) => {
+      if (!grant.uploadUrl)
+        throw new Error("Upload grant does not contain a URL");
       const response = await fetch(grant.uploadUrl, {
         method: "PUT",
         headers: grant.requiredHeaders as Record<string, string>,

@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.security.Principal;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
+// @RestController - replaced by ModerationController in Stage 14
 @SecurityRequirement(name = "sessionCookie")
 public class PostReportController {
   private final PostReportService service;

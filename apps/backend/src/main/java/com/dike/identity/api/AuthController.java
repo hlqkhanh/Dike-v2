@@ -69,6 +69,7 @@ public class AuthController {
   }
 
   @GetMapping("/session")
+  @Operation(operationId = "getAuthSession")
   @SecurityRequirement(name = "sessionCookie")
   AuthSessionResponse current(
       @AuthenticationPrincipal DikePrincipal principal,

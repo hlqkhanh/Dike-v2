@@ -92,7 +92,8 @@ public class SecurityConfiguration {
                         "/api/v1/auth/google",
                         "/api/v1/auth/oauth2/authorization/**",
                         "/api/v1/auth/callback/**",
-                        "/oauth2/**")
+                        "/oauth2/**",
+                        "/ws/**")
                     .permitAll()
                     .requestMatchers("/api/v1/auth/**")
                     .authenticated()
@@ -111,6 +112,13 @@ public class SecurityConfiguration {
                         "/api/v1/bookings/**",
                         "/api/v1/ride-capabilities",
                         "/api/v1/reports",
+                        "/api/v1/realtime/**",
+                        "/api/v1/conversations/**",
+                        "/api/v1/message-requests/**",
+                        "/api/v1/notifications/**",
+                        "/api/v1/availability/**",
+                        "/api/v1/reviews/**",
+                        "/api/v1/admin/**",
                         "/api/v1/routing/**",
                         "/api/v1/schedules/**",
                         "/api/v1/travel-intents/**")
@@ -185,9 +193,10 @@ public class SecurityConfiguration {
     http.addFilterAfter(
         new AccountAuthenticationFilter(access),
         org.springframework.security.web.context.SecurityContextHolderFilter.class);
+    http.addFilterAfter(new LockedAccountSafetyFilter(), AccountAuthenticationFilter.class);
     http.addFilterAfter(
         new AbsoluteSessionExpiryFilter(clock, properties, provisioning, telemetry),
-        AccountAuthenticationFilter.class);
+        LockedAccountSafetyFilter.class);
     http.addFilterAfter(new AuthNoStoreFilter(), AbsoluteSessionExpiryFilter.class);
     return http.build();
   }

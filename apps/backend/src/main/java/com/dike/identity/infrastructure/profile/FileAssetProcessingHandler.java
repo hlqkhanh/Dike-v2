@@ -46,6 +46,11 @@ class FileAssetProcessingHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "identity.file-asset-processing.v1";
+  }
+
+  @Override
   public String eventType() {
     return FileAssetService.PROCESS_EVENT;
   }

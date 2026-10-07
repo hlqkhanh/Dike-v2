@@ -32,7 +32,8 @@ final class AccountAuthenticationFilter extends OncePerRequestFilter {
       String accountId = (String) session.getAttribute(SessionAttributes.ACCOUNT_ID);
       if (accountId != null) {
         var snapshot = access.require(accountId);
-        if (snapshot.accountStatus() != AccountStatus.ACTIVE) {
+        if (snapshot.accountStatus() != AccountStatus.ACTIVE
+            && snapshot.accountStatus() != AccountStatus.LOCKED) {
           session.invalidate();
           SecurityErrorWriter.write(
               request,
@@ -43,9 +44,11 @@ final class AccountAuthenticationFilter extends OncePerRequestFilter {
           return;
         }
         var authorities =
-            snapshot.authorities().stream()
-                .map(value -> new SimpleGrantedAuthority(value.name()))
-                .toList();
+            snapshot.accountStatus() == AccountStatus.LOCKED
+                ? java.util.List.of(new SimpleGrantedAuthority("LOCKED_ACCOUNT"))
+                : snapshot.authorities().stream()
+                    .map(value -> new SimpleGrantedAuthority(value.name()))
+                    .toList();
         var authentication =
             UsernamePasswordAuthenticationToken.authenticated(
                 new DikePrincipal(snapshot.accountId(), snapshot.authorizationVersion()),

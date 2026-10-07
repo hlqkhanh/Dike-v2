@@ -18,6 +18,7 @@ import com.dike.identity.application.ProfileService;
 import com.dike.identity.application.SessionApplicationService;
 import com.dike.identity.infrastructure.security.SessionAttributes;
 import com.dike.shared.api.ApiException;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -61,6 +62,7 @@ public class ProfileController {
   }
 
   @GetMapping("/me/profile")
+  @Operation(operationId = "getMyProfile")
   MyProfileResponse me(@AuthenticationPrincipal DikePrincipal principal) {
     return MyProfileResponse.from(profiles.me(principal.userId()).profile());
   }

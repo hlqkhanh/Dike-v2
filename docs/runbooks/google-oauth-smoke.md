@@ -11,8 +11,16 @@ vào issue, ảnh chụp hay repository.
    `http://localhost:3000/api/v1/auth/callback/google`.
 3. Nếu consent screen đang ở chế độ Testing, thêm tài khoản thử nghiệm vào danh sách
    test users.
-4. Đặt `DIKE_GOOGLE_CLIENT_ID` và `DIKE_GOOGLE_CLIENT_SECRET` trong môi trường local.
-   Không thêm giá trị thật vào `.env.local.example`.
+4. Cung cấp Google credential local theo một trong các cách sau:
+   - đặt `DIKE_GOOGLE_CLIENT_ID` và `DIKE_GOOGLE_CLIENT_SECRET` bằng giá trị thật;
+   - hoặc lưu JSON loại Web application tại
+     `%LOCALAPPDATA%\Dike\secrets\google-oauth-local.json` trên Windows;
+   - hoặc đặt `DIKE_GOOGLE_OAUTH_FILE` trỏ tới file JSON ở vị trí riêng ngoài repository.
+
+Launcher `pnpm dev`, `pnpm dev:api` và `pnpm dev:worker` tự nạp file JSON khi
+hai biến trong `.env.local` chưa có hoặc vẫn là placeholder. Không commit file
+JSON, Client Secret hoặc giá trị thật vào repository.
+Không thêm giá trị thật vào `.env.local.example`.
 
 ## 2. Chạy hệ thống
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { rideApi } from "./api";
 import { authApi } from "../auth/api";
 import { useAuthFailure } from "../auth/use-auth-failure";
+import { BookingTools } from "../journey/booking-tools";
 import {
   RideNav,
   PostCard,
@@ -240,139 +241,149 @@ export function BookingDetail({ id }: { id: string }) {
       ) : booking.isError ? (
         <p role="alert">{booking.error.message}</p>
       ) : b ? (
-        <article className="settings-card">
-          <h2>{statusName(b.status)}</h2>
-          {!driver &&
-          ["CANCELLED", "NO_SHOW", "ENDED_EARLY"].includes(b.status) ? (
-            <button
-              disabled={command.isPending}
-              onClick={() =>
-                command.mutate({
-                  signature: `again:${id}:${b.version}`,
-                  run: async (key) => {
-                    const result = await rideApi.findAgain(id, b.version, key);
-                    router.push(`/feed/${encodeURIComponent(result.postId)}`);
-                    return result;
-                  },
-                })
-              }
-            >
-              Tìm lại chuyến từ bản nháp mới
-            </button>
-          ) : null}
-          <p>
-            Đón {dateTime(b.pickupAt)} · Đến {dateTime(b.dropoffAt)}
-          </p>
-          <p>Mức đóng góp đã chốt: {money(b.priceVnd)}</p>
-          {b.reason ? <p>Lý do: {b.reason}</p> : null}
-          {waiting && !driver ? (
-            <div>
+        <>
+          <article className="settings-card">
+            <h2>{statusName(b.status)}</h2>
+            {!driver &&
+            ["CANCELLED", "NO_SHOW", "ENDED_EARLY"].includes(b.status) ? (
               <button
-                onClick={() => {
-                  if (visibleCode) {
-                    setVisibleCode(null);
-                    return;
-                  }
-                  void rideApi
-                    .boardingCode(id)
-                    .then((value) => {
-                      setVisibleCode({ code: value.code, version: b.version });
-                      setCodeError("");
-                    })
-                    .catch((error: Error) => setCodeError(error.message));
-                }}
-              >
-                {visibleCode?.version === b.version
-                  ? "Ẩn mã lên xe"
-                  : "Xem mã lên xe"}
-              </button>
-              {visibleCode?.version === b.version ? (
-                <p role="status">
-                  Mã lên xe: <strong>{visibleCode.code}</strong>
-                </p>
-              ) : null}
-              {codeError ? <p role="alert">{codeError}</p> : null}
-            </div>
-          ) : null}
-          {waiting && driver ? (
-            <label>
-              Mã lên xe do hành khách cung cấp
-              <input
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={6}
-                value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/\D/g, ""))
+                disabled={command.isPending}
+                onClick={() =>
+                  command.mutate({
+                    signature: `again:${id}:${b.version}`,
+                    run: async (key) => {
+                      const result = await rideApi.findAgain(
+                        id,
+                        b.version,
+                        key,
+                      );
+                      router.push(`/feed/${encodeURIComponent(result.postId)}`);
+                      return result;
+                    },
+                  })
                 }
-              />
-            </label>
-          ) : null}
-          {waiting || aboard ? (
-            <label>
-              Lý do hủy, vắng mặt hoặc kết thúc sớm
-              <textarea
-                maxLength={500}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
-          ) : null}
-          <div className="social-tabs">
-            {driver && b.status === "CONFIRMED" ? (
-              <button
-                disabled={command.isPending}
-                onClick={() => act("ARRIVE")}
               >
-                Đã đến điểm đón
+                Tìm lại chuyến từ bản nháp mới
               </button>
             ) : null}
-            {driver && waiting ? (
-              <>
+            <p>
+              Đón {dateTime(b.pickupAt)} · Đến {dateTime(b.dropoffAt)}
+            </p>
+            <p>Mức đóng góp đã chốt: {money(b.priceVnd)}</p>
+            {b.reason ? <p>Lý do: {b.reason}</p> : null}
+            {waiting && !driver ? (
+              <div>
                 <button
-                  disabled={command.isPending || code.length !== 6}
-                  onClick={() => act("BOARD")}
+                  onClick={() => {
+                    if (visibleCode) {
+                      setVisibleCode(null);
+                      return;
+                    }
+                    void rideApi
+                      .boardingCode(id)
+                      .then((value) => {
+                        setVisibleCode({
+                          code: value.code,
+                          version: b.version,
+                        });
+                        setCodeError("");
+                      })
+                      .catch((error: Error) => setCodeError(error.message));
+                  }}
                 >
-                  Xác nhận lên xe
+                  {visibleCode?.version === b.version
+                    ? "Ẩn mã lên xe"
+                    : "Xem mã lên xe"}
                 </button>
-                <button
-                  disabled={
-                    command.isPending ||
-                    !reason.trim() ||
-                    now < new Date(b.pickupAt).getTime() + 600000
+                {visibleCode?.version === b.version ? (
+                  <p role="status">
+                    Mã lên xe: <strong>{visibleCode.code}</strong>
+                  </p>
+                ) : null}
+                {codeError ? <p role="alert">{codeError}</p> : null}
+              </div>
+            ) : null}
+            {waiting && driver ? (
+              <label>
+                Mã lên xe do hành khách cung cấp
+                <input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, ""))
                   }
-                  onClick={() => act("NO_SHOW")}
+                />
+              </label>
+            ) : null}
+            {waiting || aboard ? (
+              <label>
+                Lý do hủy, vắng mặt hoặc kết thúc sớm
+                <textarea
+                  maxLength={500}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </label>
+            ) : null}
+            <div className="social-tabs">
+              {driver && b.status === "CONFIRMED" ? (
+                <button
+                  disabled={command.isPending}
+                  onClick={() => act("ARRIVE")}
                 >
-                  Khách không có mặt
+                  Đã đến điểm đón
                 </button>
-              </>
-            ) : null}
-            {waiting ? (
-              <button
-                disabled={command.isPending || !reason.trim()}
-                onClick={() => act("CANCEL")}
-              >
-                Hủy booking
-              </button>
-            ) : null}
-            {aboard ? (
-              <button
-                disabled={command.isPending || !reason.trim()}
-                onClick={() => act("END_EARLY")}
-              >
-                Kết thúc sớm
-              </button>
-            ) : null}
-            {driver && b.status === "IN_PROGRESS" ? (
-              <button
-                disabled={command.isPending}
-                onClick={() => act("COMPLETE")}
-              >
-                Đã trả khách
-              </button>
-            ) : null}
-          </div>
-        </article>
+              ) : null}
+              {driver && waiting ? (
+                <>
+                  <button
+                    disabled={command.isPending || code.length !== 6}
+                    onClick={() => act("BOARD")}
+                  >
+                    Xác nhận lên xe
+                  </button>
+                  <button
+                    disabled={
+                      command.isPending ||
+                      !reason.trim() ||
+                      now < new Date(b.pickupAt).getTime() + 600000
+                    }
+                    onClick={() => act("NO_SHOW")}
+                  >
+                    Khách không có mặt
+                  </button>
+                </>
+              ) : null}
+              {waiting ? (
+                <button
+                  disabled={command.isPending || !reason.trim()}
+                  onClick={() => act("CANCEL")}
+                >
+                  Hủy booking
+                </button>
+              ) : null}
+              {aboard ? (
+                <button
+                  disabled={command.isPending || !reason.trim()}
+                  onClick={() => act("END_EARLY")}
+                >
+                  Kết thúc sớm
+                </button>
+              ) : null}
+              {driver && b.status === "IN_PROGRESS" ? (
+                <button
+                  disabled={command.isPending}
+                  onClick={() => act("COMPLETE")}
+                >
+                  Đã trả khách
+                </button>
+              ) : null}
+            </div>
+          </article>
+          <BookingTools bookingId={id} driver={Boolean(driver)} />
+        </>
       ) : null}
       {command.isError ? <p role="alert">{command.error.message}</p> : null}
     </main>

@@ -15,6 +15,10 @@ class PostActivityHandler implements OutboxHandler {
     this.mongo = mongo;
   }
 
+  public String consumerName() {
+    return "planning.post-activity.v1";
+  }
+
   public String eventType() {
     return "post.published";
   }

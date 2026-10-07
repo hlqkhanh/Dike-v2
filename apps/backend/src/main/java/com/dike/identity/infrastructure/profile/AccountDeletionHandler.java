@@ -39,6 +39,11 @@ class AccountDeletionHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "identity.account-deletion.v1";
+  }
+
+  @Override
   public String eventType() {
     return AccountDeletionService.EVENT;
   }

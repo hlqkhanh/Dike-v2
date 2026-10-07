@@ -22,6 +22,7 @@ class OutboxWorker {
   private static final Logger LOGGER = LoggerFactory.getLogger(OutboxWorker.class);
   private final OutboxStore store;
   private final OutboxHandlerRegistry handlers;
+  private final OutboxDeliveryStore deliveries;
   private final DikeProperties properties;
   private final Clock clock;
   private final Counter claimed;
@@ -33,11 +34,13 @@ class OutboxWorker {
   OutboxWorker(
       OutboxStore store,
       OutboxHandlerRegistry handlers,
+      OutboxDeliveryStore deliveries,
       DikeProperties properties,
       Clock clock,
       MeterRegistry meterRegistry) {
     this.store = store;
     this.handlers = handlers;
+    this.deliveries = deliveries;
     this.properties = properties;
     this.clock = clock;
     this.claimed = meterRegistry.counter("dike.outbox.claimed");
@@ -68,7 +71,22 @@ class OutboxWorker {
 
   private void dispatch(OutboxEvent event) {
     try {
-      handlers.require(event.eventType(), event.payloadVersion()).handle(event);
+      for (OutboxHandler handler : handlers.requireAll(event.eventType(), event.payloadVersion())) {
+        if (deliveries.isCompleted(event.eventId(), handler.consumerName())) {
+          continue;
+        }
+        try {
+          handler.handle(event);
+          deliveries.complete(event.eventId(), handler.consumerName(), clock.instant());
+        } catch (RuntimeException exception) {
+          deliveries.fail(
+              event.eventId(),
+              handler.consumerName(),
+              clock.instant(),
+              exception.getClass().getSimpleName());
+          throw exception;
+        }
+      }
       store.complete(event, clock.instant());
     } catch (RuntimeException exception) {
       boolean terminal = event.attempts() >= properties.outbox().maxAttempts();

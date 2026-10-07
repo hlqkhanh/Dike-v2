@@ -27,3 +27,6 @@ ADR trong thư mục này ghi các quyết định kiến trúc và governance h
 - [0013 — Profile, privacy, consent and file lifecycle](0013-profile-privacy-consent-and-file-lifecycle.md)
 - [0014 — Social relations and revocation](0014-social-relations-and-revocation.md)
 - [0015 — Deferred eKYC and simulated driver approval](0015-deferred-ekyc-and-simulated-driver-approval.md)
+- [0016 — Realtime messaging and outbox fan-out](0016-realtime-messaging-and-outbox-fanout.md)
+- [0017 — Location privacy and availability](0017-location-privacy-and-availability.md)
+- [0018 — Trip settlement, reviews and moderation](0018-trip-settlement-reviews-and-moderation.md)

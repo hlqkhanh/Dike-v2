@@ -15,6 +15,11 @@ class ScheduleMaterializationHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "planning.schedule-materialization.v1";
+  }
+
+  @Override
   public String eventType() {
     return "planning.schedule.changed";
   }

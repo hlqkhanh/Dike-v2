@@ -18,6 +18,11 @@ class FoundationProjectionHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "shared.foundation-projection.v1";
+  }
+
+  @Override
   public String eventType() {
     return "foundation.projection";
   }

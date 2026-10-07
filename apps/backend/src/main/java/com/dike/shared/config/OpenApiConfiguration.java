@@ -2,6 +2,7 @@ package com.dike.shared.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.List;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -59,5 +61,41 @@ public class OpenApiConfiguration {
                         .type(SecurityScheme.Type.APIKEY)
                         .in(SecurityScheme.In.HEADER)
                         .name("X-XSRF-TOKEN")));
+  }
+
+  @Bean
+  OpenApiCustomizer normalizePublicContract() {
+    return openApi -> {
+      Paths normalized = new Paths();
+      if (openApi.getPaths() != null) {
+        openApi
+            .getPaths()
+            .forEach(
+                (path, item) -> normalized.addPathItem(path.replaceFirst("^/api/v1", ""), item));
+      }
+      openApi.setPaths(normalized);
+      if (openApi.getComponents() == null) openApi.setComponents(new Components());
+      openApi
+          .getComponents()
+          .addSchemas(
+              "FieldViolation",
+              new ObjectSchema()
+                  .addProperty("field", new StringSchema())
+                  .addProperty("code", new StringSchema()))
+          .addSchemas(
+              "ErrorBody",
+              new ObjectSchema()
+                  .addProperty("code", new StringSchema())
+                  .addProperty("message", new StringSchema())
+                  .addProperty("requestId", new StringSchema())
+                  .addProperty(
+                      "fields",
+                      new ArraySchema()
+                          .items(new Schema<>().$ref("#/components/schemas/FieldViolation"))))
+          .addSchemas(
+              "ErrorResponse",
+              new ObjectSchema()
+                  .addProperty("error", new Schema<>().$ref("#/components/schemas/ErrorBody")));
+    };
   }
 }

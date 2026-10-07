@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
+import { loadLocalGoogleOAuth } from "./load-local-google-oauth.mjs";
 
 if (existsSync(".env.local")) loadEnvFile(".env.local");
+loadLocalGoogleOAuth();
 
 const workload = process.argv[2];
 if (!new Set(["api", "worker"]).has(workload)) {

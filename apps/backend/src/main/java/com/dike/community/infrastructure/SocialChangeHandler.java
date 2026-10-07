@@ -18,6 +18,11 @@ class SocialChangeHandler implements OutboxHandler {
   }
 
   @Override
+  public String consumerName() {
+    return "community.social-change.v1";
+  }
+
+  @Override
   public String eventType() {
     return "social.relationship.changed";
   }

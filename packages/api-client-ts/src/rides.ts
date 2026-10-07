@@ -22,12 +22,21 @@ import type {
   BookingAction,
   TripAction,
   RideCapabilities,
-  PostReportInput,
-  PostReportReceipt,
+  Report,
   RidePostCreate,
   TripCreate,
   ProposalCreate,
 } from "./generated/schema";
+
+export type PostReportInput = {
+  postId: string;
+  reason: string;
+  note?: string;
+};
+
+export type CreateRidePostInput = Omit<RidePostCreate, "communityId"> & {
+  communityId?: string;
+};
 
 export function createRideApi(configuration: ApiClientConfiguration) {
   const config = createApiClientConfiguration(configuration);
@@ -88,7 +97,7 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       ),
     post: (postId: string) =>
       request<RidePostView>(`/ride-posts/${id(postId)}`),
-    createPost: (body: RidePostCreate, key: string) =>
+    createPost: (body: CreateRidePostInput, key: string) =>
       request<RidePostView>("/ride-posts", "POST", body, key),
     postAction: (
       postId: string,
@@ -105,7 +114,17 @@ export function createRideApi(configuration: ApiClientConfiguration) {
     save: (postId: string, saved: boolean) =>
       request<void>(`/saved-posts/${id(postId)}`, saved ? "PUT" : "DELETE"),
     report: (body: PostReportInput, key: string) =>
-      request<PostReportReceipt>("/reports", "POST", body, key),
+      request<Report>(
+        "/reports",
+        "POST",
+        {
+          targetType: "RIDE_POST",
+          targetId: body.postId,
+          reason: body.reason,
+          note: body.note,
+        },
+        key,
+      ),
     trips: (cursor?: string) => request<TripPage>(`/trips${page(cursor)}`),
     trip: (tripId: string) => request<TripView>(`/trips/${id(tripId)}`),
     stops: (tripId: string) => request<TripStops>(`/trips/${id(tripId)}/stops`),

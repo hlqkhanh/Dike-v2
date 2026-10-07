@@ -689,7 +689,13 @@ Quy tắc contract:
 - Generated client là cách frontend gọi API mặc định; code UI không tự ghép URL hoặc tự định nghĩa response type trùng lặp.
 - OpenAPI diff và generated-client check chạy trong CI.
 
-WebSocket handshake tại `/ws` dùng phiên đăng nhập đã được Spring Security xác thực. STOMP destination phía server:
+REST của web tiếp tục đi qua same-origin proxy `/api/*`. WebSocket production kết nối trực tiếp tới
+Spring Boot: browser dùng session cookie qua REST để lấy ticket Redis 256-bit, sống 30 giây và dùng
+một lần; ticket được atomic-consume trong STOMP `CONNECT`, không đặt trong URL và không dùng làm
+REST credential. Origin, authorization version và account status được kiểm tra trước khi cho subscribe.
+Chi tiết được khóa ở [Stage 12](STAGE_12.md) và phải có ADR trước khi triển khai.
+
+STOMP destination phía server:
 
 ```text
 /user/queue/notifications
@@ -697,8 +703,11 @@ WebSocket handshake tại `/ws` dùng phiên đăng nhập đã được Spring 
 /user/queue/bookings
 /user/queue/conversations
 /topic/trips/{tripId}
-/topic/conversations/{conversationId}
 ```
+
+Private message, notification và exact location chỉ phát qua user destination. Không phát message
+body hoặc tọa độ qua shared conversation/trip topic; điều này tránh subscription cũ tiếp tục nhận dữ
+liệu sau khi quyền bị thu hồi.
 
 Tên event nghiệp vụ trong payload:
 
@@ -717,11 +726,13 @@ location.updated
 review.published
 ```
 
-- Các command nghiệp vụ như accept proposal, cancel booking, complete trip và gửi message đi qua REST/idempotency. STOMP chủ yếu truyền server event; location update tần suất cao có thể dùng `/app/location.update` nhưng vẫn phải validate booking, quyền, rate limit và timestamp server.
+- Các command nghiệp vụ như accept proposal, cancel booking, complete trip, gửi message, heartbeat và location update đi qua REST/idempotency. STOMP chỉ truyền server event; location REST vẫn phải validate booking, consent, quyền, rate limit và timestamp server.
 - Mỗi lần subscribe/reconnect phải authorize destination theo user, friendship/community/booking hiện tại; không chỉ kiểm tra lúc handshake.
 - Sau reconnect, client luôn tải lại trạng thái qua REST. Event thu hồi quyền chỉ mang ID và yêu cầu client tải lại/gỡ dữ liệu.
 - Notification/message đã commit được lưu trong MongoDB trước khi phát realtime; mất WebSocket không làm mất dữ liệu.
-- Pilot mặc định một API instance. Khi scale ngang, thêm Redis Pub/Sub bridge hoặc broker relay bằng ADR và load test; không dựa vào in-memory subscription giữa nhiều instance.
+- Worker và API là process riêng nên dùng Redis Pub/Sub bridge ngay từ Stage 12 để chuyển realtime
+  envelope tới API instance có socket. Delivery vẫn best-effort và REST/MongoDB là nguồn phục hồi.
+  Pilot mặc định một API instance; broker relay hoặc topology scale ngang khác cần ADR và load test.
 
 ### 11.9. Bảo mật bắt buộc
 
@@ -910,18 +921,35 @@ Kế hoạch chi tiết: [STAGE_11.md](STAGE_11.md).
 
 ### Giai đoạn 12 — Chat, thông báo và realtime
 
+Stage 12, 13 và 14 được triển khai trong **một batch duy nhất**, dùng chung milestone, integration
+branch/PR, staging deployment và acceptance gate. Runbook thực thi chính:
+[STAGE_12_13_14.md](STAGE_12_13_14.md). Đặc tả miền chat/realtime:
+[STAGE_12.md](STAGE_12.md).
+
 - Chat trực tiếp có message request; chat booking được tạo tự động.
 - Message có `clientMessageId`, cursor pagination và read marker.
-- Cấu hình Spring WebSocket/STOMP tại `/ws`; authorize từng destination mỗi lần subscribe/reconnect.
+- Cấu hình Spring WebSocket/STOMP tại `/ws`; web lấy ticket Redis một lần qua REST rồi xác thực ở
+  STOMP `CONNECT`; authorize từng destination mỗi lần subscribe/reconnect.
 - Gửi message bằng REST command idempotent, sau commit phát `message.created` qua outbox/realtime; không coi WebSocket là nguồn lưu trữ.
-- Notification in-app; email/push qua adapter của worker, lỗi gửi không rollback nghiệp vụ.
+- Nâng outbox thành fan-out có delivery receipt để nhiều consumer xử lý cùng event mà retry không lặp
+  side effect đã hoàn thành.
+- Notification in-app hoàn chỉnh; email/push có worker port và fake adapter local/test, provider thật
+  được cấu hình ở Stage 16/17; lỗi gửi không rollback nghiệp vụ.
 
 **Hoàn thành khi:** reconnect không lặp tin, unread đúng, block ngăn chat và người ngoài không join room.
 
 ### Giai đoạn 13 — Đi ngay, presence và hành trình trực tiếp
 
+Runbook thực thi chung Stage 12–14: [STAGE_12_13_14.md](STAGE_12_13_14.md). Đặc tả miền
+availability/location: [STAGE_13.md](STAGE_13.md). Stage này không được đánh dấu hoàn thành độc lập
+trước acceptance gate chung.
+
 - Availability session có heartbeat và TTL.
 - Chỉ thu/chia sẻ vị trí khi người dùng chủ động bật và booking cho phép.
+- Trước booking chỉ trả vị trí driver đã làm mờ phía server với bán kính mặc định 500 m; tọa độ chính
+  xác chỉ chia sẻ sau booking và explicit consent.
+- Heartbeat/location gửi bằng REST; STOMP chỉ phát cập nhật target-specific. Exact latest location giữ
+  Redis TTL 120 giây, không lưu GPS history.
 - Ghép tức thì vẫn đi qua proposal/booking và bước đồng ý.
 - Server kiểm tra transition arrived, boarded, start và complete.
 
@@ -929,10 +957,19 @@ Kế hoạch chi tiết: [STAGE_11.md](STAGE_11.md).
 
 ### Giai đoạn 14 — Chi phí, đánh giá và kiểm duyệt
 
+Runbook thực thi chung Stage 12–14: [STAGE_12_13_14.md](STAGE_12_13_14.md). Đặc tả miền
+payment/review/moderation: [STAGE_14.md](STAGE_14.md). Milestone chỉ đóng khi E2E liên stage và toàn
+bộ gate chung đạt.
+
 - Chỉ gợi ý đóng góp và xác nhận thanh toán ngoài nền tảng.
+- Passenger “đã trả” và driver “đã nhận” là hai acknowledgement độc lập. Một bên được rút khi phía
+  kia chưa xác nhận; khi đủ hai phía thì record khóa. Không auto-confirm hoặc chặn completion/review.
 - Đánh giá hai chiều; công bố khi cả hai gửi hoặc hết 7 ngày.
 - Worker công bố review idempotent; tính điểm từ review đã công bố.
-- Report user/post/message/trip; admin xử lý, khóa user và ghi audit.
+- Review công khai chỉ hiện reviewer theo quyền profile; nếu không được xem thì ẩn user ID/avatar.
+- Report user/post/message/trip/review; dashboard moderation đầy đủ. Moderator xử lý report/content;
+  chỉ Admin khóa/mở user, phân công người khác và xem audit nhạy cảm.
+- Account lock chặn hoạt động mới nhưng giữ allowlist an toàn cho booking đang diễn ra.
 
 **Hoàn thành khi:** không thể tự đánh giá, gửi trùng, đánh giá sai booking hoặc đọc review chưa công bố.
 

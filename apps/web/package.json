@@ -16,6 +16,7 @@
     "@dike/design-tokens": "workspace:*",
     "@dike/web-ui": "workspace:*",
     "@hookform/resolvers": "5.2.2",
+    "@stomp/stompjs": "7.3.0",
     "@tanstack/react-query": "5.90.5",
     "leaflet": "^1.9.4",
     "next": "16.3.8",

@@ -52,6 +52,11 @@ dike:
     max-backoff: ${DIKE_OUTBOX_MAX_BACKOFF:5m}
     max-attempts: ${DIKE_OUTBOX_MAX_ATTEMPTS:8}
     batch-size: ${DIKE_OUTBOX_BATCH_SIZE:20}
+  realtime:
+    websocket-url: ${DIKE_WEBSOCKET_URL:ws://localhost:8080/ws}
+    allowed-origins: ${DIKE_REALTIME_ALLOWED_ORIGINS:http://localhost:3000}
+    ticket-ttl: ${DIKE_REALTIME_TICKET_TTL:30s}
+    redis-channel: ${DIKE_REALTIME_REDIS_CHANNEL:dike:${dike.environment}:realtime}
   auth:
     public-base-url: ${DIKE_AUTH_PUBLIC_BASE_URL:http://localhost:3000}
     allowed-origins: ${DIKE_AUTH_ALLOWED_ORIGINS:http://localhost:3000}

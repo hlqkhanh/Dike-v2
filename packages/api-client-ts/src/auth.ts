@@ -4,9 +4,13 @@ import {
 } from "./configuration";
 import type {
   AuthSessionResponse,
-  OtpChallenge,
+  ChallengeView,
   SessionListResponse,
 } from "./generated/schema";
+
+export type OtpChallenge = Omit<ChallengeView, "maskedPhone"> & {
+  maskedPhone?: string;
+};
 
 export class ApiError extends Error {
   constructor(
