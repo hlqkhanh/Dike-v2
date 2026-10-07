@@ -1,4 +1,0 @@
-[allowlist]
-paths = [
-    '''google-oauth-local\.json'''
-]
