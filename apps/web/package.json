@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests --exclude e2e/**",
+    "test": "vitest run --passWithNoTests --exclude \"**/e2e/**\"",
     "e2e": "playwright test"
   },
   "dependencies": {
