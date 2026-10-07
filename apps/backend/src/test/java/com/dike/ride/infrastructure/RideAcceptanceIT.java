@@ -326,8 +326,9 @@ class RideAcceptanceIT {
   void outboxFailureRollsBackBookingSeatPostSecretAndReceipt() {
     seedTrip("t", "d", 1);
     seedProposal("p", "u", "t", "d", "i");
-    when(outbox.publish(anyString(), anyString(), anyString(), anyInt(), anyMap()))
-        .thenThrow(new IllegalStateException("outage"));
+    doThrow(new IllegalStateException("outage"))
+        .when(outbox)
+        .publish(anyString(), anyString(), anyString(), anyInt(), anyMap());
     assertThatThrownBy(() -> service.accept("u", "p", 0, "accept-key-1")).hasMessage("outage");
     for (String name : List.of("bookings", "boarding_secrets", "command_receipts", "outbox_events"))
       assertThat(mongo.getCollection(name).countDocuments()).as(name).isZero();
