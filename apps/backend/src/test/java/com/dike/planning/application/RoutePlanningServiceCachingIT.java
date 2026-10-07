@@ -130,8 +130,8 @@ class RoutePlanningServiceCachingIT {
     PlaceSnapshot origin = new PlaceSnapshot("GOONG", "p1", "Origin", "O1", 106.0, 10.0, now);
     PlaceSnapshot destination = new PlaceSnapshot("GOONG", "p2", "Dest", "D1", 106.1, 10.1, now);
 
-    when(places.find("user-1", "ref-1")).thenReturn(Optional.of(origin));
-    when(places.find("user-1", "ref-2")).thenReturn(Optional.of(destination));
+    when(places.find("user-1", "test-ref-1")).thenReturn(Optional.of(origin));
+    when(places.find("user-1", "test-ref-2")).thenReturn(Optional.of(destination));
 
     RoutingProvider.RouteResult routeResult =
         new RoutingProvider.RouteResult(
@@ -139,17 +139,19 @@ class RoutePlanningServiceCachingIT {
             "route-abc",
             1500,
             300,
-            List.of(new RoutePoint(10.0, 106.0), new RoutePoint(10.1, 106.1)));
+            List.of(new RoutePoint(106.0, 10.0), new RoutePoint(106.1, 10.1)));
 
     when(provider.route(origin, destination, VehicleMode.MOTORBIKE)).thenReturn(routeResult);
     when(store.insertRoute(any())).thenAnswer(inv -> inv.getArgument(0));
 
     // First request - should miss cache and call provider
-    RouteSnapshot first = service.route("user-1", "ref-1", "ref-2", VehicleMode.MOTORBIKE);
+    RouteSnapshot first =
+        service.route("user-1", "test-ref-1", "test-ref-2", VehicleMode.MOTORBIKE);
     assertThat(first.providerRouteId()).isEqualTo("route-abc");
 
     // Second request - should hit cache
-    RouteSnapshot second = service.route("user-1", "ref-1", "ref-2", VehicleMode.MOTORBIKE);
+    RouteSnapshot second =
+        service.route("user-1", "test-ref-1", "test-ref-2", VehicleMode.MOTORBIKE);
     assertThat(second.providerRouteId()).isEqualTo("route-abc");
 
     // Verify provider was only called ONCE

@@ -16,6 +16,7 @@ import com.dike.planning.application.ScheduleService;
 import com.dike.planning.application.ScheduleService.RuleCommand;
 import com.dike.planning.domain.ActivityCategory;
 import com.dike.planning.domain.PlaceSnapshot;
+import com.dike.planning.domain.ScheduleDirection;
 import com.dike.planning.domain.ScheduleRule;
 import com.dike.planning.domain.TravelRole;
 import com.dike.planning.infrastructure.mongo.MongoPlanningStore;
@@ -54,7 +55,7 @@ class ScheduleMatchingIT {
 
   @Container
   private static final MongoDBContainer MONGO =
-      new MongoDBContainer("mongo:8.0.4-jammy").withExposedPorts(27017);
+      new MongoDBContainer("mongo:8.0.32-noble").withExposedPorts(27017);
 
   private static MongoClient client;
   private static MongoTemplate mongo;
@@ -106,7 +107,9 @@ class ScheduleMatchingIT {
     // Basic mocks
     when(accounts.require(any()))
         .thenAnswer(
-            inv -> new IdentityAccess.Access(inv.getArgument(0), true, true, false, null, 0L));
+            inv ->
+                new IdentityAccess.Access(
+                    inv.getArgument(0), true, true, true, IdentityAccess.DriverEvidence.REAL, 0L));
     when(social.canRead(any(), any(), any(), anyBoolean())).thenReturn(true);
   }
 
@@ -119,8 +122,8 @@ class ScheduleMatchingIT {
         new PlaceSnapshot("GOONG", "h1", "Home 1", "District 1", 106.6, 10.7, now);
     PlaceSnapshot school1 =
         new PlaceSnapshot("GOONG", "s1", "School 1", "District 3", 106.7, 10.8, now);
-    when(places.find("user-1", "ref-h1")).thenReturn(Optional.of(home1));
-    when(places.find("user-1", "ref-s1")).thenReturn(Optional.of(school1));
+    when(places.find("user-1", "test-ref-h1")).thenReturn(Optional.of(home1));
+    when(places.find("user-1", "test-ref-s1")).thenReturn(Optional.of(school1));
 
     ScheduleRule s1 =
         service.create(
@@ -134,10 +137,10 @@ class ScheduleMatchingIT {
                 LocalTime.parse("07:00"),
                 LocalTime.parse("11:00"),
                 "Asia/Ho_Chi_Minh",
-                "ref-s1",
-                "ref-h1",
+                "test-ref-s1",
+                "test-ref-h1",
                 15,
-                Set.of(),
+                Set.of(ScheduleDirection.OUTBOUND),
                 TravelRole.DRIVER,
                 com.dike.planning.domain.ScheduleVisibility.FRIENDS));
 
@@ -146,8 +149,8 @@ class ScheduleMatchingIT {
         new PlaceSnapshot("GOONG", "h2", "Home 2", "District 1", 106.601, 10.701, now);
     PlaceSnapshot school2 =
         new PlaceSnapshot("GOONG", "s2", "School 2", "District 3", 106.702, 10.802, now);
-    when(places.find("user-2", "ref-h2")).thenReturn(Optional.of(home2));
-    when(places.find("user-2", "ref-s2")).thenReturn(Optional.of(school2));
+    when(places.find("user-2", "test-ref-h2")).thenReturn(Optional.of(home2));
+    when(places.find("user-2", "test-ref-s2")).thenReturn(Optional.of(school2));
 
     ScheduleRule s2 =
         service.create(
@@ -161,10 +164,10 @@ class ScheduleMatchingIT {
                 LocalTime.parse("07:15"),
                 LocalTime.parse("11:15"),
                 "Asia/Ho_Chi_Minh",
-                "ref-s2",
-                "ref-h2",
+                "test-ref-s2",
+                "test-ref-h2",
                 15,
-                Set.of(),
+                Set.of(ScheduleDirection.OUTBOUND),
                 TravelRole.RIDER,
                 com.dike.planning.domain.ScheduleVisibility.FRIENDS));
 
@@ -173,8 +176,8 @@ class ScheduleMatchingIT {
         new PlaceSnapshot("GOONG", "h3", "Home 3", "District 1", 106.6, 10.7, now);
     PlaceSnapshot school3 =
         new PlaceSnapshot("GOONG", "s3", "School 3", "District 3", 106.7, 10.8, now);
-    when(places.find("user-3", "ref-h3")).thenReturn(Optional.of(home3));
-    when(places.find("user-3", "ref-s3")).thenReturn(Optional.of(school3));
+    when(places.find("user-3", "test-ref-h3")).thenReturn(Optional.of(home3));
+    when(places.find("user-3", "test-ref-s3")).thenReturn(Optional.of(school3));
 
     ScheduleRule s3 =
         service.create(
@@ -188,10 +191,10 @@ class ScheduleMatchingIT {
                 LocalTime.parse("07:00"),
                 LocalTime.parse("11:00"),
                 "Asia/Ho_Chi_Minh",
-                "ref-s3",
-                "ref-h3",
+                "test-ref-s3",
+                "test-ref-h3",
                 15,
-                Set.of(),
+                Set.of(ScheduleDirection.OUTBOUND),
                 TravelRole.RIDER,
                 com.dike.planning.domain.ScheduleVisibility.FRIENDS));
 

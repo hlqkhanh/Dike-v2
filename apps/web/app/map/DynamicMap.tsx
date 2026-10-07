@@ -68,8 +68,8 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution="&copy; Google Maps"
-          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
         {positions.length > 0 && (

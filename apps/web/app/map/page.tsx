@@ -3,7 +3,7 @@
 import { ApiError } from "@dike/api-client-ts";
 import { Button } from "@dike/web-ui";
 import Link from "next/link";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useState } from "react";
 import dynamic from "next/dynamic";
 
 const DynamicMap = dynamic(() => import("./DynamicMap"), {
@@ -29,7 +29,6 @@ import {
   type ContributionEstimate,
   type PlaceResponse,
   type PlaceSuggestionResponse,
-  type RoutePoint,
   type RouteResponse,
   type VehicleMode,
 } from "../../src/routing/api";
@@ -370,74 +369,7 @@ function PlacePicker({
   );
 }
 
-function MapCanvasPlaceholder() {
-  return (
-    <svg
-      className="map-canvas"
-      viewBox="0 0 100 64"
-      role="img"
-      aria-label="Map background preview"
-    >
-      <rect width="100" height="64" rx="5" />
-      <path
-        className="map-canvas__park"
-        d="M2 48 C24 36 31 56 50 45 S82 39 98 52 V64 H2 Z"
-      />
-      <path
-        className="map-canvas__water"
-        d="M0 18 C18 12 30 20 45 15 S77 3 100 12 V0 H0 Z"
-      />
-      <path
-        className="map-canvas__road map-canvas__road--wide"
-        d="M7 56 C26 42 34 42 50 30 S72 13 94 9"
-      />
-      <path
-        className="map-canvas__road"
-        d="M8 25 C24 26 33 31 46 35 S75 43 94 39"
-      />
-      <path className="map-canvas__road" d="M22 8 C27 22 31 34 38 55" />
-      <path className="map-canvas__road" d="M68 8 C63 22 62 38 70 58" />
-      <circle className="map-canvas__pin" cx="50" cy="30" r="2.4" />
-    </svg>
-  );
-}
 
-function RoutePreview({ geometry }: { geometry: RoutePoint[] }) {
-  const path = useMemo(() => toSvgPath(geometry), [geometry]);
-  return (
-    <svg
-      className="route-svg"
-      viewBox="0 0 100 64"
-      role="img"
-      aria-label="Route preview"
-    >
-      <defs>
-        <pattern
-          id="route-grid"
-          width="8"
-          height="8"
-          patternUnits="userSpaceOnUse"
-        >
-          <path d="M 8 0 L 0 0 0 8" fill="none" stroke="currentColor" />
-        </pattern>
-      </defs>
-      <rect width="100" height="64" rx="5" />
-      <rect className="route-svg__grid" width="100" height="64" rx="5" />
-      <path className="route-svg__line-shadow" d={path.d} />
-      <path className="route-svg__line" d={path.d} />
-      <circle
-        className="route-svg__pin route-svg__pin--origin"
-        {...path.start}
-        r="2.2"
-      />
-      <circle
-        className="route-svg__pin route-svg__pin--destination"
-        {...path.end}
-        r="2.2"
-      />
-    </svg>
-  );
-}
 
 function RouteSummary({
   route,
@@ -469,39 +401,6 @@ function RouteSummary({
   );
 }
 
-function toSvgPath(points: RoutePoint[]) {
-  const safePoints =
-    points.length >= 2
-      ? points
-      : [
-          { longitude: 106.6297, latitude: 10.8231 },
-          { longitude: 106.7009, latitude: 10.7769 },
-        ];
-  const longitudes = safePoints.map((point) => point.longitude);
-  const latitudes = safePoints.map((point) => point.latitude);
-  const minLongitude = Math.min(...longitudes);
-  const maxLongitude = Math.max(...longitudes);
-  const minLatitude = Math.min(...latitudes);
-  const maxLatitude = Math.max(...latitudes);
-  const longitudeSpan = Math.max(maxLongitude - minLongitude, 0.001);
-  const latitudeSpan = Math.max(maxLatitude - minLatitude, 0.001);
-  const padding = 6;
-  const width = 100 - padding * 2;
-  const height = 64 - padding * 2;
-  const projected = safePoints.map((point) => ({
-    cx: padding + ((point.longitude - minLongitude) / longitudeSpan) * width,
-    cy: padding + ((maxLatitude - point.latitude) / latitudeSpan) * height,
-  }));
-  return {
-    d: projected
-      .map(
-        (point, index) => `${index === 0 ? "M" : "L"} ${point.cx} ${point.cy}`,
-      )
-      .join(" "),
-    start: projected[0],
-    end: projected[projected.length - 1],
-  };
-}
 
 function formatDistance(value: number) {
   if (value < 1000) return `${Math.round(value)} m`;
