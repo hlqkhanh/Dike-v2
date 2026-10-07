@@ -369,8 +369,6 @@ function PlacePicker({
   );
 }
 
-
-
 function RouteSummary({
   route,
   estimate,
@@ -400,7 +398,6 @@ function RouteSummary({
     </div>
   );
 }
-
 
 function formatDistance(value: number) {
   if (value < 1000) return `${Math.round(value)} m`;
