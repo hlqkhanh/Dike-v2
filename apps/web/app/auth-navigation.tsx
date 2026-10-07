@@ -24,8 +24,8 @@ export function AuthNavigation() {
 
   if (!session.data) {
     return (
-      <Link className="stage-badge" href="/login">
-        Đăng nhập
+      <Link className="stage-badge stage-badge--cta" href="/login">
+        Bắt đầu ngay <span aria-hidden="true">→</span>
       </Link>
     );
   }
