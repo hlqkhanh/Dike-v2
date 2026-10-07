@@ -6,6 +6,34 @@ Trạng thái: kế hoạch triển khai chung cho Stage 7 và Stage 8. Hai stag
 vì lịch cần địa điểm chuẩn hóa và tuyến đường để tạo `TravelIntent` đúng thời
 gian; vẫn giữ ranh giới domain để có thể review và phát hành từng phần.
 
+## Tiến độ implementation
+
+Baseline bắt đầu: `60340b9` trên `main`.
+
+- `S78-00`: In progress — runbook/ADR/dependency đã có; baseline checks local còn
+  thiếu Docker integration test không skip.
+- `S78-01`: Implemented — simulated driver approval chỉ local/test, evidence API
+  và hosted startup guard đã có từ baseline.
+- `S78-02`: Implemented, pending Docker evidence — schedule/exception/intent domain,
+  Mongo documents, optimistic store và unique indexes đã có; integration test cần
+  chạy với Docker replica set.
+- `S78-03`: In progress — typed config, hosted Goong guard, provider port, Goong
+  adapter, deterministic fake, error mapping, retry budget, circuit breaker và
+  polyline decode đã có; còn telemetry và staging provider smoke.
+- `S78-04`: Implemented, pending Redis integration evidence — one-use place
+  session, opaque `placeRef`, owner-scoped resolved-place snapshot, user/IP rate
+  limit và API autocomplete/detail đã có.
+- `S78-05`: In progress — owner schedule CRUD, pause/resume/end, exception,
+  optimistic version và conflict use case/API đã có; còn API integration tests và
+  response warning ngay lúc save.
+- `S78-06`: In progress — outbox signal, rolling 14-day materializer, distributed
+  Redis lease, idempotent private-intent reconciliation và immutable committed
+  intent handling đã có; còn manual-intent API và concurrency evidence bằng Docker.
+- `S78-07`: In progress — HMAC-keyed Redis route cache, route snapshot/geometry,
+  owner isolation, expiry và deterministic contribution estimate/API đã có;
+  hosted chặn demo policy; còn cache integration test và telemetry.
+- `S78-08` đến `S78-13`: Chưa triển khai.
+
 ## 1. Mục tiêu và quyết định đã khóa
 
 Sau stage này, người dùng tạo lịch đi/về lặp theo tuần, sửa ngoại lệ từng ngày,

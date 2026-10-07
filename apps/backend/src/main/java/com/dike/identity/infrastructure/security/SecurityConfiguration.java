@@ -109,7 +109,8 @@ public class SecurityConfiguration {
                         "/api/v1/proposals/**",
                         "/api/v1/bookings/**",
                         "/api/v1/ride-capabilities",
-                        "/api/v1/reports")
+                        "/api/v1/reports",
+                        "/api/v1/routing/**", "/api/v1/schedules/**", "/api/v1/intents/**")
                     .authenticated()
                     .requestMatchers("/api/**")
                     .denyAll()

@@ -9,6 +9,8 @@
 *.pfx
 *.jks
 *.keystore
+client_secret*.json
+google-oauth-local.json
 
 # Node / pnpm
 node_modules/

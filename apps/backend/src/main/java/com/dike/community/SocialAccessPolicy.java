@@ -23,6 +23,11 @@ public class SocialAccessPolicy {
     return store.pair(viewer, owner).map(r -> r.friends()).orElse(false);
   }
 
+  public java.util.List<String> friendsOf(String viewer) {
+    if (viewer == null) return java.util.List.of();
+    return store.list(viewer, "friends", null, 1000).stream().map(r -> r.other(viewer)).toList();
+  }
+
   public enum Visibility {
     PRIVATE,
     FRIENDS,
