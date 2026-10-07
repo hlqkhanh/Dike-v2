@@ -13,9 +13,11 @@ public class OutboxHandlerRegistry {
   public OutboxHandlerRegistry(List<OutboxHandler> handlers) {
     Map<Key, OutboxHandler> indexed = new HashMap<>();
     for (OutboxHandler handler : handlers) {
-      Key key = new Key(handler.eventType(), handler.payloadVersion());
-      if (indexed.put(key, handler) != null) {
-        throw new IllegalStateException("Duplicate outbox handler for " + key);
+      for (String type : handler.eventTypes()) {
+        Key key = new Key(type, handler.payloadVersion());
+        if (indexed.put(key, handler) != null) {
+          throw new IllegalStateException("Duplicate outbox handler for " + key);
+        }
       }
     }
     this.handlers = Map.copyOf(indexed);

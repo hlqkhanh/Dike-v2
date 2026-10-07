@@ -23,7 +23,13 @@ export function SocialSessionMonitor() {
   ) : null;
 }
 
-const protectedKeys = new Set(["profile", "social", "schedule", "feed"]);
+const protectedKeys = new Set([
+  "profile",
+  "social",
+  "schedule",
+  "feed",
+  "rides",
+]);
 export async function clearSocialContent(client: QueryClient) {
   const filters = {
     predicate: (query: { queryKey: readonly unknown[] }) =>

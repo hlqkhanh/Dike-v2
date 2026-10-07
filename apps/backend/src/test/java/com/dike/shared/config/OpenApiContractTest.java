@@ -16,6 +16,35 @@ class OpenApiContractTest {
   private final ObjectMapper mapper = Json.mapper();
 
   @Test
+  void rideContractCoversEveryNewControllerRoute() throws IOException {
+    JsonNode reviewed =
+        mapper.readTree(Files.readString(findRepositoryRoot().resolve("docs/api/openapi.json")));
+    for (Class<?> controller :
+        java.util.List.of(
+            com.dike.planning.api.PostController.class,
+            com.dike.ride.api.RideController.class,
+            com.dike.ride.api.RideCapabilitiesController.class,
+            com.dike.trust.api.PostReportController.class)) {
+      var base =
+          controller.getAnnotation(org.springframework.web.bind.annotation.RequestMapping.class);
+      for (var method : controller.getDeclaredMethods()) {
+        var mapping =
+            org.springframework.core.annotation.AnnotatedElementUtils.findMergedAnnotation(
+                method, org.springframework.web.bind.annotation.RequestMapping.class);
+        if (mapping == null) continue;
+        String path =
+            ((base == null ? "" : base.value()[0]) + mapping.value()[0])
+                .replaceFirst("^/api/v1", "");
+        String verb = mapping.method()[0].name().toLowerCase(java.util.Locale.ROOT);
+        assertThat(reviewed.path("paths").path(path).path(verb).path("operationId").asText())
+            .as(verb + " " + path)
+            .isEqualTo(
+                method.getAnnotation(io.swagger.v3.oas.annotations.Operation.class).operationId());
+      }
+    }
+  }
+
+  @Test
   void socialContractCoversEveryControllerRouteAndOperation() throws IOException {
     JsonNode reviewed =
         mapper.readTree(Files.readString(findRepositoryRoot().resolve("docs/api/openapi.json")));

@@ -7,6 +7,14 @@ import org.junit.jupiter.api.Test;
 class SensitiveValueRedactorTest {
 
   @Test
+  void redactsBoardingCodesAndCiphertext() {
+    assertThat(
+            SensitiveValueRedactor.redact(
+                "code=123456 boardingCode=654321 ciphertext=encryptedvalue"))
+        .doesNotContain("123456", "654321", "encryptedvalue");
+  }
+
+  @Test
   void redactsBearerSecretsOtpAndVietnamesePhoneNumbers() {
     String raw = "Authorization=Bearer abc.def.ghi otp=123456 phone=0912345678 password=hunter2";
 

@@ -1,0 +1,139 @@
+import {
+  createApiClientConfiguration,
+  type ApiClientConfiguration,
+} from "./configuration";
+import { ApiError } from "./auth";
+import type {
+  RidePostPage,
+  RidePostView,
+  TripPage,
+  TripView,
+  ProposalPage,
+  ProposalView,
+  BookingPage,
+  BookingView,
+  BoardingCode,
+  BookingAction,
+  TripAction,
+  RideCapabilities,
+  PostReportInput,
+  PostReportReceipt,
+  RidePostCreate,
+  TripCreate,
+  ProposalCreate,
+} from "./generated/schema";
+
+export function createRideApi(configuration: ApiClientConfiguration) {
+  const config = createApiClientConfiguration(configuration);
+  async function request<T>(
+    path: string,
+    method = "GET",
+    body?: unknown,
+    key?: string,
+  ): Promise<T> {
+    const headers = new Headers({ Accept: "application/json" });
+    if (body !== undefined) headers.set("Content-Type", "application/json");
+    if (key) headers.set("Idempotency-Key", key);
+    const requestId = config.requestId?.();
+    if (requestId) headers.set("X-Request-Id", requestId);
+    if (method !== "GET" && typeof document !== "undefined") {
+      const token = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("XSRF-TOKEN="))
+        ?.slice(11);
+      if (token) headers.set("X-XSRF-TOKEN", decodeURIComponent(token));
+    }
+    const response = await fetch(`${config.baseUrl}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      credentials: config.credentials,
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new ApiError(
+        response.status,
+        error?.error?.code ?? "RIDE_REQUEST_FAILED",
+        error?.error?.message ?? "Không thể xử lý yêu cầu, vui lòng tải lại.",
+      );
+    }
+    const text = await response.text();
+    return (text ? JSON.parse(text) : undefined) as T;
+  }
+  const id = encodeURIComponent;
+  const page = (cursor?: string) => (cursor ? `?cursor=${id(cursor)}` : "");
+  return {
+    capabilities: () => request<RideCapabilities>("/ride-capabilities"),
+    feed: (tab: string, cursor?: string) =>
+      request<RidePostPage>(
+        tab === "saved"
+          ? `/saved-posts${page(cursor)}`
+          : `/ride-posts?tab=${id(tab)}${cursor ? `&cursor=${id(cursor)}` : ""}`,
+      ),
+    post: (postId: string) =>
+      request<RidePostView>(`/ride-posts/${id(postId)}`),
+    createPost: (body: RidePostCreate, key: string) =>
+      request<RidePostView>("/ride-posts", "POST", body, key),
+    postAction: (
+      postId: string,
+      action: "publish" | "close",
+      version: number,
+      key: string,
+    ) =>
+      request<RidePostView>(
+        `/ride-posts/${id(postId)}/${action}`,
+        "POST",
+        { version },
+        key,
+      ),
+    save: (postId: string, saved: boolean) =>
+      request<void>(`/saved-posts/${id(postId)}`, saved ? "PUT" : "DELETE"),
+    report: (body: PostReportInput, key: string) =>
+      request<PostReportReceipt>("/reports", "POST", body, key),
+    trips: (cursor?: string) => request<TripPage>(`/trips${page(cursor)}`),
+    trip: (tripId: string) => request<TripView>(`/trips/${id(tripId)}`),
+    createTrip: (body: TripCreate, key: string) =>
+      request<TripView>("/trips", "POST", body, key),
+    openTrip: (tripId: string, version: number, key: string) =>
+      request<TripView>(`/trips/${id(tripId)}/open`, "POST", { version }, key),
+    tripAction: (tripId: string, body: TripAction, key: string) =>
+      request<TripView>(`/trips/${id(tripId)}/actions`, "POST", body, key),
+    proposals: (cursor?: string) =>
+      request<ProposalPage>(`/proposals${page(cursor)}`),
+    propose: (body: ProposalCreate, key: string) =>
+      request<ProposalView>("/proposals", "POST", body, key),
+    accept: (proposalId: string, version: number, key: string) =>
+      request<BookingView>(
+        `/proposals/${id(proposalId)}/accept`,
+        "POST",
+        { version },
+        key,
+      ),
+    decide: (
+      proposalId: string,
+      action: "reject" | "withdraw",
+      version: number,
+      key: string,
+    ) =>
+      request<ProposalView>(
+        `/proposals/${id(proposalId)}/${action}`,
+        "POST",
+        { version },
+        key,
+      ),
+    bookings: (cursor?: string) =>
+      request<BookingPage>(`/bookings${page(cursor)}`),
+    booking: (bookingId: string) =>
+      request<BookingView>(`/bookings/${id(bookingId)}`),
+    boardingCode: (bookingId: string) =>
+      request<BoardingCode>(`/bookings/${id(bookingId)}/boarding-code`),
+    bookingAction: (bookingId: string, body: BookingAction, key: string) =>
+      request<BookingView>(
+        `/bookings/${id(bookingId)}/actions`,
+        "POST",
+        body,
+        key,
+      ),
+  };
+}

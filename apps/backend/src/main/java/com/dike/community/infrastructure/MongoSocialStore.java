@@ -124,6 +124,10 @@ public class MongoSocialStore implements SocialStore {
 
   @Override
   public void save(SocialRelation before, SocialRelation after, String actor, String action) {
+    mongo.upsert(
+        query(Criteria.where("_id").is("social:" + after.id())),
+        new Update().inc("version", 1L),
+        "command_guards");
     Document doc =
         new Document("_id", after.id())
             .append("low", after.low())

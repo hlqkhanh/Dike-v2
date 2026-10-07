@@ -2,26 +2,46 @@
 
 import type {
   AuthSessionResponse,
+  BoardingCode,
+  BookingAction,
+  BookingPage,
+  BookingView,
   ConsentDecisionRequest,
   ConsentReceiptResponse,
   ConsentSummaryResponse,
   CreateUploadRequest,
   DeletionResponse,
   DownloadGrant,
+  DraftAgain,
   FileView,
   MyProfileResponse,
   OtpChallenge,
   OtpIssueRequest,
   OtpVerifyRequest,
   PhoneRequest,
+  PostReportInput,
+  PostReportReceipt,
   PrivacyResponse,
   ProfileSearchResponse,
+  ProposalCreate,
+  ProposalPage,
+  ProposalView,
   PublicProfileResponse,
   RelationPage,
   RelationView,
   RevisionView,
+  RideCapabilities,
+  RidePostCreate,
+  RidePostEdit,
+  RidePostPage,
+  RidePostView,
+  RideVersion,
   SendFriendRequest,
   SessionListResponse,
+  TripAction,
+  TripCreate,
+  TripPage,
+  TripView,
   UpdatePrivacyRequest,
   UpdateProfileRequest,
   UploadIntent,
@@ -303,3 +323,183 @@ export const getSocialRevisionOperation = {
 } as const;
 export type GetSocialRevisionRequest = never;
 export type GetSocialRevisionResponse = RevisionView;
+
+export const createRidePostOperation = {
+  method: "POST",
+  path: "/ride-posts",
+} as const;
+export type CreateRidePostRequest = RidePostCreate;
+export type CreateRidePostResponse = RidePostView;
+
+export const listRidePostsOperation = {
+  method: "GET",
+  path: "/ride-posts",
+} as const;
+export type ListRidePostsRequest = never;
+export type ListRidePostsResponse = RidePostPage;
+
+export const getRidePostOperation = {
+  method: "GET",
+  path: "/ride-posts/{id}",
+} as const;
+export type GetRidePostRequest = never;
+export type GetRidePostResponse = RidePostView;
+
+export const editRidePostOperation = {
+  method: "PATCH",
+  path: "/ride-posts/{id}",
+} as const;
+export type EditRidePostRequest = RidePostEdit;
+export type EditRidePostResponse = RidePostView;
+
+export const publishRidePostOperation = {
+  method: "POST",
+  path: "/ride-posts/{id}/publish",
+} as const;
+export type PublishRidePostRequest = RideVersion;
+export type PublishRidePostResponse = RidePostView;
+
+export const closeRidePostOperation = {
+  method: "POST",
+  path: "/ride-posts/{id}/close",
+} as const;
+export type CloseRidePostRequest = RideVersion;
+export type CloseRidePostResponse = RidePostView;
+
+export const listSavedPostsOperation = {
+  method: "GET",
+  path: "/saved-posts",
+} as const;
+export type ListSavedPostsRequest = never;
+export type ListSavedPostsResponse = RidePostPage;
+
+export const saveRidePostOperation = {
+  method: "PUT",
+  path: "/saved-posts/{id}",
+} as const;
+export type SaveRidePostRequest = never;
+export type SaveRidePostResponse = void;
+
+export const unsaveRidePostOperation = {
+  method: "DELETE",
+  path: "/saved-posts/{id}",
+} as const;
+export type UnsaveRidePostRequest = never;
+export type UnsaveRidePostResponse = void;
+
+export const createTripOperation = { method: "POST", path: "/trips" } as const;
+export type CreateTripRequest = TripCreate;
+export type CreateTripResponse = TripView;
+
+export const listTripsOperation = { method: "GET", path: "/trips" } as const;
+export type ListTripsRequest = never;
+export type ListTripsResponse = TripPage;
+
+export const getTripOperation = { method: "GET", path: "/trips/{id}" } as const;
+export type GetTripRequest = never;
+export type GetTripResponse = TripView;
+
+export const openTripOperation = {
+  method: "POST",
+  path: "/trips/{id}/open",
+} as const;
+export type OpenTripRequest = RideVersion;
+export type OpenTripResponse = TripView;
+
+export const transitionTripOperation = {
+  method: "POST",
+  path: "/trips/{id}/actions",
+} as const;
+export type TransitionTripRequest = TripAction;
+export type TransitionTripResponse = TripView;
+
+export const createProposalOperation = {
+  method: "POST",
+  path: "/proposals",
+} as const;
+export type CreateProposalRequest = ProposalCreate;
+export type CreateProposalResponse = ProposalView;
+
+export const listProposalsOperation = {
+  method: "GET",
+  path: "/proposals",
+} as const;
+export type ListProposalsRequest = never;
+export type ListProposalsResponse = ProposalPage;
+
+export const getProposalOperation = {
+  method: "GET",
+  path: "/proposals/{id}",
+} as const;
+export type GetProposalRequest = never;
+export type GetProposalResponse = ProposalView;
+
+export const acceptProposalOperation = {
+  method: "POST",
+  path: "/proposals/{id}/accept",
+} as const;
+export type AcceptProposalRequest = RideVersion;
+export type AcceptProposalResponse = BookingView;
+
+export const rejectProposalOperation = {
+  method: "POST",
+  path: "/proposals/{id}/reject",
+} as const;
+export type RejectProposalRequest = RideVersion;
+export type RejectProposalResponse = ProposalView;
+
+export const withdrawProposalOperation = {
+  method: "POST",
+  path: "/proposals/{id}/withdraw",
+} as const;
+export type WithdrawProposalRequest = RideVersion;
+export type WithdrawProposalResponse = ProposalView;
+
+export const listBookingsOperation = {
+  method: "GET",
+  path: "/bookings",
+} as const;
+export type ListBookingsRequest = never;
+export type ListBookingsResponse = BookingPage;
+
+export const getBookingOperation = {
+  method: "GET",
+  path: "/bookings/{id}",
+} as const;
+export type GetBookingRequest = never;
+export type GetBookingResponse = BookingView;
+
+export const getBoardingCodeOperation = {
+  method: "GET",
+  path: "/bookings/{id}/boarding-code",
+} as const;
+export type GetBoardingCodeRequest = never;
+export type GetBoardingCodeResponse = BoardingCode;
+
+export const transitionBookingOperation = {
+  method: "POST",
+  path: "/bookings/{id}/actions",
+} as const;
+export type TransitionBookingRequest = BookingAction;
+export type TransitionBookingResponse = BookingView;
+
+export const getRideCapabilitiesOperation = {
+  method: "GET",
+  path: "/ride-capabilities",
+} as const;
+export type GetRideCapabilitiesRequest = never;
+export type GetRideCapabilitiesResponse = RideCapabilities;
+
+export const reportRidePostOperation = {
+  method: "POST",
+  path: "/reports",
+} as const;
+export type ReportRidePostRequest = PostReportInput;
+export type ReportRidePostResponse = PostReportReceipt;
+
+export const findRideAgainOperation = {
+  method: "POST",
+  path: "/bookings/{id}/find-again",
+} as const;
+export type FindRideAgainRequest = RideVersion;
+export type FindRideAgainResponse = DraftAgain;

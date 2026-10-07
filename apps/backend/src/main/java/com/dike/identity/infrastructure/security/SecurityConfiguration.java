@@ -102,6 +102,15 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/api/v1/me/**", "/api/v1/users/**", "/api/v1/users", "/api/v1/files/**")
                     .authenticated()
+                    .requestMatchers(
+                        "/api/v1/ride-posts/**",
+                        "/api/v1/saved-posts/**",
+                        "/api/v1/trips/**",
+                        "/api/v1/proposals/**",
+                        "/api/v1/bookings/**",
+                        "/api/v1/ride-capabilities",
+                        "/api/v1/reports")
+                    .authenticated()
                     .requestMatchers("/api/**")
                     .denyAll()
                     .anyRequest()

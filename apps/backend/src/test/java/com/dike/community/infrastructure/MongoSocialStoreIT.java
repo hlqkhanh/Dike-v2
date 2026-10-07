@@ -51,6 +51,7 @@ class MongoSocialStoreIT {
     mongo.getDb().drop();
     new SocialIndexesMigration().apply(mongo);
     mongo.createCollection("outbox_events");
+    mongo.createCollection("command_guards");
     publisher = mock(OutboxPublisher.class);
     // Writes through the same MongoTemplate/session, allowing rollback assertions.
     when(publisher.publish(anyString(), anyString(), anyString(), anyInt(), anyMap()))

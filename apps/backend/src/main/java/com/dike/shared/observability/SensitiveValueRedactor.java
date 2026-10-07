@@ -7,7 +7,7 @@ public final class SensitiveValueRedactor {
   private static final Pattern BEARER = Pattern.compile("(?i)(bearer\\s+)[a-z0-9._~+/=-]+");
   private static final Pattern SECRET_FIELD =
       Pattern.compile(
-          "(?i)(\\\"?(?:password|secret|token|otp)\\\"?\\s*[:=]\\s*\\\"?)[^\\\",\\s}]+");
+          "(?i)(\\\"?(?:password|secret|token|otp|boardingCode|code|ciphertext)\\\"?\\s*[:=]\\s*\\\"?)[^\\\",\\s}]+");
   private static final Pattern PHONE = Pattern.compile("(?<!\\d)(?:\\+?84|0)\\d{8,10}(?!\\d)");
   private static final Pattern SIGNED_QUERY =
       Pattern.compile(

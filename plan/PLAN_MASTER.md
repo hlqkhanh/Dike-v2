@@ -877,6 +877,8 @@ Runbook triển khai chung Stage 7–8: [STAGE_7_8.md](STAGE_7_8.md).
 
 ### Giai đoạn 9 — Bài đăng và bảng tin
 
+Kế hoạch chi tiết: [STAGE_9.md](STAGE_9.md). Tích hợp OFFER_RIDE sau khi có Trip Stage 10.
+
 - Tạo `NEED_RIDE` từ intent và `OFFER_RIDE` từ trip.
 - Hỗ trợ draft, publish, edit, close, expire, save và report.
 - Phạm vi `PUBLIC`, `COMMUNITY`, `FRIENDS`; tìm kiếm theo thời gian, xe, community và tuyến.
@@ -886,6 +888,8 @@ Runbook triển khai chung Stage 7–8: [STAGE_7_8.md](STAGE_7_8.md).
 
 ### Giai đoạn 10 — Trip và quản lý chỗ
 
+Kế hoạch chi tiết: [STAGE_10.md](STAGE_10.md).
+
 - Chủ xe tạo trip, route, phương tiện, chỗ, detour và contribution policy.
 - Xe máy tối đa một khách; ô tô theo số chỗ đã duyệt.
 - Quản lý `TripStop`; chưa tái sử dụng chỗ theo đoạn.
@@ -894,6 +898,8 @@ Runbook triển khai chung Stage 7–8: [STAGE_7_8.md](STAGE_7_8.md).
 **Hoàn thành khi:** hai request đồng thời tranh chỗ cuối chỉ một request thành công.
 
 ### Giai đoạn 11 — Proposal và booking
+
+Kế hoạch chi tiết: [STAGE_11.md](STAGE_11.md).
 
 - Hỗ trợ khách xin đi và chủ xe đề nghị chở.
 - Proposal lưu snapshot điểm, giờ, giá, hạn và phiên bản bài/trip.

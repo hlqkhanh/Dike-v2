@@ -206,3 +206,167 @@ export type RelationPage = {
 export type RevisionView = {
   revision: number;
 };
+
+export type RidePostCreate = {
+  type: string;
+  sourceId: string;
+  sourceVersion: number;
+  visibility: string;
+  communityId?: string;
+  note: string;
+};
+
+export type RidePostEdit = {
+  version: number;
+  visibility: string;
+  communityId?: string;
+  note: string;
+};
+
+export type RidePostView = {
+  id: string;
+  ownerId: string;
+  type: string;
+  status: string;
+  visibility: string;
+  communityId?: string;
+  originLabel: string;
+  destinationLabel: string;
+  vehicleType: string;
+  departureAt: string;
+  expiresAt: string;
+  note: string;
+  version: number;
+  termsVersion: number;
+  remainingSeats?: number;
+  contributionPerKm?: number;
+};
+
+export type RideVersion = {
+  version: number;
+};
+
+export type TripCreate = {
+  vehicleId: string;
+  routeId: string;
+  departureAt: string;
+  originLabel: string;
+  destinationLabel: string;
+  offeredSeats: number;
+  contributionPerKm: number;
+  detourMeters: number;
+  detourSeconds: number;
+  visibility: string;
+  communityId?: string;
+};
+
+export type TripView = {
+  id: string;
+  driverId: string;
+  status: string;
+  vehicleType: string;
+  originLabel: string;
+  destinationLabel: string;
+  departureAt: string;
+  arrivalAt: string;
+  offeredSeats: number;
+  remainingSeats: number;
+  contributionPerKm: number;
+  visibility: string;
+  communityId?: string;
+  version: number;
+  termsVersion: number;
+  routeVersion: number;
+};
+
+export type TripAction = {
+  version: number;
+  action: string;
+  reason?: string;
+};
+
+export type ProposalCreate = {
+  postId: string;
+  tripId: string;
+  quoteId: string;
+};
+
+export type ProposalView = {
+  id: string;
+  postId: string;
+  tripId: string;
+  senderId: string;
+  recipientId: string;
+  status: string;
+  priceVnd: number;
+  pickupAt: string;
+  dropoffAt: string;
+  expiresAt: string;
+  version: number;
+};
+
+export type BookingView = {
+  id: string;
+  tripId: string;
+  passengerId: string;
+  driverId: string;
+  status: string;
+  priceVnd: number;
+  pickupAt: string;
+  dropoffAt: string;
+  reason?: string;
+  version: number;
+};
+
+export type BookingAction = {
+  version: number;
+  action: string;
+  reason?: string;
+  code?: string;
+};
+
+export type BoardingCode = {
+  code: string;
+};
+
+export type RideCapabilities = {
+  posting: boolean;
+  trips: boolean;
+  proposals: boolean;
+  message: string;
+};
+
+export type PostReportInput = {
+  postId: string;
+  reason: string;
+  note: string;
+};
+
+export type PostReportReceipt = {
+  id: string;
+  status: string;
+};
+
+export type RidePostPage = {
+  items: RidePostView[];
+  nextCursor?: string;
+};
+
+export type TripPage = {
+  items: TripView[];
+  nextCursor?: string;
+};
+
+export type ProposalPage = {
+  items: ProposalView[];
+  nextCursor?: string;
+};
+
+export type BookingPage = {
+  items: BookingView[];
+  nextCursor?: string;
+};
+
+export type DraftAgain = {
+  postId: string;
+};
