@@ -65,6 +65,22 @@ jobs:
       - name: Verify Maven baseline
         run: ./mvnw -B -ntp verify
 
+  backend-container:
+    name: Backend container build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build backend image
+        run: docker buildx build --load --provenance=true --sbom=true --build-arg DIKE_SERVICE_VERSION=${{ github.sha }} --tag dike-backend:ci .
+
+      - name: Verify image runs as a non-root user
+        run: test "$(docker image inspect --format '{{.Config.User}}' dike-backend:ci)" = "10001:10001"
+
   web-e2e:
     name: Web authentication browser E2E
     runs-on: ubuntu-latest

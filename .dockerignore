@@ -1,0 +1,14 @@
+.git
+.github
+.tmp
+**/node_modules
+**/target
+**/dist
+**/.next
+**/test-results
+**/playwright-report
+.env
+.env.*
+!.env.example
+*.log
+

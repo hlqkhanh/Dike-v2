@@ -1,0 +1,62 @@
+name: Release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the commit-addressed backend image to GHCR
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "release-*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend-image:
+    name: Build immutable backend image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build commit-addressed image
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/dike-backend:${{ github.sha }}
+        run: docker buildx build --load --provenance=true --sbom=true --build-arg DIKE_SERVICE_VERSION=${{ github.sha }} --tag "${IMAGE,,}" .
+
+      - name: Verify image runs as a non-root user
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/dike-backend:${{ github.sha }}
+        run: test "$(docker image inspect --format '{{.Config.User}}' "${IMAGE,,}")" = "10001:10001"
+
+      - name: Log in to GitHub Container Registry
+        if: startsWith(github.ref, 'refs/tags/release-') || inputs.publish
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$CR_PAT" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Publish immutable image
+        if: startsWith(github.ref, 'refs/tags/release-') || inputs.publish
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/dike-backend:${{ github.sha }}
+        run: docker push "${IMAGE,,}"
+
+      - name: Write release evidence
+        run: |
+          mkdir -p .tmp/release-evidence
+          docker image inspect "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/dike-backend:${GITHUB_SHA}" > .tmp/release-evidence/backend-image.json
+          printf '%s\n' "commit=${GITHUB_SHA}" "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/dike-backend:${GITHUB_SHA}" > .tmp/release-evidence/manifest.txt

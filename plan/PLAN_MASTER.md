@@ -1,6 +1,6 @@
 # Dike — Kế hoạch phát triển nền tảng đi chung xe đến production pilot
 
-Ngày cập nhật: 05/10/2026  
+Ngày cập nhật: 09/10/2026
 Trạng thái: Kế hoạch hợp nhất — đặc tả sản phẩm, kiến trúc production và lộ trình triển khai  
 Đội ngũ: 4 thành viên  
 Công nghệ: Next.js, React, React Native, Expo, TypeScript, Java 21, Spring Boot, Spring Modulith, MongoDB và Redis
@@ -996,6 +996,8 @@ Chi tiết triển khai, public contract, thứ tự PR và nghiệm thu: [STAGE
 **Hoàn thành khi:** luồng tìm chuyến → booking → hành trình → đánh giá chạy trên Android và iOS.
 
 ### Giai đoạn 17 — Production hardening và pilot
+
+Kế hoạch triển khai, gate phát hành và nghiệm thu: [STAGE_17.md](STAGE_17.md).
 
 - Build một backend container image; deploy cùng version thành Spring Boot API và Spring Boot Worker trên Render; web lên Vercel, MongoDB Atlas/Redis/R2 tách môi trường.
 - Custom domain, CORS allowlist, HTTPS/WSS, OTP bắt buộc và production guard chống fake provider.

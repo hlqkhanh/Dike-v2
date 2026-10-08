@@ -6,9 +6,17 @@ spring:
     redis:
       host: ${DIKE_REDIS_HOST}
       port: ${DIKE_REDIS_PORT}
+      ssl:
+        enabled: true
 
 dike:
   environment: production
+  service:
+    version: ${DIKE_SERVICE_VERSION}
+  identity:
+    simulated-full-access-enabled: false
+  ride:
+    boarding-key: ${DIKE_RIDE_BOARDING_KEY}
   auth:
     public-base-url: ${DIKE_AUTH_PUBLIC_BASE_URL}
     allowed-origins: ${DIKE_AUTH_ALLOWED_ORIGINS}
@@ -23,3 +31,11 @@ dike:
     secret-key: ${DIKE_STORAGE_SECRET_KEY}
     public-bucket: ${DIKE_STORAGE_PUBLIC_BUCKET}
     private-bucket: ${DIKE_STORAGE_PRIVATE_BUCKET}
+  routing:
+    provider: goong
+    api-key: ${DIKE_GOONG_API_KEY}
+  planning:
+    contribution:
+      demo: false
+  realtime:
+    websocket-url: ${DIKE_WEBSOCKET_URL}

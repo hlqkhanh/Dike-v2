@@ -33,6 +33,7 @@
     "api:generate": "node scripts/generate-api-client.mjs",
     "api:check": "node scripts/generate-api-client.mjs --check",
     "mobile:doctor": "pnpm --filter @dike/mobile expo:doctor",
+    "smoke:deployment": "node scripts/smoke-deployment.mjs",
     "verify:local": "pnpm check && pnpm api:check && node scripts/verify-maven.mjs",
     "check:repo": "prettier --check \"**/*.{css,js,mjs,ts,tsx,md,json,jsonc,yaml,yml}\" && markdownlint-cli2 \"**/*.md\" \"#node_modules\" && node scripts/check-tracked-files.mjs && node scripts/check-actions-pinned.mjs",
     "check": "pnpm check:repo && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm api:check"

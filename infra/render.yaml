@@ -1,0 +1,117 @@
+services:
+  - type: web
+    name: dike-api-staging
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /actuator/health/readiness
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: staging,api
+      - key: DIKE_WORKLOAD
+        value: api
+      - key: DIKE_SERVICE_VERSION
+        sync: false
+      - key: DIKE_MONGODB_URI
+        sync: false
+      - key: DIKE_MONGODB_DATABASE
+        value: dike_staging
+      - key: DIKE_REDIS_HOST
+        sync: false
+      - key: DIKE_REDIS_PORT
+        sync: false
+      - key: DIKE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: DIKE_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: DIKE_AUTH_PUBLIC_BASE_URL
+        sync: false
+      - key: DIKE_AUTH_ALLOWED_ORIGINS
+        sync: false
+      - key: DIKE_REALTIME_ALLOWED_ORIGINS
+        sync: false
+      - key: DIKE_WEBSOCKET_URL
+        sync: false
+      - key: DIKE_OTP_PROVIDER
+        sync: false
+      - key: DIKE_OTP_HMAC_SECRET
+        sync: false
+      - key: DIKE_OTP_RATE_KEY_SECRET
+        sync: false
+      - key: DIKE_STORAGE_ENDPOINT
+        sync: false
+      - key: DIKE_STORAGE_REGION
+        sync: false
+      - key: DIKE_STORAGE_ACCESS_KEY
+        sync: false
+      - key: DIKE_STORAGE_SECRET_KEY
+        sync: false
+      - key: DIKE_STORAGE_PUBLIC_BUCKET
+        sync: false
+      - key: DIKE_STORAGE_PRIVATE_BUCKET
+        sync: false
+      - key: DIKE_RIDE_BOARDING_KEY
+        sync: false
+      - key: DIKE_GOONG_API_KEY
+        sync: false
+
+  - type: worker
+    name: dike-worker-staging
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: staging,worker
+      - key: DIKE_WORKLOAD
+        value: worker
+      - key: DIKE_SERVICE_VERSION
+        sync: false
+      - key: DIKE_MONGODB_URI
+        sync: false
+      - key: DIKE_MONGODB_DATABASE
+        value: dike_staging
+      - key: DIKE_REDIS_HOST
+        sync: false
+      - key: DIKE_REDIS_PORT
+        sync: false
+      - key: DIKE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: DIKE_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: DIKE_AUTH_PUBLIC_BASE_URL
+        sync: false
+      - key: DIKE_AUTH_ALLOWED_ORIGINS
+        sync: false
+      - key: DIKE_REALTIME_ALLOWED_ORIGINS
+        sync: false
+      - key: DIKE_WEBSOCKET_URL
+        sync: false
+      - key: DIKE_OTP_PROVIDER
+        sync: false
+      - key: DIKE_OTP_HMAC_SECRET
+        sync: false
+      - key: DIKE_OTP_RATE_KEY_SECRET
+        sync: false
+      - key: DIKE_STORAGE_ENDPOINT
+        sync: false
+      - key: DIKE_STORAGE_REGION
+        sync: false
+      - key: DIKE_STORAGE_ACCESS_KEY
+        sync: false
+      - key: DIKE_STORAGE_SECRET_KEY
+        sync: false
+      - key: DIKE_STORAGE_PUBLIC_BUCKET
+        sync: false
+      - key: DIKE_STORAGE_PRIVATE_BUCKET
+        sync: false
+      - key: DIKE_RIDE_BOARDING_KEY
+        sync: false
+      - key: DIKE_GOONG_API_KEY
+        sync: false
