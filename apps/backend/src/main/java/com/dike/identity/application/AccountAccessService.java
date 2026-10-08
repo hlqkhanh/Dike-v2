@@ -14,17 +14,24 @@ import org.springframework.stereotype.Service;
 public class AccountAccessService {
 
   private final IdentityStore store;
+  private final ConsentService consents;
   private final boolean simulatedEvidenceAllowed;
-  private final boolean simulatedDriverApprovalEnabled;
+  private final boolean simulatedFullAccessEnabled;
 
-  public AccountAccessService(IdentityStore store, Environment environment) {
+  public AccountAccessService(
+      IdentityStore store, ConsentService consents, Environment environment) {
     this.store = store;
+    this.consents = consents;
     String current = environment.getProperty("dike.environment", "local");
     this.simulatedEvidenceAllowed = "local".equals(current) || "test".equals(current);
-    this.simulatedDriverApprovalEnabled =
-        simulatedEvidenceAllowed
-            && environment.getProperty(
-                "dike.identity.simulated-driver-approval-enabled", Boolean.class, true);
+    boolean requested =
+        environment.getProperty(
+            "dike.identity.simulated-full-access-enabled", Boolean.class, false);
+    if (!simulatedEvidenceAllowed && requested) {
+      throw new IllegalStateException(
+          "Simulated full access is restricted to local and test environments");
+    }
+    this.simulatedFullAccessEnabled = simulatedEvidenceAllowed && requested;
   }
 
   public AccountAccessSnapshot require(String userId) {
@@ -34,17 +41,23 @@ public class AccountAccessService {
             .orElseThrow(() -> new IllegalStateException("Authenticated user does not exist"));
     Set<AccountAuthority> authorities = EnumSet.noneOf(AccountAuthority.class);
     DriverApprovalEvidence driverApprovalEvidence = DriverApprovalEvidence.NONE;
+    VerificationEvidence verificationEvidence = user.verificationEvidence();
+    AccessMode accessMode = AccessMode.RESTRICTED;
     if (user.accountStatus() == AccountStatus.ACTIVE) {
       authorities.add(AccountAuthority.MEMBER);
       if (isAcceptedVerification(user)) {
         authorities.add(AccountAuthority.VERIFIED_MEMBER);
+        accessMode = AccessMode.REAL;
         if (user.assignedRoles().contains(AccountRole.APPROVED_DRIVER)) {
           authorities.add(AccountAuthority.APPROVED_DRIVER);
           driverApprovalEvidence = DriverApprovalEvidence.REAL;
-        } else if (simulatedDriverApprovalEnabled) {
-          authorities.add(AccountAuthority.APPROVED_DRIVER);
-          driverApprovalEvidence = DriverApprovalEvidence.SIMULATED;
         }
+      } else if (isEligibleForSimulatedFullAccess(user)) {
+        authorities.add(AccountAuthority.VERIFIED_MEMBER);
+        authorities.add(AccountAuthority.APPROVED_DRIVER);
+        verificationEvidence = VerificationEvidence.SIMULATED;
+        driverApprovalEvidence = DriverApprovalEvidence.SIMULATED;
+        accessMode = AccessMode.SIMULATED;
       }
       if (user.assignedRoles().contains(AccountRole.MODERATOR)) {
         authorities.add(AccountAuthority.MODERATOR);
@@ -57,15 +70,22 @@ public class AccountAccessService {
         user.id(),
         user.accountStatus(),
         authorities,
-        user.verificationEvidence(),
+        verificationEvidence,
         driverApprovalEvidence,
+        accessMode,
         user.authorizationVersion());
+  }
+
+  private boolean isEligibleForSimulatedFullAccess(UserAccount user) {
+    return simulatedFullAccessEnabled
+        && user.onboardingStatus() == com.dike.identity.domain.OnboardingStatus.PHONE_SUBMITTED
+        && user.phoneE164() != null
+        && !user.phoneE164().isBlank()
+        && consents.hasRequiredConsents(user.id());
   }
 
   private boolean isAcceptedVerification(UserAccount user) {
     if (user.phoneStatus() != PhoneStatus.VERIFIED) return false;
-    return user.verificationEvidence() == VerificationEvidence.REAL
-        || (simulatedEvidenceAllowed
-            && user.verificationEvidence() == VerificationEvidence.SIMULATED);
+    return user.verificationEvidence() == VerificationEvidence.REAL;
   }
 }

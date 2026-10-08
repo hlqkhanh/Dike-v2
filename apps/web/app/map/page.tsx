@@ -268,6 +268,10 @@ export default function MapPage() {
                 <Link href={`/feed/new?route=${encodeURIComponent(route.id)}`}>
                   Đăng nhu cầu đi cùng tuyến này
                 </Link>
+                {" · "}
+                <Link href={`/trips/new?route=${encodeURIComponent(route.id)}`}>
+                  Tạo chuyến tài xế
+                </Link>
               </div>
             </div>
           ) : (

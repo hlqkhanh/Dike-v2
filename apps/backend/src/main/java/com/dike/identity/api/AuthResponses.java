@@ -22,6 +22,7 @@ public final class AuthResponses {
       long phoneVersion,
       String verificationEvidence,
       String driverApprovalEvidence,
+      String accessMode,
       List<String> authorities,
       long authorizationVersion,
       String nextAction) {}

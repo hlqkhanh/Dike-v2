@@ -222,9 +222,9 @@ public class SecurityConfiguration {
                           && origin.getPath().isEmpty()
                           && origin.getQuery() == null
                           && origin.getFragment() == null);
-      boolean simulatedDriverApproval =
+      boolean simulatedFullAccess =
           environment.getProperty(
-              "dike.identity.simulated-driver-approval-enabled", Boolean.class, false);
+              "dike.identity.simulated-full-access-enabled", Boolean.class, false);
       if (("production".equals(current) || "staging".equals(current))
           && (!properties.requirePhoneOtp()
               || !properties.cookie().secure()
@@ -239,7 +239,7 @@ public class SecurityConfiguration {
               || otp.hmacSecret().startsWith("local-only-")
               || otp.rateKeySecret().startsWith("local-only-")
               || !otp.sendEnabled()
-              || simulatedDriverApproval)) {
+              || simulatedFullAccess)) {
         throw new IllegalStateException("Secure auth configuration is required outside local/test");
       }
     };

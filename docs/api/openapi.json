@@ -4083,6 +4083,7 @@
           "phoneVersion": { "type": "integer", "format": "int64" },
           "verificationEvidence": { "type": "string" },
           "driverApprovalEvidence": { "type": "string" },
+          "accessMode": { "type": "string" },
           "authorities": { "type": "array", "items": { "type": "string" } },
           "authorizationVersion": { "type": "integer", "format": "int64" },
           "nextAction": { "type": "string" }
@@ -4969,7 +4970,24 @@
           "posting": { "type": "boolean" },
           "trips": { "type": "boolean" },
           "proposals": { "type": "boolean" },
+          "canCreateTrip": { "type": "boolean" },
+          "canManageBookings": { "type": "boolean" },
+          "accessMode": { "type": "string" },
+          "vehicles": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VehicleView" }
+          },
           "message": { "type": "string" }
+        }
+      },
+      "VehicleView": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "displayName": { "type": "string" },
+          "passengerCapacity": { "type": "integer", "format": "int32" },
+          "evidence": { "type": "string" }
         }
       },
       "ProposalPage": {

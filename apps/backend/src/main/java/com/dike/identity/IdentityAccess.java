@@ -33,6 +33,7 @@ public class IdentityAccess {
         account.authorities().contains(AccountAuthority.ADMIN),
         account.accountStatus() == AccountStatus.LOCKED,
         DriverEvidence.valueOf(account.driverApprovalEvidence().name()),
+        AccessMode.valueOf(account.accessMode().name()),
         account.authorizationVersion());
   }
 
@@ -45,7 +46,31 @@ public class IdentityAccess {
       boolean admin,
       boolean locked,
       DriverEvidence driverEvidence,
+      AccessMode accessMode,
       long authorizationVersion) {
+
+    public Access(
+        String accountId,
+        boolean member,
+        boolean verifiedMember,
+        boolean approvedDriver,
+        boolean moderator,
+        boolean admin,
+        boolean locked,
+        DriverEvidence driverEvidence,
+        long authorizationVersion) {
+      this(
+          accountId,
+          member,
+          verifiedMember,
+          approvedDriver,
+          moderator,
+          admin,
+          locked,
+          driverEvidence,
+          accessModeFor(driverEvidence),
+          authorizationVersion);
+    }
 
     public Access(
         String accountId,
@@ -63,12 +88,27 @@ public class IdentityAccess {
           false,
           false,
           driverEvidence,
+          accessModeFor(driverEvidence),
           authorizationVersion);
+    }
+
+    private static AccessMode accessModeFor(DriverEvidence evidence) {
+      return switch (evidence) {
+        case NONE -> AccessMode.RESTRICTED;
+        case REAL -> AccessMode.REAL;
+        case SIMULATED -> AccessMode.SIMULATED;
+      };
     }
   }
 
   public enum DriverEvidence {
     NONE,
+    REAL,
+    SIMULATED
+  }
+
+  public enum AccessMode {
+    RESTRICTED,
     REAL,
     SIMULATED
   }

@@ -27,6 +27,7 @@
     "zod": "4.1.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "@dike/frontend-config": "workspace:*",
     "@playwright/test": "1.63.0",
     "@types/leaflet": "^1.9.22",

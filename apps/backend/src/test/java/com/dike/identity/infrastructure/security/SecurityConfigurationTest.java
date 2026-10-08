@@ -12,7 +12,7 @@ import org.springframework.mock.env.MockEnvironment;
 class SecurityConfigurationTest {
 
   @Test
-  void rejectsSimulatedDriverApprovalInHostedEnvironment() {
+  void rejectsSimulatedFullAccessInHostedEnvironment() {
     var auth =
         new IdentityProperties(
             URI.create("https://api.example.test"),
@@ -40,7 +40,7 @@ class SecurityConfigurationTest {
                 "spring.security.oauth2.client.registration.google.client-id", "client-id")
             .withProperty(
                 "spring.security.oauth2.client.registration.google.client-secret", "client-secret")
-            .withProperty("dike.identity.simulated-driver-approval-enabled", "true");
+            .withProperty("dike.identity.simulated-full-access-enabled", "true");
 
     var validator =
         new SecurityConfiguration().validateAuthProductionConfiguration(auth, otp, environment);

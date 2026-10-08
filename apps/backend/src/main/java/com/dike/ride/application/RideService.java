@@ -134,7 +134,7 @@ public class RideService {
             .orElseThrow(() -> unavailable("ROUTING_SOURCE_UNAVAILABLE"));
     if (input.offeredSeats() < 1
         || route.durationSeconds() <= 0
-        || !vehicle.type().equals(route.vehicleType())
+        || !compatibleVehicleType(vehicle.type(), route.vehicleType())
         || input.offeredSeats() > vehicle.passengerCapacity()
         || !resources.contributionAllowed(vehicle, input.contributionPerKm()))
       throw invalid("INVALID_CAPACITY_OR_CONTRIBUTION");
@@ -899,6 +899,11 @@ public class RideService {
 
   private Instant max(Instant a, Instant b) {
     return a.isAfter(b) ? a : b;
+  }
+
+  private boolean compatibleVehicleType(String vehicleType, String routeType) {
+    return vehicleType.equals(routeType)
+        || (vehicleType.equals("MOTORCYCLE") && routeType.equals("MOTORBIKE"));
   }
 
   private static ApiException missing() {

@@ -25,6 +25,7 @@ kiểm tra compatibility và cập nhật tài liệu này cùng lockfile.
 | TypeScript          | 6.0.3     | Bản mới nhất trong peer range của typescript-eslint    |
 | ESLint              | 9.39.5    | Bản maintenance mới nhất hỗ trợ bởi Next plugins       |
 | Playwright          | 1.63.0    | Chromium desktop/mobile cho Stage 2 browser E2E        |
+| axe-core Playwright | 4.10.2    | Kiểm tra WCAG tự động cho các luồng web chính          |
 | MongoDB image       | 8.0.32    | MongoDB 8.0 patch pin cho local                        |
 | Redis image         | 8.10.2    | Redis patch pin cho local                              |
 | MinIO image         | 2025.7.23 | Bitnami legacy; local/test only, không dùng production |

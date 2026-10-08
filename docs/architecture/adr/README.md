@@ -30,3 +30,4 @@ ADR trong thư mục này ghi các quyết định kiến trúc và governance h
 - [0016 — Realtime messaging and outbox fan-out](0016-realtime-messaging-and-outbox-fanout.md)
 - [0017 — Location privacy and availability](0017-location-privacy-and-availability.md)
 - [0018 — Trip settlement, reviews and moderation](0018-trip-settlement-reviews-and-moderation.md)
+- [0019 — Local simulated full access](0019-local-simulated-full-access.md)

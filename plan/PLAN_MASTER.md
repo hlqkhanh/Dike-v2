@@ -975,6 +975,8 @@ bộ gate chung đạt.
 
 ### Giai đoạn 15 — Hoàn thiện web
 
+Chi tiết triển khai, public contract và nghiệm thu: [STAGE_15.md](STAGE_15.md).
+
 - Xây các màn hình production theo route, feature module, component và query hook trên app shell đã tạo ở Giai đoạn 1.
 - Hoàn thiện onboarding, feed, lịch, chuyến, inbox, profile, verification và admin.
 - Mỗi màn hình có loading, empty, error, offline và retry.

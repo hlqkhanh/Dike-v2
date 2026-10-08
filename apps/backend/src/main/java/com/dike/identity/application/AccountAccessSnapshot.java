@@ -10,6 +10,7 @@ public record AccountAccessSnapshot(
     Set<AccountAuthority> authorities,
     VerificationEvidence verificationEvidence,
     DriverApprovalEvidence driverApprovalEvidence,
+    AccessMode accessMode,
     long authorizationVersion) {
 
   public AccountAccessSnapshot {

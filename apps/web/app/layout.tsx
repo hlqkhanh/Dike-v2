@@ -5,11 +5,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { Providers } from "./providers";
+import { ServiceWorkerRegistration } from "./service-worker-registration";
 
 export const metadata: Metadata = {
   title: "DIKÉ SHARE — Chuyến đi xanh của bạn",
   description:
     "Đi chung xe cùng cộng đồng, chia sẻ chuyến đi với bạn bè và cùng nhau di chuyển bền vững.",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -18,7 +20,13 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <a className="skip-link" href="#main-content">
+          Chuyển đến nội dung chính
+        </a>
+        <div id="main-content" tabIndex={-1}>
+          <Providers>{children}</Providers>
+        </div>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

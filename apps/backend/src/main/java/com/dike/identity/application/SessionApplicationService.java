@@ -98,7 +98,10 @@ public class SessionApplicationService {
       nextAction =
           switch (user.onboardingStatus()) {
             case PHONE_REQUIRED -> "SUBMIT_PHONE";
-            case PHONE_SUBMITTED -> properties.requirePhoneOtp() ? "VERIFY_PHONE" : "NONE";
+            case PHONE_SUBMITTED ->
+                snapshot.accessMode() == AccessMode.SIMULATED
+                    ? "NONE"
+                    : properties.requirePhoneOtp() ? "VERIFY_PHONE" : "NONE";
           };
     }
     return new UserView(
@@ -110,8 +113,9 @@ public class SessionApplicationService {
         user.phoneStatus().name(),
         mask(user.phoneE164()),
         user.phoneVersion(),
-        user.verificationEvidence().name(),
+        snapshot.verificationEvidence().name(),
         snapshot.driverApprovalEvidence().name(),
+        snapshot.accessMode().name(),
         snapshot.authorities().stream().map(Enum::name).sorted().toList(),
         snapshot.authorizationVersion(),
         nextAction);

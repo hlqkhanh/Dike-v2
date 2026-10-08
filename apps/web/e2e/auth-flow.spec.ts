@@ -19,6 +19,7 @@ const session = {
     phoneVersion: 0,
     verificationEvidence: "NONE",
     driverApprovalEvidence: "NONE",
+    accessMode: "RESTRICTED",
     authorities: ["MEMBER"],
     authorizationVersion: 0,
     nextAction: "SUBMIT_PHONE",
@@ -77,76 +78,42 @@ test("auth completion routes a new user through phone onboarding", async ({
           phoneStatus: "UNVERIFIED",
           phoneMasked: "+849••••4567",
           phoneVersion: 1,
+          verificationEvidence: "SIMULATED",
+          driverApprovalEvidence: "SIMULATED",
+          accessMode: "SIMULATED",
+          authorities: ["MEMBER", "VERIFIED_MEMBER", "APPROVED_DRIVER"],
           authorizationVersion: 1,
           nextAction: "NONE",
         },
       }),
     });
   });
+  let otpRequested = false;
   await page.route("**/api/v1/auth/otp", async (route) => {
-    expect(route.request().method()).toBe("POST");
-    expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-e2e");
-    expect(route.request().headers()["idempotency-key"]).toBeTruthy();
-    expect(route.request().postDataJSON()).toEqual({
-      purpose: "VERIFY_PHONE",
-      phoneVersion: 1,
-    });
-    await route.fulfill({
-      status: 202,
-      contentType: "application/json",
-      body: JSON.stringify({
-        challengeId: "challenge-1",
-        status: "ACTIVE",
-        expiresAt: "2026-10-06T00:05:00Z",
-        resendAfter: "2026-10-06T00:01:00Z",
-        maskedPhone: "+849••••4567",
-      }),
-    });
+    otpRequested = true;
+    await route.abort();
   });
-  await page.route("**/api/v1/auth/otp/challenge-1", async (route) => {
-    expect(route.request().method()).toBe("GET");
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        challengeId: "challenge-1",
-        status: "ACTIVE",
-        expiresAt: "2026-10-06T00:05:00Z",
-        resendAfter: "2026-10-06T00:01:00Z",
-        maskedPhone: "+849••••4567",
-      }),
-    });
-  });
-  await page.route("**/api/v1/auth/otp/challenge-1/verify", async (route) => {
-    expect(route.request().method()).toBe("POST");
-    expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-e2e");
-    expect(route.request().headers()["idempotency-key"]).toBeTruthy();
-    expect(route.request().postDataJSON()).toEqual({ code: "012345" });
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ...session,
-        user: {
-          ...session.user,
-          onboardingStatus: "PHONE_SUBMITTED",
-          phoneStatus: "VERIFIED",
-          phoneMasked: "+849••••4567",
-          phoneVersion: 1,
-          verificationEvidence: "SIMULATED",
-          driverApprovalEvidence: "SIMULATED",
-          authorities: ["MEMBER", "VERIFIED_MEMBER"],
-          authorizationVersion: 2,
-          nextAction: "NONE",
-        },
-      }),
-    });
-  });
+  await page.route("**/api/v1/ride-posts**", (route) =>
+    route.fulfill({ json: { items: [] } }),
+  );
+  await page.route("**/api/v1/ride-capabilities", (route) =>
+    route.fulfill({
+      json: {
+        posting: true,
+        trips: true,
+        proposals: true,
+        canCreateTrip: true,
+        canManageBookings: true,
+        accessMode: "SIMULATED",
+        vehicles: [],
+        message: "Sẵn sàng",
+      },
+    }),
+  );
   await page.getByLabel("Số điện thoại Việt Nam").fill("0901 234 567");
-  await page.getByRole("button", { name: "Gửi mã" }).click();
-  await page.getByLabel("Mã xác minh").fill("012345");
-  await page.getByRole("button", { name: "Xác minh" }).click();
-  await expect(page).toHaveURL("http://127.0.0.1:3100/");
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await expect(page).toHaveURL("http://127.0.0.1:3100/feed");
+  expect(otpRequested).toBe(false);
 });
 
 test("consent gate records current receipts before onboarding", async ({

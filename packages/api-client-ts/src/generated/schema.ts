@@ -196,6 +196,7 @@ export type AuthUser = {
   phoneVersion: number;
   verificationEvidence: string;
   driverApprovalEvidence: string;
+  accessMode: string;
   authorities: string[];
   authorizationVersion: number;
   nextAction: string;
@@ -763,7 +764,19 @@ export type RideCapabilities = {
   posting: boolean;
   trips: boolean;
   proposals: boolean;
+  canCreateTrip: boolean;
+  canManageBookings: boolean;
+  accessMode: string;
+  vehicles: VehicleView[];
   message: string;
+};
+
+export type VehicleView = {
+  id: string;
+  type: string;
+  displayName: string;
+  passengerCapacity: number;
+  evidence: string;
 };
 
 export type ProposalPage = {

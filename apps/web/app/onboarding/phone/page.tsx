@@ -35,11 +35,25 @@ export default function PhoneOnboardingPage() {
         session.data?.user.phoneVersion ?? 0,
       );
       queryClient.setQueryData(["auth", "session"], updated);
-      return authApi.issueOtp(updated.user.phoneVersion, crypto.randomUUID());
+      if (updated.user.nextAction === "NONE") {
+        await queryClient.invalidateQueries({
+          queryKey: ["rides", "capabilities"],
+        });
+        return { session: updated } as const;
+      }
+      const created = await authApi.issueOtp(
+        updated.user.phoneVersion,
+        crypto.randomUUID(),
+      );
+      return { challenge: created } as const;
     },
-    onSuccess: (created) => {
-      setChallenge(created);
-      rememberChallenge(created.challengeId);
+    onSuccess: async (result) => {
+      if ("session" in result) {
+        await router.replace("/feed");
+        return;
+      }
+      setChallenge(result.challenge);
+      rememberChallenge(result.challenge.challengeId);
     },
   });
   const status = useQuery({
@@ -121,12 +135,12 @@ export default function PhoneOnboardingPage() {
   return (
     <main className="auth-page">
       <Card className="auth-card">
-        <p className="eyebrow">Xác minh thử nghiệm</p>
+        <p className="eyebrow">Thiết lập tài khoản</p>
         <h1>{challenge ? "Nhập mã xác minh" : "Thêm số điện thoại"}</h1>
         <p className="auth-copy">
           {challenge
             ? "Nhập mã 6 chữ số mới nhất đã được gửi đến số của bạn."
-            : "Số điện thoại chỉ được xác minh sau khi nhập đúng mã OTP."}
+            : "Ở môi trường phát triển, số điện thoại vẫn ở trạng thái chưa xác minh và chỉ dùng để mở quyền Tài xế thử nghiệm."}
         </p>
         {!challenge ? (
           <form
@@ -152,7 +166,7 @@ export default function PhoneOnboardingPage() {
               </p>
             ) : null}
             <Button type="submit" disabled={submit.isPending}>
-              {submit.isPending ? "Đang gửi…" : "Gửi mã"}
+              {submit.isPending ? "Đang lưu…" : "Tiếp tục"}
             </Button>
           </form>
         ) : (

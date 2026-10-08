@@ -1,5 +1,9 @@
 # Backend modules
 
+Đọc [Tổng quan kiến trúc hệ thống Dike](../system-architecture-overview.md) trước
+nếu bạn mới tham gia dự án hoặc cần hiểu cách web, backend, mobile, MongoDB, Redis,
+outbox và realtime phối hợp với nhau.
+
 Backend là một Spring Boot modular monolith. API và worker dùng cùng source, domain
 model, executable JAR và chu kỳ phát hành.
 

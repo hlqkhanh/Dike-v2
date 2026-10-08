@@ -51,6 +51,7 @@ export function RideNav() {
       <Link href="/feed">Bảng tin</Link>
       <Link href="/map">Tạo nhu cầu</Link>
       <Link href="/trips">Chuyến của tôi</Link>
+      <Link href="/trips/new">Tạo chuyến</Link>
       <Link href="/proposals">Đề nghị</Link>
       <Link href="/bookings">Booking</Link>
     </nav>

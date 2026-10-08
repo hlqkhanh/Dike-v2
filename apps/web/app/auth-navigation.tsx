@@ -31,7 +31,14 @@ export function AuthNavigation() {
   }
   return (
     <div className="nav-account">
+      {session.data.user.accessMode === "SIMULATED" ? (
+        <Link className="simulation-badge" href="/verification">
+          Tài xế thử nghiệm
+        </Link>
+      ) : null}
       <Link href="/feed">Đi cùng</Link>
+      <Link href="/schedules">Lịch trình</Link>
+      <Link href="/trips/new">Tạo chuyến</Link>
       <Link href="/friends">Bạn bè</Link>
       <Link href="/availability">Tìm chuyến</Link>
       <Link href="/inbox">Tin nhắn</Link>
