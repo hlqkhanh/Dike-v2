@@ -36,7 +36,6 @@ public class RideCapabilities {
     this(journeys, resources, null, key);
   }
 
-
   public record VehicleView(
       String id, String type, String displayName, int passengerCapacity, String evidence) {}
 

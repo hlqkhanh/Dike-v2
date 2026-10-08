@@ -49,6 +49,11 @@ public class IdentityAccess {
       AccessMode accessMode,
       long authorizationVersion) {
 
+    public Access {
+      driverEvidence = driverEvidence == null ? DriverEvidence.NONE : driverEvidence;
+      accessMode = accessMode == null ? AccessMode.RESTRICTED : accessMode;
+    }
+
     public Access(
         String accountId,
         boolean member,
@@ -93,6 +98,7 @@ public class IdentityAccess {
     }
 
     private static AccessMode accessModeFor(DriverEvidence evidence) {
+      if (evidence == null) return AccessMode.RESTRICTED;
       return switch (evidence) {
         case NONE -> AccessMode.RESTRICTED;
         case REAL -> AccessMode.REAL;

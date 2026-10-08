@@ -13,6 +13,14 @@ import org.junit.jupiter.api.Test;
 class RideCapabilitiesTest {
 
   @Test
+  void normalizesLegacyNullEvidenceToRestrictedAccess() {
+    var access = new IdentityAccess.Access("member", true, true, false, null, 0);
+
+    assertThat(access.driverEvidence()).isEqualTo(IdentityAccess.DriverEvidence.NONE);
+    assertThat(access.accessMode()).isEqualTo(IdentityAccess.AccessMode.RESTRICTED);
+  }
+
+  @Test
   void exposesSimulatedVehiclesOnlyToSimulatedApprovedDriver() {
     var journeys = mock(JourneySources.class);
     var resources = mock(RideResources.class);
