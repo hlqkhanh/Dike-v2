@@ -23,15 +23,14 @@ Kết quả cần đạt:
 ### 2.1. Phạm vi sản phẩm và repository
 
 - Đội thực tế có bốn thành viên.
-- Web là React/Next.js; mobile hiện hành là Flutter/Dart.
-- React Native/Expo chỉ tồn tại trong phụ lục lịch sử của master plan.
+- Web là React/Next.js; mobile hiện hành là React Native/Expo/TypeScript.
 - Web và mobile dùng chung backend và OpenAPI contract; chúng không dùng chung UI.
-- Client sinh mã được tách thành `packages/api-client-ts` và `packages/api-client-dart`.
+- Web và mobile dùng chung generated TypeScript API client.
 - Repository private, không thêm `LICENSE`.
 - Không tạo `PLAN.md` hoặc tài liệu kế hoạch thứ hai cạnh tranh với `PLAN_MASTER.md`.
 - Thay đổi kiến trúc phải có ADR và cập nhật `PLAN_MASTER.md` trong cùng PR hoặc commit.
 - Không tạo tag `prototype`, `legacy` hoặc release tag trong Stage 0.
-- Không scaffold Spring Boot, Next.js, Flutter, database hoặc Docker service; các phần đó bắt đầu từ Stage 1.
+- Không scaffold Spring Boot, Next.js, React Native/Expo, database hoặc Docker service; các phần đó bắt đầu từ Stage 1.
 
 ### 2.2. Ownership và workflow
 
@@ -57,7 +56,7 @@ Repository và CI khóa Node 24.21.0. Máy local có thể dùng bản cài hệ
 
 ## 3. Ngoài phạm vi
 
-- Source Spring Boot, Next.js hoặc Flutter.
+- Source Spring Boot, Next.js hoặc React Native/Expo.
 - MongoDB, Redis, MinIO và Docker Compose runtime.
 - REST API, schema dữ liệu, event contract hoặc runtime service.
 - Deployment credential và production environment.
@@ -72,15 +71,14 @@ Mỗi work item có owner và reviewer được gán trên GitHub Issue trước
 
 Deliverable:
 
-- Sửa `PLAN_MASTER.md` thành đội bốn người và Flutter/Dart.
-- Cấu trúc tương lai dùng `api-client-ts`, `api-client-dart`, `design-tokens`, `frontend-config`, `web-ui`.
-- React Native/Expo chỉ xuất hiện trong phụ lục được gắn nhãn lịch sử.
+- Sửa `PLAN_MASTER.md` thành đội bốn người; quyết định mobile hiện hành nằm ở ADR 0021.
+- Cấu trúc tương lai dùng generated TypeScript client, `design-tokens`, `frontend-config`, `web-ui` và Expo app.
 - Liên kết từ Stage 0 trong master plan đến tài liệu này.
 - Ghi quy tắc ADR + master plan trong cùng thay đổi kiến trúc.
 
 Nghiệm thu:
 
-- Không có quyết định hiện hành mâu thuẫn giữa Flutter/React Native hoặc ba/bốn thành viên.
+- Không có quyết định hiện hành mâu thuẫn về mobile stack hoặc quy mô đội.
 - Không tồn tại tài liệu kế hoạch thứ hai cạnh tranh với `PLAN_MASTER.md`.
 
 ### S0-01 — Khởi tạo Git baseline
@@ -91,7 +89,7 @@ Deliverable:
 - Thêm `.editorconfig`, `.gitattributes`, `.gitignore`.
 - Thêm `.nvmrc`, `.node-version` với `24.21.0`; `.java-version` với `21`.
 - LF mặc định, `.cmd`/`.bat` dùng CRLF; ảnh/font/archive là binary.
-- Ignore Node, Java/Maven, Flutter, IDE, log, coverage, Docker volume, dump, upload/data và mọi `.env` trừ `.env.example`.
+- Ignore Node/Expo, Java/Maven, Android/Gradle, Xcode, IDE, log, coverage, Docker volume, dump, upload/data và mọi `.env` trừ `.env.example`.
 
 Không thực hiện:
 
@@ -303,7 +301,7 @@ Stage 0 không thêm REST API, database schema, event contract hoặc runtime se
 
 ### 7.3. Acceptance gate cuối
 
-- Master plan thống nhất đội bốn người và Flutter.
+- Master plan thống nhất đội bốn người và React Native/Expo theo ADR 0021.
 - Runbook này tồn tại và được master plan liên kết.
 - Private repo tồn tại, `main` là default.
 - Ba collaborator có Write; chỉ owner có Admin.

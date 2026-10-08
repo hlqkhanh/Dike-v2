@@ -12,7 +12,7 @@ fresher. Sau khi đọc xong, bạn nên hiểu:
 - Nên bắt đầu đọc code hoặc thêm một tính năng mới từ đâu.
 
 Tài liệu phản ánh kiến trúc hiện hành đến Stage 14 và kiến trúc mục tiêu đã được
-duyệt. Web và backend đã tồn tại. Flutter mobile thuộc Stage 16, chưa được xem là
+duyệt. Web và backend đã tồn tại. React Native/Expo thuộc Stage 16, chưa được xem là
 đã triển khai hoàn chỉnh.
 
 ## 1. Dike giải quyết bài toán gì?
@@ -42,7 +42,7 @@ repository của toàn hệ thống vào ba thư mục chung.
 ```mermaid
 flowchart LR
   U[Người dùng web] -->|HTTPS| W[Next.js web]
-  M[Flutter mobile<br/>Stage 16] -->|HTTPS trực tiếp| API
+  M[React Native/Expo<br/>Stage 16] -->|HTTPS trực tiếp| API
   W -->|Same-origin /api proxy| API[Spring Boot API]
   W <-->|STOMP over WebSocket| API
 
@@ -60,16 +60,16 @@ flowchart LR
   R -->|Pub/Sub| API
 ```
 
-| Thành phần     | Công nghệ                     | Trách nhiệm chính                                                  |
-| -------------- | ----------------------------- | ------------------------------------------------------------------ |
-| Web            | Next.js, React, TypeScript    | UI, gọi API, state màn hình và kết nối realtime                    |
-| Mobile         | Flutter, Dart                 | Client native trong Stage 16; secure storage, push và location nền |
-| API            | Java 21, Spring Boot          | Xác thực, phân quyền, validation và nghiệp vụ đồng bộ              |
-| Worker         | Cùng code Spring Boot         | Outbox, retry và công việc nền                                     |
-| MongoDB        | Atlas; replica set local/test | Nguồn dữ liệu nghiệp vụ bền vững                                   |
-| Redis          | Redis-compatible store        | Session, rate limit, ticket realtime, Pub/Sub và dữ liệu có TTL    |
-| Object storage | MinIO local, R2 production    | Nội dung file; MongoDB giữ metadata và ownership                   |
-| Dịch vụ ngoài  | Google, Goong                 | Danh tính Google và định tuyến/bản đồ                              |
+| Thành phần     | Công nghệ                      | Trách nhiệm chính                                               |
+| -------------- | ------------------------------ | --------------------------------------------------------------- |
+| Web            | Next.js, React, TypeScript     | UI, gọi API, state màn hình và kết nối realtime                 |
+| Mobile         | React Native, Expo, TypeScript | Một client Android/iOS; secure storage, push và location nền    |
+| API            | Java 21, Spring Boot           | Xác thực, phân quyền, validation và nghiệp vụ đồng bộ           |
+| Worker         | Cùng code Spring Boot          | Outbox, retry và công việc nền                                  |
+| MongoDB        | Atlas; replica set local/test  | Nguồn dữ liệu nghiệp vụ bền vững                                |
+| Redis          | Redis-compatible store         | Session, rate limit, ticket realtime, Pub/Sub và dữ liệu có TTL |
+| Object storage | MinIO local, R2 production     | Nội dung file; MongoDB giữ metadata và ownership                |
+| Dịch vụ ngoài  | Google, Goong                  | Danh tính Google và định tuyến/bản đồ                           |
 
 ### 2.1. Source of truth là gì?
 
@@ -233,23 +233,22 @@ session. Spring Boot vẫn là nơi xác thực và phân quyền.
 modal đang mở. Không nên sao chép server state vào nhiều store nếu TanStack Query
 đã quản lý nó.
 
-## 6. Kiến trúc mobile Flutter
+## 6. Kiến trúc React Native/Expo mobile
 
-Flutter thuộc Stage 16 và dùng chung Spring Boot backend với web, không có backend
-riêng cho mobile.
+React Native/Expo/TypeScript thuộc Stage 16, dùng chung Spring Boot backend và
+generated TypeScript API client với web, không có backend riêng cho mobile.
 
 ```mermaid
 flowchart LR
   WEB[React web] -->|api-client-ts| API[OpenAPI / Spring Boot]
-  MOBILE[Flutter mobile] -->|api-client-dart| API
+  MOBILE[React Native/Expo] -->|api-client-ts| API
 ```
 
 Hai client dùng chung domain rule, endpoint, OpenAPI và chính sách authorization.
-Chúng không dùng chung React component/Flutter widget, navigation hoặc credential
-storage.
+Web và mobile không dùng chung DOM/native component, navigation hoặc credential storage.
 
-Web nhận opaque session ID qua cookie `HttpOnly`. Flutter dự kiến nhận opaque token
-phù hợp mobile và lưu trong secure storage của hệ điều hành. “Opaque” nghĩa là
+Web nhận opaque session ID qua cookie `HttpOnly`. React Native/Expo nhận opaque token
+phù hợp mobile và lưu bằng secure storage của hệ điều hành. “Opaque” nghĩa là
 client không đọc được nội dung hay tự suy ra quyền; backend tra session server-side.
 
 ## 7. MongoDB: dữ liệu bền vững
@@ -555,7 +554,7 @@ làm gì trên resource này?”. Đã login không có nghĩa được đọc m
 flowchart TB
   INTERNET[Người dùng] --> V[Vercel<br/>Next.js + /api proxy]
   V --> A[Render<br/>Spring API]
-  F[Flutter mobile] --> A
+  N[React Native/Expo] --> A
   A --> MA[(MongoDB Atlas)]
   A --> RR[(Redis-compatible service)]
   A --> R2[(Cloudflare R2)]
@@ -680,7 +679,7 @@ Khi thêm tính năng, hãy hỏi:
 6. Một bên bấm “đã trả” là thanh toán hoàn tất: sai; cần đối ứng và vẫn không phải
    xác minh ngân hàng.
 7. Điểm trước booking là vị trí thật: sai; đó là vùng làm mờ.
-8. Flutter dùng cookie web: sai; mobile dùng credential transport native.
+8. React Native/Expo dùng cookie web: sai; mobile dùng credential transport riêng.
 9. JWT luôn tốt hơn session: sai; Dike cần revoke thiết bị nên server-side session
    phù hợp.
 10. NoSQL không cần schema/index/transaction: sai; Dike dùng cả ba.
@@ -701,7 +700,7 @@ Backend trả `accessMode=SIMULATED`; frontend phải hiển thị “Tài xế 
 - [WebSocket/STOMP](adr/0004-websocket-stomp.md)
 - [MongoDB outbox worker](adr/0005-mongodb-outbox-worker.md)
 - [Auth and session model](adr/0006-auth-and-session-model.md)
-- [Flutter mobile](adr/0009-flutter-mobile.md)
+- [React Native with Expo mobile client](adr/0021-react-native-expo-mobile.md)
 - [Web same-origin auth proxy](auth/web-same-origin-proxy.md)
 - [Realtime messaging và outbox fan-out](adr/0016-realtime-messaging-and-outbox-fanout.md)
 - [Location privacy và availability](adr/0017-location-privacy-and-availability.md)

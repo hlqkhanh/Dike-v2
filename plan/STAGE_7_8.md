@@ -69,7 +69,7 @@ Ngoài phạm vi:
 - Bản đồ tương tác, GPS navigation và live tracking — stage sau.
 - Đăng intent lên bảng tin — Stage 9; trip/xe/chỗ/quote chính thức — Stage 10.
 - Matching, proposal, booking và thanh toán — Stage 11 trở đi.
-- Flutter UI — Stage 16.
+- React Native/Expo UI — Stage 16.
 
 ## 2. Điều kiện đầu vào và gate
 

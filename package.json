@@ -21,6 +21,7 @@
     "test:e2e": "pnpm --filter @dike/web e2e",
     "build": "pnpm -r --if-present build",
     "dev:web": "pnpm --filter @dike/web dev",
+    "dev:mobile": "pnpm --filter @dike/mobile start",
     "dev:api": "node scripts/run-backend.mjs api",
     "dev:worker": "node scripts/run-backend.mjs worker",
     "dev:local": "node scripts/dev-local.mjs",
@@ -31,6 +32,7 @@
     "infra:reset": "docker compose -p dike -f infra/docker-compose.yml down --volumes --remove-orphans",
     "api:generate": "node scripts/generate-api-client.mjs",
     "api:check": "node scripts/generate-api-client.mjs --check",
+    "mobile:doctor": "pnpm --filter @dike/mobile expo:doctor",
     "verify:local": "pnpm check && pnpm api:check && node scripts/verify-maven.mjs",
     "check:repo": "prettier --check \"**/*.{css,js,mjs,ts,tsx,md,json,jsonc,yaml,yml}\" && markdownlint-cli2 \"**/*.md\" \"#node_modules\" && node scripts/check-tracked-files.mjs && node scripts/check-actions-pinned.mjs",
     "check": "pnpm check:repo && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm api:check"

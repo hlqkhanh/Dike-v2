@@ -16,7 +16,7 @@ khi đổi số và bootstrap admin có audit; adapter SMS thật đang được
 
 - Web: React và Next.js.
 - Backend: Java 21, Spring Boot Modular Monolith, REST/OpenAPI và WebSocket/STOMP.
-- Mobile: Flutter/Dart, dùng chung backend và OpenAPI contract với web.
+- Mobile: React Native + Expo + TypeScript, dùng chung backend và OpenAPI contract với web.
 - Dữ liệu: MongoDB là primary store; Redis cho session/cache/presence; R2 cho object storage.
 - API và worker dùng chung codebase, domain model và release cycle.
 
@@ -96,6 +96,22 @@ pnpm dev:web
 | MongoDB         | `localhost:27017`                                 |
 | Redis           | `localhost:6379`                                  |
 | MinIO / console | `http://localhost:9000` / `http://localhost:9001` |
+
+## Mobile React Native/Expo
+
+Mobile nằm tại `apps/mobile`, dùng Expo Development Build và gọi trực tiếp Spring
+API bằng opaque mobile credential. Tạo file local không commit
+`apps/mobile/.env.local` với `EXPO_PUBLIC_API_URL` trỏ tới địa chỉ Spring API mà
+thiết bị có thể truy cập, rồi chạy:
+
+```powershell
+pnpm dev:mobile
+```
+
+Kiểm tra mobile bằng `pnpm --filter @dike/mobile typecheck`,
+`pnpm --filter @dike/mobile lint` và `pnpm mobile:doctor`. Expo Go không phải môi
+trường nghiệm thu cho secure storage, push hoặc background location; dùng Development
+Build/EAS preview trên thiết bị thật.
 
 `pnpm infra:reset` xóa đúng volume của Compose project Dike và làm mất toàn bộ dữ
 liệu local. Lệnh này không được gọi tự động.

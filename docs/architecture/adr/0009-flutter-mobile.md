@@ -1,6 +1,6 @@
 # 0009 — Flutter mobile
 
-- Status: Accepted
+- Status: Superseded by ADR 0020
 - Date: 2026-10-05
 
 ## Context
@@ -28,3 +28,7 @@ Stage 16 generates the Dart client reproducibly and passes Android/iOS flows for
 ## Revisit triggers
 
 Review only if staffing, platform constraints or measured delivery risk makes Flutter unable to meet pilot requirements.
+
+## Superseded
+
+ADR 0020 replaces Flutter with native Kotlin/Jetpack Compose and Swift/SwiftUI clients.

@@ -3,7 +3,7 @@
 Ngày cập nhật: 05/10/2026  
 Trạng thái: Kế hoạch hợp nhất — đặc tả sản phẩm, kiến trúc production và lộ trình triển khai  
 Đội ngũ: 4 thành viên  
-Công nghệ: Next.js, React, Java 21, Spring Boot, Spring Modulith, MongoDB, Redis và Flutter/Dart
+Công nghệ: Next.js, React, React Native, Expo, TypeScript, Java 21, Spring Boot, Spring Modulith, MongoDB và Redis
 
 Tài liệu này là nguồn kế hoạch duy nhất của dự án. Dự án hiện được triển khai theo hướng **greenfield**: toàn bộ source prototype cũ đã bị xóa có chủ đích, không có code hoặc dữ liệu legacy cần giữ tương thích hay migrate. Đặc tả nghiệp vụ được rút ra từ quá trình thử nghiệm trước đây; kiến trúc, hạ tầng và lộ trình production trong tài liệu này là quyết định hiện hành.
 
@@ -48,7 +48,7 @@ Người dùng không cần có lịch thường tuần vẫn có thể đăng n
 | Đăng nhập          | Google trước, thu số điện thoại sau; OTP bắt buộc trước production pilot  |
 | Dịch vụ ngoài      | Goong qua adapter, Cloudflare R2; eKYC đang tạm hoãn theo ADR 0015        |
 | Triển khai         | Web trên Vercel; API, worker, cron và Redis-compatible store trên Render  |
-| Mobile             | Flutter/Dart sau khi backend và web ổn định; dùng chung OpenAPI contract  |
+| Mobile             | React Native + Expo + TypeScript; dùng chung OpenAPI contract             |
 
 ### 1.2. Phân biệt môi trường phát triển và production pilot
 
@@ -426,7 +426,7 @@ MongoDB Atlas  Redis       Cloudflare R2
         Goong / OTP / eKYC adapters
 
 Giai đoạn sau:
-Flutter Mobile ── dùng chung OpenAPI contract và WebSocket/STOMP contract
+React Native/Expo Mobile ── dùng chung OpenAPI contract và WebSocket/STOMP contract
 ```
 
 API và worker chạy từ cùng source, cùng domain model và cùng chu kỳ phát hành. Đây là hai runtime profile của một modular monolith, không phải hai microservice. MongoDB là nguồn trạng thái chính; Redis, WebSocket và cache chỉ giữ trạng thái dẫn xuất hoặc có TTL.
@@ -445,7 +445,7 @@ API và worker chạy từ cùng source, cùng domain model và cùng chu kỳ p
 | Realtime         | Spring WebSocket + STOMP; client dùng STOMP thay cho Socket.IO                                  |
 | Cache/presence   | Spring Data Redis; Redis không phải nguồn trạng thái cuối cùng                                  |
 | Background work  | Spring worker profile, MongoDB outbox và job idempotent; chưa dùng Kafka/RabbitMQ               |
-| API contract     | OpenAPI sinh từ backend; generated TypeScript client cho web và Dart client cho mobile          |
+| API contract     | OpenAPI sinh từ backend; generated TypeScript client dùng chung cho web/mobile                  |
 | File             | Cloudflare R2 qua S3-compatible adapter; MinIO cho local                                        |
 | Observability    | Spring Boot Actuator, Micrometer, structured JSON log, request/correlation ID                   |
 | Test             | JUnit 5, AssertJ, Mockito khi cần, Spring Boot Test, Testcontainers và REST Assured/MockMvc     |
@@ -474,11 +474,10 @@ apps/
       application-api.yml
       application-worker.yml
     src/test/java/com/dike/
-  mobile/                       Flutter/Dart, tạo ở giai đoạn mobile
+  mobile/                       React Native/Expo/TypeScript, tạo ở giai đoạn mobile
 
 packages/
   api-client-ts/                TypeScript client sinh từ OpenAPI cho web
-  api-client-dart/              Dart client sinh từ OpenAPI, tạo ở giai đoạn mobile
   design-tokens/                Design token trung lập nền tảng
   frontend-config/              TypeScript, ESLint, Prettier
   web-ui/                       Component React dùng riêng cho web
@@ -497,7 +496,7 @@ docs/
   operations/
 ```
 
-- pnpm workspace chỉ quản lý `apps/web` và các package JavaScript/TypeScript trong `packages/*`; `apps/mobile` và `packages/api-client-dart` dùng Flutter/Dart toolchain; backend dùng Maven Wrapper và `pom.xml` riêng.
+- pnpm workspace quản lý web, mobile Expo và các package JavaScript/TypeScript; backend dùng Maven Wrapper và `pom.xml` riêng. EAS tạo Android/iOS artifacts từ cấu hình Expo.
 - Backend build thành một executable JAR/container image. Render chạy cùng image với profile `api` hoặc `worker`; worker đặt `spring.main.web-application-type=none`.
 - Local/test chạy MongoDB replica set để transaction giống Atlas; Redis và MinIO chạy bằng Docker Compose.
 - Web dùng TanStack Query, React Hook Form, Zod, Tailwind và shadcn/ui; xây mới design token Urban Mint từ đặc tả giao diện trong tài liệu này.
@@ -784,7 +783,7 @@ Chi tiết task, ownership và nghiệm thu: [STAGE_0.md](STAGE_0.md).
 
 Chi tiết task, dependency, ownership và nghiệm thu: [STAGE_1.md](STAGE_1.md).
 
-- Scaffold từ đầu `apps/web`, `apps/backend`, `packages/api-client-ts`, `packages/design-tokens`, `packages/frontend-config` và `packages/web-ui` theo kiến trúc mục tiêu; `apps/mobile` và `packages/api-client-dart` được tạo ở giai đoạn mobile.
+- Scaffold từ đầu `apps/web`, `apps/backend`, `packages/api-client-ts`, `packages/design-tokens`, `packages/frontend-config` và `packages/web-ui` theo kiến trúc mục tiêu; hai ứng dụng native và hai generated client được tạo ở giai đoạn mobile.
 - Bootstrap Spring Boot với Java 21, Maven Wrapper và package gốc `com.dike`; tạo module `identity`, `community`, `planning`, `ride`, `messaging`, `trust` và `shared`.
 - Thêm Spring Modulith verification test và ArchUnit rule tối thiểu: không cycle module, controller không truy cập repository, module không dùng internal package của module khác.
 - Bootstrap Next.js App Router với app shell tối thiểu và design token Urban Mint mới; chưa triển khai màn hình nghiệp vụ.
@@ -794,7 +793,7 @@ Chi tiết task, dependency, ownership và nghiệm thu: [STAGE_1.md](STAGE_1.md
 - Tạo profile `api` và `worker`; worker profile chạy không có web server.
 - Tạo `OutboxEvent`, atomic claim, retry/backoff và một handler mẫu idempotent.
 - Thêm Testcontainers cho MongoDB replica set, Redis và MinIO/S3-compatible test khi cần.
-- Sinh TypeScript API client cho web từ OpenAPI; thiết lập generator configuration có thể tái sử dụng để sinh Dart client ở giai đoạn mobile.
+- Sinh TypeScript API client dùng chung web/mobile từ OpenAPI; transport và credential adapter vẫn tách theo platform.
 
 **Hoàn thành khi:** API, worker và web greenfield chạy bằng một lệnh; `/actuator/health` và app shell hoạt động; Modulith verification xanh; test chứng minh Mongo transaction rollback, outbox retry và handler lặp không gây tác dụng trùng.
 
@@ -985,9 +984,11 @@ Chi tiết triển khai, public contract và nghiệm thu: [STAGE_15.md](STAGE_1
 
 **Hoàn thành khi:** Playwright chạy luồng chính trên desktop/mobile viewport và không có lỗi accessibility nghiêm trọng.
 
-### Giai đoạn 16 — Mobile Flutter
+### Giai đoạn 16 — React Native + Expo mobile
 
-- Tạo ứng dụng Flutter/Dart và sinh `packages/api-client-dart` từ cùng OpenAPI contract; chia sẻ design token ở dạng trung lập nền tảng, không dùng chung UI React.
+Chi tiết triển khai, public contract, thứ tự PR và nghiệm thu: [STAGE_16.md](STAGE_16.md).
+
+- Tạo React Native + Expo + TypeScript app; dùng chung generated TypeScript client từ OpenAPI và design token trung lập nền tảng, không tái sử dụng React DOM component.
 - Google native login đổi token với backend; session nằm trong secure storage.
 - Push qua FCM/APNs; hỗ trợ deep link, reconnect, offline queue idempotent.
 - Background location chỉ bật trong booking active và được kiểm thử trên thiết bị thật.
@@ -1017,7 +1018,7 @@ Chi tiết triển khai, public contract và nghiệm thu: [STAGE_15.md](STAGE_1
 - Contract: OpenAPI diff và generated TypeScript client không lệch nhau.
 - API: MockMvc hoặc REST Assured cho authentication, authorization, CSRF, idempotency và error code.
 - Web E2E: Playwright với nhiều tài khoản/trình duyệt.
-- Mobile E2E: Flutter integration test và Maestro khi cần cho luồng quan trọng.
+- Mobile E2E: Expo Development Builds trên Android/iOS thật; Maestro hoặc Detox cho luồng quan trọng.
 - Load: k6 cho feed, booking concurrency, WebSocket/STOMP và chat.
 - Security: Maven/Node dependency scan, secret scan, CodeQL và kiểm thử OWASP API Top 10.
 
@@ -1041,7 +1042,7 @@ Không bàn giao nếu còn lỗi nghiêm trọng về quyền truy cập, vư�
 
 - Mục tiêu là production pilot tối đa khoảng 500 người, chưa dùng microservice/Kubernetes.
 - Backend là Java 21 + Spring Boot Modular Monolith; API và worker dùng chung source, domain model, database và release cycle.
-- Hoàn thiện web trước, Flutter sau khi API và nghiệp vụ ổn định.
+- Hoàn thiện web trước, React Native/Expo sau khi API và nghiệp vụ ổn định.
 - Database là MongoDB Atlas; PostgreSQL/PostGIS và Prisma không còn là lựa chọn hiện hành.
 - Web ở Vercel; API, worker, cron và Redis-compatible store ở Render.
 - Routing dùng Goong qua adapter; file dùng Cloudflare R2.
@@ -1066,7 +1067,7 @@ Phụ lục A–F bên dưới chỉ được giữ để truy vết quá trình
 Dùng modular monolith: một backend chia module nghiệp vụ, một worker từ cùng codebase; chưa dùng microservices.
 
 ```text
-Next.js Web                         React Native Mobile (sau)
+Next.js Web                         Android/iOS Native (sau)
      └──────────── REST /api/v1 + Socket.IO ────────────┘
                               |
                           NestJS API
@@ -1307,7 +1308,8 @@ Chỉ mở rộng sau khi xử lý lỗi nghiêm trọng và đội vận hành 
 
 #### A.5.3. Mobile
 
-Định hướng React Native + Expo development build, tiếp tục TypeScript và hợp đồng API đã có.
+Định hướng hiện hành là React Native + Expo Development Build + TypeScript, dùng
+chung hợp đồng OpenAPI với web theo ADR 0021.
 
 Ưu tiên push đề nghị, vị trí nền trong chuyến, dẫn đường tới điểm gặp, khôi phục sau mất mạng và tối ưu pin. Kiểm thử quyền vị trí/nền trên Android/iOS thật; không coi chuyển UI web là đã giải quyết GPS nền.
 

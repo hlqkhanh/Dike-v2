@@ -112,7 +112,7 @@ nghiệp vụ được thêm từ Stage 2.
   Stage 12 bổ sung.
 - Goong, eKYC, Cloudflare R2 thật, email, SMS và push notification.
 - Deploy Vercel/Render/Atlas, production domain, backup/restore và alerting.
-- Flutter, Dart client và mobile application.
+- React Native/Expo mobile application.
 - Màn hình nghiệp vụ, mockup dữ liệu người dùng hoặc dữ liệu lấy từ prototype.
 
 ## 3. Cấu trúc đích sau Stage 1
@@ -154,7 +154,7 @@ docs/
   architecture/modules/
 ```
 
-Không tạo `apps/mobile` hoặc `packages/api-client-dart` trong stage này.
+Không tạo `apps/mobile` trong stage này.
 
 ## 4. Thứ tự triển khai và chiến lược tích hợp
 

@@ -20,7 +20,7 @@ also pass through this origin. The browser session cookie is first-party,
 
 Next.js performs transport only. Spring Security owns OAuth2/OIDC, PKCE, state,
 nonce, CSRF, session lifecycle and authorization. Spring Boot remains the only
-business backend. Flutter will call Spring directly with its mobile credential
+business backend. React Native/Expo calls Spring directly with its mobile credential
 transport.
 
 ## Alternatives

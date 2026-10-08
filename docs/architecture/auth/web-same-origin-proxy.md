@@ -181,13 +181,13 @@ Preview deployment chỉ hoạt động khi callback URL/allowlist được qu�
 đích. Không dùng wildcard redirect URI của Google và không cho preview tùy ý truy
 cập OAuth production.
 
-## 8. Backend trực tiếp và Flutter
+## 8. Backend trực tiếp và React Native/Expo
 
 Spring Boot vẫn phải tự bảo vệ mọi endpoint vì proxy không phải security boundary.
 Biết URL Render không được phép bỏ qua authentication, authorization, CSRF hoặc
 validation.
 
-Flutter sau này gọi API trực tiếp và dùng opaque mobile credential trong secure
+React Native/Expo gọi API trực tiếp và dùng opaque mobile credential trong secure
 storage theo ADR auth. Mobile không đi qua Next.js và không dùng cookie browser.
 Hai client dùng chung `User`, `AuthIdentity`, session policy và API nghiệp vụ,
 nhưng khác credential transport.

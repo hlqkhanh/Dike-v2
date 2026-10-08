@@ -5,11 +5,11 @@
 
 ## Context
 
-Dike serves a browser and Flutter clients, starts with Google identity and requires phone verification before production pilot.
+Dike serves a browser and React Native/Expo mobile client, starts with Google identity and requires phone verification before production pilot.
 
 ## Decision
 
-Use Google OIDC authorization code flow with PKCE, state and nonce validation. Backend-owned opaque sessions are stored server-side. Web receives Secure, HttpOnly, SameSite cookies with CSRF/origin protection. Flutter uses a mobile-appropriate opaque token stored in OS secure storage. OTP verifies phone ownership before pilot access.
+Use Google OIDC authorization code flow with PKCE, state and nonce validation. Backend-owned opaque sessions are stored server-side. Web receives Secure, HttpOnly, SameSite cookies with CSRF/origin protection. React Native/Expo uses a mobile-appropriate opaque token stored in OS secure storage. OTP verifies phone ownership before pilot access.
 
 ## Alternatives
 

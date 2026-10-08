@@ -96,7 +96,7 @@ Stage 2 tạo lát cắt xác thực web hoàn chỉnh đầu tiên của Dike:
 - Hồ sơ đầy đủ, consent, privacy và avatar — Stage 4.
 - Account-linking UI hoặc khôi phục tài khoản.
 - Social login ngoài Google.
-- Mobile login/token; Flutter credential transport được thực hiện ở giai đoạn
+- Mobile login/token; React Native/Expo credential transport được thực hiện ở giai đoạn
   mobile.
 
 ## 3. Kiến trúc đích
@@ -655,6 +655,6 @@ trên desktop/mobile viewport.
 - Nhóm tạo riêng Google OAuth client cho development và production; redirect URI
   không dùng wildcard.
 - Session policy 24 giờ idle/30 ngày absolute áp dụng cho web; mobile có policy
-  riêng khi triển khai Flutter.
+  riêng khi triển khai mobile.
 - Account linking được hoãn nhưng collision phải fail-safe ngay từ Stage 2.
 - ADR 0011 và tài liệu same-origin proxy được merge trước code auth đầu tiên.
