@@ -1,4 +1,4 @@
-import { BookingDetail } from "../../../src/rides/detail";
+import { BookingDetail } from "../../../src/rides/booking-detail";
 export default async function Page({
   params,
 }: {

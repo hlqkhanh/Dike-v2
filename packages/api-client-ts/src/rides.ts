@@ -136,6 +136,8 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       request<TripView>(`/trips/${id(tripId)}/actions`, "POST", body, key),
     proposals: (cursor?: string) =>
       request<ProposalPage>(`/proposals${page(cursor)}`),
+    proposal: (proposalId: string) =>
+      request<ProposalView>(`/proposals/${id(proposalId)}`),
     propose: (body: ProposalCreate, key: string) =>
       request<ProposalView>("/proposals", "POST", body, key),
     accept: (proposalId: string, version: number, key: string) =>

@@ -384,6 +384,11 @@ export function RideDashboard({
   });
   useAuthFailure(list.error);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const filteredItems =
+    statusFilter === "ALL"
+      ? items
+      : items.filter((item) => item.status === statusFilter);
   const title = {
     trips: "Chuyến của tôi",
     proposals: "Đề nghị đi cùng",
@@ -410,6 +415,28 @@ export function RideDashboard({
         }
       />
       <RideNav />
+      {kind !== "trips" && items.length > 0 ? (
+        <div
+          className="journey-filter-bar"
+          role="group"
+          aria-label="Lọc theo trạng thái"
+        >
+          {[
+            "ALL",
+            ...Array.from(new Set(items.map((item) => item.status))),
+          ].map((status) => (
+            <button
+              aria-pressed={statusFilter === status}
+              className={statusFilter === status ? "is-active" : ""}
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(status)}
+            >
+              {status === "ALL" ? "Tất cả" : statusName(status)}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {list.isPending ? (
         <LoadingState />
       ) : list.isError ? (
@@ -460,7 +487,7 @@ export function RideDashboard({
             />
           ) : null}
           <div className="ride-dashboard-grid">
-            {items.map((item) =>
+            {filteredItems.map((item) =>
               "senderId" in item ? (
                 <ProposalCard
                   key={item.id}
@@ -477,11 +504,17 @@ export function RideDashboard({
                   </span>
                   <h2>
                     <Link href={`/bookings/${encodeURIComponent(item.id)}`}>
-                      Chuyến lúc {dateTime(item.pickupAt)}
+                      Booking lúc {dateTime(item.pickupAt)}
                     </Link>
                   </h2>
+                  <span
+                    className={`ride-status ride-status--${item.status.toLowerCase()}`}
+                  >
+                    {statusName(item.status)}
+                  </span>
+                  <p>Đón {dateTime(item.pickupAt)}</p>
                   <p>
-                    {statusName(item.status)} · {money(item.priceVnd)}
+                    Trả {dateTime(item.dropoffAt)} · {money(item.priceVnd)}
                   </p>
                 </article>
               ) : (
@@ -541,7 +574,14 @@ function ProposalCard({
       <span className="ride-summary-icon">
         <Handshake aria-hidden="true" size={20} />
       </span>
-      <h2>{recipient ? "Đề nghị đến" : "Đề nghị đã gửi"}</h2>
+      <h2>
+        <Link href={`/proposals/${encodeURIComponent(p.id)}`}>
+          {recipient ? "Đề nghị đến" : "Đề nghị đã gửi"}
+        </Link>
+      </h2>
+      <span className={`ride-status ride-status--${p.status.toLowerCase()}`}>
+        {statusName(p.status)}
+      </span>
       <p>
         {statusName(p.status)} · {money(p.priceVnd)}
       </p>

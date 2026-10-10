@@ -33,6 +33,19 @@ it("accepts empty save responses", async () => {
     createRideApi({ baseUrl: "/api/v1" }).save("post", true),
   ).resolves.toBeUndefined();
 });
+it("loads a proposal detail using an encoded identifier", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValue(new Response("{}", { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await createRideApi({ baseUrl: "/api/v1" }).proposal("proposal/a");
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/v1/proposals/proposal%2Fa",
+    expect.objectContaining({ method: "GET", cache: "no-store" }),
+  );
+});
 it("surfaces conflict errors without treating stale data as success", async () => {
   vi.stubGlobal(
     "fetch",

@@ -3372,6 +3372,153 @@ a {
   line-height: 1.5;
   margin: 0.25rem 0 0;
 }
+.app-inline-link {
+  color: var(--app-green-700);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin-top: 0.8rem;
+  text-underline-offset: 0.2em;
+  width: fit-content;
+}
+.proposal-time-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.proposal-time-grid > div {
+  background: var(--app-green-50);
+  border: 1px solid #d8e9e0;
+  border-radius: 0.8rem;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem;
+}
+.proposal-time-grid small {
+  color: var(--app-muted);
+  font-size: 0.7rem;
+}
+.proposal-time-grid strong {
+  color: var(--app-ink);
+  font-size: 0.88rem;
+}
+.journey-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.journey-filter-bar button {
+  background: white;
+  border: 1px solid var(--app-line);
+  border-radius: 99px;
+  color: var(--app-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 750;
+  padding: 0.45rem 0.75rem;
+}
+.journey-filter-bar button:hover,
+.journey-filter-bar button.is-active {
+  background: var(--app-green-100);
+  border-color: #a9d9c0;
+  color: var(--app-green-900);
+}
+.booking-progress-card {
+  display: grid;
+  gap: 1.25rem !important;
+}
+.booking-timeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.booking-timeline li {
+  align-items: center;
+  color: var(--app-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  position: relative;
+  text-align: center;
+}
+.booking-timeline li::before {
+  background: var(--app-line);
+  content: "";
+  height: 2px;
+  left: -50%;
+  position: absolute;
+  right: 50%;
+  top: 0.85rem;
+}
+.booking-timeline li:first-child::before {
+  display: none;
+}
+.booking-timeline li > span {
+  align-items: center;
+  background: white;
+  border: 2px solid var(--app-line);
+  border-radius: 50%;
+  display: flex;
+  font-size: 0.68rem;
+  font-weight: 800;
+  height: 1.75rem;
+  justify-content: center;
+  position: relative;
+  width: 1.75rem;
+  z-index: 1;
+}
+.booking-timeline li.is-complete::before {
+  background: var(--app-green-600);
+}
+.booking-timeline li.is-complete > span {
+  background: var(--app-green-600);
+  border-color: var(--app-green-600);
+  color: white;
+}
+.booking-timeline small {
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+.booking-reason {
+  background: #fff9dc;
+  border: 1px solid #e8d177;
+  border-radius: 0.8rem;
+  color: #6d4c0c;
+  padding: 0.85rem 1rem;
+}
+.booking-reason p {
+  font-size: 0.78rem;
+  margin: 0.3rem 0 0;
+}
+.boarding-code-panel {
+  align-items: center;
+  background: var(--app-green-50);
+  border: 1px solid #cde5d8;
+  border-radius: 0.9rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto 1fr auto;
+  padding: 1rem;
+}
+.boarding-code-panel > svg {
+  color: var(--app-green-700);
+}
+.boarding-code-panel p {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  margin: 0.2rem 0 0;
+}
+.boarding-code-panel output {
+  color: var(--app-green-950);
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  margin-top: 0.55rem;
+}
 
 @media (max-width: 62rem) {
   .journey-detail-layout {
@@ -3392,6 +3539,33 @@ a {
   }
   .journey-action-row,
   .journey-action-row .app-button {
+    width: 100%;
+  }
+  .proposal-time-grid {
+    grid-template-columns: 1fr;
+  }
+  .booking-timeline {
+    gap: 0.65rem;
+    grid-template-columns: 1fr;
+  }
+  .booking-timeline li {
+    align-items: center;
+    flex-direction: row;
+    text-align: left;
+  }
+  .booking-timeline li::before {
+    bottom: 50%;
+    height: auto;
+    left: 0.85rem;
+    right: auto;
+    top: -50%;
+    width: 2px;
+  }
+  .boarding-code-panel {
+    grid-template-columns: auto 1fr;
+  }
+  .boarding-code-panel .app-button {
+    grid-column: 1 / -1;
     width: 100%;
   }
 }
