@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   CalendarClock,
   CarFront,
@@ -44,21 +45,49 @@ export function PostDetail({ id }: { id: string }) {
   const command = useRideCommand();
   useAuthFailure(post.error);
   return (
-    <main className="settings-page">
-      <h1>Chi tiết bài đăng</h1>
+    <main className="settings-page journey-detail-page">
+      <PageHeader
+        backHref="/feed"
+        backLabel="Quay lại bảng tin"
+        eyebrow="Nhu cầu di chuyển"
+        title="Chi tiết bài đăng"
+        description="Kiểm tra tuyến đường, khung giờ và trạng thái trước khi trao đổi với người đăng."
+      />
       <RideNav />
       {post.isPending ? (
-        <p>Đang tải…</p>
+        <LoadingState label="Đang tải chi tiết bài đăng" />
       ) : post.isError ? (
-        <p role="alert">{post.error.message}</p>
+        <ErrorState
+          title="Không tìm thấy bài đăng"
+          message={post.error.message}
+          onRetry={() => void post.refetch()}
+        />
       ) : (
         <>
+          <section className="post-owner-panel app-panel">
+            <div>
+              <span className="app-avatar" aria-hidden="true">
+                DK
+              </span>
+              <p>
+                <small>Người đăng</small>
+                <Link href={`/users/${encodeURIComponent(post.data.ownerId)}`}>
+                  Xem hồ sơ thành viên
+                </Link>
+              </p>
+            </div>
+            <span
+              className={`ride-status ride-status--${post.data.status.toLowerCase()}`}
+            >
+              {statusName(post.data.status)}
+            </span>
+          </section>
           <PostCard
             post={post.data}
             owner={post.data.ownerId === session.data?.user.id}
           />
-          <details className="settings-card">
-            <summary>Báo cáo bài đăng</summary>
+          <details className="settings-card report-disclosure">
+            <summary>Báo cáo nội dung không phù hợp</summary>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -69,7 +98,7 @@ export function PostDetail({ id }: { id: string }) {
                 });
               }}
             >
-              <label>
+              <label className="dike-field">
                 Lý do
                 <select
                   value={reason}
@@ -81,7 +110,7 @@ export function PostDetail({ id }: { id: string }) {
                   <option value="OTHER">Khác</option>
                 </select>
               </label>
-              <label>
+              <label className="dike-field">
                 Thông tin bổ sung
                 <textarea
                   maxLength={1000}
@@ -89,8 +118,11 @@ export function PostDetail({ id }: { id: string }) {
                   onChange={(event) => setNote(event.target.value)}
                 />
               </label>
-              <button disabled={command.isPending || command.isSuccess}>
-                Gửi báo cáo
+              <button
+                className="app-button app-button--danger"
+                disabled={command.isPending || command.isSuccess}
+              >
+                {command.isPending ? "Đang gửi…" : "Gửi báo cáo"}
               </button>
             </form>
             {command.isSuccess ? (

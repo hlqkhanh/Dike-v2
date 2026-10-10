@@ -67,8 +67,8 @@ test("creates a draft from an owned route before publishing", async ({
   await page.goto("/feed/new?route=route-1");
   await page.getByLabel("Có thể đi từ").fill("2026-10-08T08:00");
   await page.getByLabel("Cần đến trước").fill("2026-10-08T10:00");
-  await page.getByLabel("Ghi chú").fill("Đi cùng");
-  await page.getByRole("button", { name: "Lưu bản nháp để kiểm tra" }).click();
+  await page.getByLabel("Thông tin bổ sung").fill("Đi cùng");
+  await page.getByRole("button", { name: "Lưu và xem bản nháp" }).click();
   await expect(page).toHaveURL(/\/feed\/draft$/);
   await expect(
     page.getByRole("button", { name: "Đăng bài", exact: true }),

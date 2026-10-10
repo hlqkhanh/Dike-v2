@@ -25,6 +25,7 @@ import {
   MessageCircle,
   Plus,
   Route,
+  Search,
   Send,
   Sparkles,
   TicketCheck,
@@ -112,6 +113,8 @@ export function useRideCommand() {
 
 export function Feed() {
   const [tab, setTab] = useState("latest");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
   const list = useInfiniteQuery({
     queryKey: ["feed", tab],
     initialPageParam: undefined as string | undefined,
@@ -130,6 +133,21 @@ export function Feed() {
   });
   useAuthFailure(list.error);
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const visiblePosts = posts.filter((post) => {
+    const matchesRole =
+      roleFilter === "ALL" ||
+      (roleFilter === "PASSENGER"
+        ? post.type === "NEED_RIDE"
+        : post.type !== "NEED_RIDE");
+    const needle = search.trim().toLocaleLowerCase("vi");
+    return (
+      matchesRole &&
+      (!needle ||
+        `${post.originLabel} ${post.destinationLabel} ${post.note}`
+          .toLocaleLowerCase("vi")
+          .includes(needle))
+    );
+  });
   return (
     <main className="settings-page ride-feed-page">
       <PageHeader
@@ -160,6 +178,33 @@ export function Feed() {
           </button>
         ))}
       </nav>
+      <section className="feed-filter-bar" aria-label="Bộ lọc bài đăng">
+        <label>
+          <Search aria-hidden="true" size={17} />
+          <span className="sr-only">Tìm theo địa điểm</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm điểm đi hoặc điểm đến"
+          />
+        </label>
+        <div className="app-filter-tabs" role="group" aria-label="Vai trò">
+          {[
+            ["ALL", "Tất cả"],
+            ["PASSENGER", "Cần đi nhờ"],
+            ["DRIVER", "Có chỗ trống"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={roleFilter === value}
+              onClick={() => setRoleFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
       {list.isPending ? (
         <LoadingState label="Đang tải bài đăng" />
       ) : list.isError ? (
@@ -169,18 +214,22 @@ export function Feed() {
         />
       ) : (
         <>
-          {posts.length === 0 ? (
+          {visiblePosts.length === 0 ? (
             <EmptyState
               icon={Route}
               title={
-                tab === "latest"
-                  ? "Chưa có bài đăng để hiển thị."
-                  : "Chưa có nội dung trong mục này"
+                posts.length > 0
+                  ? "Không có bài đăng phù hợp"
+                  : tab === "latest"
+                    ? "Chưa có bài đăng để hiển thị."
+                    : "Chưa có nội dung trong mục này"
               }
               description={
-                tab === "latest"
-                  ? "Hãy đăng nhu cầu đầu tiên hoặc tạo một chuyến để cộng đồng có thể tìm thấy bạn."
-                  : "Thử chuyển sang Bảng tin mới nhất hoặc điều chỉnh kết nối của bạn."
+                posts.length > 0
+                  ? "Thử đổi vai trò hoặc từ khóa địa điểm."
+                  : tab === "latest"
+                    ? "Hãy đăng nhu cầu đầu tiên hoặc tạo một chuyến để cộng đồng có thể tìm thấy bạn."
+                    : "Thử chuyển sang Bảng tin mới nhất hoặc điều chỉnh kết nối của bạn."
               }
               action={
                 <Link className="app-button app-button--primary" href="/map">
@@ -192,7 +241,7 @@ export function Feed() {
           ) : null}
           <div className="feed-layout">
             <section className="feed-stream" aria-label="Danh sách bài đăng">
-              {posts.map((post) => (
+              {visiblePosts.map((post) => (
                 <PostCard
                   key={post.id}
                   post={post}

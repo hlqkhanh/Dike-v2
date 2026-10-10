@@ -51,16 +51,7 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
   }, [route]);
 
   return (
-    <div
-      style={{
-        height: "100%",
-        minHeight: "600px",
-        width: "100%",
-        borderRadius: "12px",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
+    <div className="dynamic-map">
       <MapContainer
         center={positions.length > 0 ? positions[0] : defaultCenter}
         zoom={15}

@@ -3237,6 +3237,300 @@ a {
   color: var(--app-muted);
 }
 
+/* Stage 19: route discovery and creation */
+.map-planner-layout {
+  align-items: stretch;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(19rem, 0.8fr) minmax(28rem, 1.4fr);
+}
+.map-planner-panel {
+  align-content: start;
+}
+.map-picker-stack {
+  position: relative;
+}
+.map-swap-button {
+  margin: 0.35rem 0 0.35rem 1rem;
+}
+.place-search-control {
+  align-items: center;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: auto 1fr auto;
+}
+.place-search-control > svg {
+  color: var(--app-green-700);
+}
+.place-search-control input {
+  min-width: 0;
+  width: 100%;
+}
+.place-selected {
+  color: var(--app-green-700);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0.4rem 0;
+}
+.place-suggestion-list {
+  border: 1px solid var(--app-border);
+  border-radius: 0.8rem;
+  list-style: none;
+  margin: 0.4rem 0 0.75rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 0.3rem;
+}
+.place-suggestion-list button {
+  background: transparent;
+  border: 0;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem;
+  text-align: left;
+  width: 100%;
+}
+.place-suggestion-list button:hover,
+.place-suggestion-list button:focus-visible {
+  background: #eff8f3;
+}
+.place-suggestion-list span {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+}
+.map-canvas-card {
+  min-height: 34rem;
+  overflow: hidden;
+  padding: 0 !important;
+  position: relative;
+}
+.dynamic-map,
+.dynamic-map .leaflet-container {
+  height: 100%;
+  min-height: 34rem;
+  width: 100%;
+}
+.map-empty-overlay {
+  background: rgb(255 255 255 / 92%);
+  border-radius: 1rem;
+  left: 50%;
+  padding: 1.25rem;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(18rem, 80%);
+  z-index: 500;
+}
+.map-empty-overlay h2 {
+  font-size: 1rem;
+  margin: 0.5rem 0 0.2rem;
+}
+.map-empty-overlay p {
+  margin: 0;
+}
+.route-result-card,
+.route-result-heading,
+.route-result-actions {
+  align-items: center;
+  display: flex !important;
+  justify-content: space-between;
+}
+.route-result-heading h2 {
+  margin-top: 0.2rem;
+}
+.route-result-stats {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+.route-result-stats > span {
+  background: #f5faf7;
+  border-radius: 0.8rem;
+  display: grid;
+  gap: 0.2rem;
+  grid-template-columns: auto 1fr;
+  padding: 0.8rem;
+}
+.route-result-stats strong {
+  grid-column: 2;
+}
+.route-result-actions {
+  gap: 0.65rem;
+  justify-content: flex-start;
+}
+.availability-active-card {
+  align-items: center;
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
+}
+.availability-pulse {
+  background: #22c55e;
+  border: 0.45rem solid #dcfce7;
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+}
+.availability-active-card p {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+}
+.availability-trip-list {
+  display: grid;
+  gap: 0.6rem;
+}
+.availability-trip-list label {
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+.availability-trip-list label.is-selected {
+  background: #eff8f3;
+  border-color: var(--app-green-600);
+}
+.availability-trip-list span {
+  display: grid;
+  gap: 0.25rem;
+}
+.availability-trip-list small,
+.availability-location p {
+  color: var(--app-muted);
+  margin: 0;
+}
+.availability-location {
+  align-items: center;
+  background: #f7f9f8;
+  border-radius: 0.8rem;
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+.create-route-required {
+  align-items: center;
+  min-height: 20rem;
+  text-align: center;
+}
+.post-route-preview {
+  align-items: center;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: auto 2rem auto 1fr;
+}
+.post-route-preview i {
+  border-top: 2px dashed var(--app-green-600);
+}
+.post-route-preview a {
+  justify-self: end;
+}
+.character-count {
+  color: var(--app-muted);
+  display: block;
+  text-align: right;
+}
+.create-flow-aside dl {
+  display: grid;
+  gap: 0.7rem;
+}
+.create-flow-aside dl div {
+  border-bottom: 1px solid var(--app-border);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+}
+.create-flow-aside dt {
+  color: var(--app-muted);
+}
+.post-owner-panel,
+.post-owner-panel > div,
+.post-owner-panel p {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+.post-owner-panel {
+  justify-content: space-between;
+}
+.post-owner-panel p {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+}
+.report-disclosure summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.feed-filter-bar {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+.feed-filter-bar > label {
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+}
+.feed-filter-bar input {
+  border: 0;
+  min-width: 15rem;
+  outline: 0;
+  padding: 0;
+}
+@media (max-width: 52rem) {
+  .map-planner-layout {
+    grid-template-columns: 1fr;
+  }
+  .map-canvas-card,
+  .dynamic-map,
+  .dynamic-map .leaflet-container {
+    min-height: 24rem;
+  }
+  .route-result-card,
+  .route-result-heading,
+  .route-result-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .route-result-stats {
+    grid-template-columns: 1fr;
+  }
+  .availability-active-card {
+    grid-template-columns: auto 1fr;
+  }
+  .availability-active-card > button {
+    grid-column: 1 / -1;
+  }
+  .post-route-preview {
+    grid-template-columns: 1fr;
+  }
+  .post-route-preview i {
+    min-width: 2rem;
+    width: 20%;
+  }
+  .post-route-preview a {
+    justify-self: start;
+  }
+  .feed-filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .feed-filter-bar input {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 /* Schedules */
 .schedule-card {
   align-content: start;
