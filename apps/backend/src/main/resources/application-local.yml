@@ -1,5 +1,7 @@
 dike:
   environment: local
+  demo:
+    seed-enabled: ${DIKE_DEMO_SEED_ENABLED:true}
   identity:
     simulated-full-access-enabled: ${DIKE_SIMULATED_FULL_ACCESS_ENABLED:true}
   migrations:

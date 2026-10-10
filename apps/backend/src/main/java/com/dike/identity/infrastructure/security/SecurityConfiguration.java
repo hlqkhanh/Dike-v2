@@ -104,6 +104,7 @@ public class SecurityConfiguration {
                         "/api/v1/me/**", "/api/v1/users/**", "/api/v1/users", "/api/v1/files/**")
                     .authenticated()
                     .requestMatchers(
+                        "/api/v1/demo/**",
                         "/api/v1/ride-posts/**",
                         "/api/v1/ride-post-sources/**",
                         "/api/v1/saved-posts/**",

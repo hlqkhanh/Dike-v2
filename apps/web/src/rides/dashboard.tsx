@@ -14,6 +14,28 @@ import type {
   RidePostView,
   TripView,
 } from "@dike/api-client-ts";
+import {
+  ArrowRight,
+  Bookmark,
+  CalendarClock,
+  CarFront,
+  Check,
+  Clock3,
+  Handshake,
+  MessageCircle,
+  Plus,
+  Route,
+  Send,
+  Sparkles,
+  TicketCheck,
+  Users,
+} from "lucide-react";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from "../../app/components/app-ui";
 import { authApi } from "../auth/api";
 import { useAuthFailure } from "../auth/use-auth-failure";
 import { rideApi } from "./api";
@@ -107,9 +129,20 @@ export function Feed() {
     retry: false,
   });
   useAuthFailure(list.error);
+  const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
   return (
-    <main className="settings-page">
-      <h1>Bảng tin di chuyển</h1>
+    <main className="settings-page ride-feed-page">
+      <PageHeader
+        eyebrow="Cộng đồng Diké"
+        title="Bảng tin di chuyển"
+        description="Tìm người đồng hành có lịch trình phù hợp, lưu chuyến bạn quan tâm và cùng nhau đi xanh hơn mỗi ngày."
+        actions={
+          <Link className="app-button app-button--primary" href="/map">
+            <Plus aria-hidden="true" size={18} />
+            Đăng nhu cầu
+          </Link>
+        }
+      />
       <RideNav />
       {caps.data && !caps.data.posting ? (
         <p role="status">{caps.data.message}</p>
@@ -128,26 +161,68 @@ export function Feed() {
         ))}
       </nav>
       {list.isPending ? (
-        <p>Đang tải bài đăng…</p>
+        <LoadingState label="Đang tải bài đăng" />
       ) : list.isError ? (
-        <p role="alert">{list.error.message}</p>
+        <ErrorState
+          message={list.error.message}
+          onRetry={() => void list.refetch()}
+        />
       ) : (
         <>
-          {list.data.pages.flatMap((page) => page.items).length === 0 ? (
-            <p>Chưa có bài đăng để hiển thị.</p>
+          {posts.length === 0 ? (
+            <EmptyState
+              icon={Route}
+              title={
+                tab === "latest"
+                  ? "Chưa có chuyến mới"
+                  : "Chưa có nội dung trong mục này"
+              }
+              description={
+                tab === "latest"
+                  ? "Hãy đăng nhu cầu đầu tiên hoặc tạo một chuyến để cộng đồng có thể tìm thấy bạn."
+                  : "Thử chuyển sang Bảng tin mới nhất hoặc điều chỉnh kết nối của bạn."
+              }
+              action={
+                <Link className="app-button app-button--primary" href="/map">
+                  <Plus aria-hidden="true" size={18} />
+                  Tạo nhu cầu đi lại
+                </Link>
+              }
+            />
           ) : null}
-          {list.data.pages
-            .flatMap((page) => page.items)
-            .map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                owner={session.data?.user.id === post.ownerId}
-                saved={tab === "saved"}
-              />
-            ))}
+          <div className="feed-layout">
+            <section className="feed-stream" aria-label="Danh sách bài đăng">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  owner={session.data?.user.id === post.ownerId}
+                  saved={tab === "saved"}
+                />
+              ))}
+            </section>
+            {posts.length > 0 ? (
+              <aside className="feed-aside" aria-label="Gợi ý di chuyển">
+                <div className="app-panel feed-tip-card">
+                  <span className="feed-tip-icon">
+                    <Sparkles aria-hidden="true" size={20} />
+                  </span>
+                  <h2>Đi cùng an tâm hơn</h2>
+                  <p>
+                    Ưu tiên thành viên đã xác minh và luôn kiểm tra điểm đón
+                    trước khi xác nhận.
+                  </p>
+                  <Link href="/verification">
+                    Xem cấp độ xác minh{" "}
+                    <ArrowRight aria-hidden="true" size={15} />
+                  </Link>
+                </div>
+              </aside>
+            ) : null}
+          </div>
           {list.hasNextPage ? (
             <button
+              className="app-button app-button--secondary feed-more"
               disabled={list.isFetchingNextPage}
               onClick={() => void list.fetchNextPage()}
             >
@@ -175,29 +250,67 @@ export function PostCard({
       run: (key) => rideApi.postAction(post.id, action, post.version, key),
     });
   return (
-    <article className="settings-card">
-      <h2>
-        <Link href={`/feed/${encodeURIComponent(post.id)}`}>
-          {post.originLabel} → {post.destinationLabel}
-        </Link>
-      </h2>
-      <p>
-        {post.type === "NEED_RIDE" ? "Cần đi nhờ" : "Có chỗ đi cùng"} ·{" "}
-        {statusName(post.status)}
-      </p>
-      <p>
-        {dateTime(post.departureAt)} ·{" "}
-        {post.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
-      </p>
+    <article className="settings-card ride-post-card">
+      <header className="ride-post-author">
+        <span className="app-avatar" aria-hidden="true">
+          DK
+        </span>
+        <div>
+          <strong>Thành viên Diké</strong>
+          <span>
+            <Clock3 aria-hidden="true" size={13} /> {dateTime(post.departureAt)}
+          </span>
+        </div>
+        <span
+          className={`ride-status ride-status--${post.status.toLowerCase()}`}
+        >
+          {statusName(post.status)}
+        </span>
+      </header>
+
+      <Link
+        className="ride-route-link"
+        href={`/feed/${encodeURIComponent(post.id)}`}
+      >
+        <span className="ride-route-visual" aria-hidden="true">
+          <i />
+          <b />
+          <i />
+        </span>
+        <span className="ride-route-copy">
+          <small>Điểm đón</small>
+          <strong>{post.originLabel}</strong>
+          <small>Điểm đến</small>
+          <strong>{post.destinationLabel}</strong>
+        </span>
+      </Link>
+
+      <div className="ride-meta-grid">
+        <span>
+          <CarFront aria-hidden="true" size={17} />{" "}
+          {post.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
+        </span>
+        <span>
+          <Users aria-hidden="true" size={17} />{" "}
+          {typeof post.remainingSeats === "number"
+            ? `Còn ${post.remainingSeats} chỗ`
+            : "Cần người đồng hành"}
+        </span>
+        <span>
+          <CalendarClock aria-hidden="true" size={17} />{" "}
+          {post.type === "NEED_RIDE" ? "Cần đi nhờ" : "Có chỗ đi cùng"}
+        </span>
+      </div>
+      {post.note ? <p className="ride-note">“{post.note}”</p> : null}
       {typeof post.remainingSeats === "number" ? (
-        <p>
-          Còn {post.remainingSeats} chỗ · {money(post.contributionPerKm ?? 0)}
-          /km
+        <p className="ride-price">
+          <strong>{money(post.contributionPerKm ?? 0)}</strong>
+          <span>/ km</span>
         </p>
       ) : null}
-      <p>{post.note}</p>
-      <div className="social-tabs">
+      <footer className="ride-card-actions">
         <button
+          className="ride-action-button"
           disabled={command.isPending}
           onClick={() =>
             command.mutate({
@@ -206,19 +319,40 @@ export function PostCard({
             })
           }
         >
-          {saved ? "Bỏ lưu" : "Lưu bài"}
+          <Bookmark
+            aria-hidden="true"
+            size={17}
+            fill={saved ? "currentColor" : "none"}
+          />
+          {saved ? "Đã lưu" : "Lưu bài"}
         </button>
+        <Link
+          className="ride-action-button"
+          href={`/feed/${encodeURIComponent(post.id)}`}
+        >
+          <MessageCircle aria-hidden="true" size={17} /> Trao đổi
+        </Link>
         {owner && post.status === "DRAFT" ? (
-          <button disabled={command.isPending} onClick={() => act("publish")}>
+          <button
+            className="ride-action-button ride-action-button--primary"
+            disabled={command.isPending}
+            onClick={() => act("publish")}
+          >
+            <Send aria-hidden="true" size={16} />
             Đăng bài
           </button>
         ) : null}
         {owner && ["DRAFT", "OPEN", "MATCHED"].includes(post.status) ? (
-          <button disabled={command.isPending} onClick={() => act("close")}>
+          <button
+            className="ride-action-button"
+            disabled={command.isPending}
+            onClick={() => act("close")}
+          >
+            <Check aria-hidden="true" size={16} />
             Đóng bài
           </button>
         ) : null}
-      </div>
+      </footer>
       {command.isError ? <p role="alert">{command.error.message}</p> : null}
       {command.isSuccess ? <p role="status">Đã cập nhật.</p> : null}
     </article>
@@ -248,30 +382,84 @@ export function RideDashboard({
     retry: false,
   });
   useAuthFailure(list.error);
+  const items = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const title = {
+    trips: "Chuyến của tôi",
+    proposals: "Đề nghị đi cùng",
+    bookings: "Booking của tôi",
+  }[kind];
   return (
-    <main className="settings-page">
-      <h1>
-        {
-          {
-            trips: "Chuyến của tôi",
-            proposals: "Đề nghị đi cùng",
-            bookings: "Booking của tôi",
-          }[kind]
+    <main className="settings-page ride-dashboard-page">
+      <PageHeader
+        eyebrow="Quản lý hành trình"
+        title={title}
+        description={
+          kind === "trips"
+            ? "Theo dõi các chuyến bạn tạo và tình trạng ghép chỗ."
+            : kind === "proposals"
+              ? "Xem và phản hồi các lời mời đi cùng đang chờ bạn."
+              : "Tất cả chuyến đã xác nhận, sẵn sàng cho ngày khởi hành."
         }
-      </h1>
+        actions={
+          kind === "trips" ? (
+            <Link className="app-button app-button--primary" href="/trips/new">
+              <Plus aria-hidden="true" size={18} /> Tạo chuyến
+            </Link>
+          ) : undefined
+        }
+      />
       <RideNav />
       {list.isPending ? (
-        <p>Đang tải…</p>
+        <LoadingState />
       ) : list.isError ? (
-        <p role="alert">{list.error.message}</p>
+        <ErrorState
+          message={list.error.message}
+          onRetry={() => void list.refetch()}
+        />
       ) : (
         <>
-          {list.data.pages.flatMap((p) => p.items).length === 0 ? (
-            <p>Chưa có dữ liệu.</p>
+          {items.length === 0 ? (
+            <EmptyState
+              icon={
+                kind === "trips"
+                  ? CarFront
+                  : kind === "proposals"
+                    ? Handshake
+                    : TicketCheck
+              }
+              title={
+                kind === "trips"
+                  ? "Bạn chưa có chuyến nào"
+                  : kind === "proposals"
+                    ? "Chưa có đề nghị mới"
+                    : "Chưa có booking nào"
+              }
+              description={
+                kind === "trips"
+                  ? "Tạo chuyến đầu tiên, chọn lộ trình và số chỗ trống để bắt đầu ghép bạn đồng hành."
+                  : "Khi có hoạt động mới, thông tin sẽ xuất hiện tại đây để bạn xử lý."
+              }
+              action={
+                kind === "trips" ? (
+                  <Link
+                    className="app-button app-button--primary"
+                    href="/trips/new"
+                  >
+                    <Plus aria-hidden="true" size={18} /> Tạo chuyến đầu tiên
+                  </Link>
+                ) : (
+                  <Link
+                    className="app-button app-button--secondary"
+                    href="/feed"
+                  >
+                    Khám phá bảng tin
+                  </Link>
+                )
+              }
+            />
           ) : null}
-          {list.data.pages
-            .flatMap((p) => p.items)
-            .map((item) =>
+          <div className="ride-dashboard-grid">
+            {items.map((item) =>
               "senderId" in item ? (
                 <ProposalCard
                   key={item.id}
@@ -279,7 +467,13 @@ export function RideDashboard({
                   userId={session.data?.user.id}
                 />
               ) : "passengerId" in item ? (
-                <article className="settings-card" key={item.id}>
+                <article
+                  className="settings-card ride-summary-card"
+                  key={item.id}
+                >
+                  <span className="ride-summary-icon">
+                    <TicketCheck aria-hidden="true" size={20} />
+                  </span>
                   <h2>
                     <Link href={`/bookings/${encodeURIComponent(item.id)}`}>
                       Chuyến lúc {dateTime(item.pickupAt)}
@@ -290,7 +484,13 @@ export function RideDashboard({
                   </p>
                 </article>
               ) : (
-                <article className="settings-card" key={item.id}>
+                <article
+                  className="settings-card ride-summary-card"
+                  key={item.id}
+                >
+                  <span className="ride-summary-icon">
+                    <Route aria-hidden="true" size={20} />
+                  </span>
                   <h2>
                     <Link href={`/trips/${encodeURIComponent(item.id)}`}>
                       {item.originLabel} → {item.destinationLabel}
@@ -304,6 +504,7 @@ export function RideDashboard({
                 </article>
               ),
             )}
+          </div>
           {list.hasNextPage ? (
             <button
               disabled={list.isFetchingNextPage}
@@ -335,7 +536,10 @@ function ProposalCard({
           : rideApi.decide(p.id, action, p.version, key),
     });
   return (
-    <article className="settings-card">
+    <article className="settings-card ride-summary-card proposal-card">
+      <span className="ride-summary-icon">
+        <Handshake aria-hidden="true" size={20} />
+      </span>
       <h2>{recipient ? "Đề nghị đến" : "Đề nghị đã gửi"}</h2>
       <p>
         {statusName(p.status)} · {money(p.priceVnd)}

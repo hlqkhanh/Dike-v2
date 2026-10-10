@@ -2,8 +2,21 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import {
+  CalendarDays,
+  CalendarPlus,
+  Clock3,
+  MapPin,
+  Route,
+} from "lucide-react";
 
 import { scheduleApi } from "../../src/schedules/api";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from "../components/app-ui";
 
 export default function SchedulesPage() {
   const schedules = useQuery({
@@ -20,24 +33,48 @@ export default function SchedulesPage() {
   });
 
   return (
-    <main className="settings-page">
-      <p className="eyebrow">Kế hoạch di chuyển</p>
-      <h1>Lịch trình của tôi</h1>
-      <Link className="stage-badge stage-badge--cta" href="/schedules/new">
-        Tạo lịch trình
-      </Link>
-      {schedules.isPending ? <p role="status">Đang tải lịch…</p> : null}
+    <main className="settings-page schedules-page">
+      <PageHeader
+        eyebrow="Kế hoạch di chuyển"
+        title="Lịch trình của tôi"
+        description="Lưu lịch đi lại thường xuyên để Diké chủ động gợi ý chuyến phù hợp trong 14 ngày tới."
+        actions={
+          <Link
+            className="app-button app-button--primary"
+            href="/schedules/new"
+          >
+            <CalendarPlus aria-hidden="true" size={18} /> Tạo lịch trình
+          </Link>
+        }
+      />
+      {schedules.isPending ? <LoadingState label="Đang tải lịch" /> : null}
       {schedules.isError ? (
-        <p role="alert">Không thể tải lịch. Hãy thử lại.</p>
+        <ErrorState
+          message="Không thể tải lịch. Hãy thử lại."
+          onRetry={() => void schedules.refetch()}
+        />
       ) : null}
       {schedules.data?.length === 0 ? (
-        <p>
-          Chưa có lịch trình. Tạo lịch để Dike sinh nhu cầu di chuyển phù hợp.
-        </p>
+        <EmptyState
+          icon={CalendarDays}
+          title="Chưa có lịch trình"
+          description="Tạo lịch đi làm, đi học hoặc hoạt động hằng tuần để Diké tìm người đi cùng phù hợp."
+          action={
+            <Link
+              className="app-button app-button--primary"
+              href="/schedules/new"
+            >
+              <CalendarPlus aria-hidden="true" size={18} /> Tạo lịch đầu tiên
+            </Link>
+          }
+        />
       ) : null}
-      <div className="verification-grid">
+      <div className="schedule-grid">
         {schedules.data?.map((schedule) => (
-          <article className="settings-card" key={schedule.id}>
+          <article className="settings-card schedule-card" key={schedule.id}>
+            <span className="schedule-icon">
+              <CalendarDays aria-hidden="true" size={21} />
+            </span>
             <span className="status-pill status-pill--neutral">
               {schedule.status}
             </span>
@@ -46,37 +83,62 @@ export default function SchedulesPage() {
                 {schedule.name}
               </Link>
             </h2>
-            <p>
+            <p className="schedule-meta">
+              <Clock3 aria-hidden="true" size={16} />
               {schedule.weekdays.join(", ")} · {schedule.startLocalTime}–
               {schedule.endLocalTime}
             </p>
-            <p>
+            <p className="schedule-meta">
+              <MapPin aria-hidden="true" size={16} />
               {schedule.usualOrigin.displayLabel} →{" "}
               {schedule.activityPlace.displayLabel}
             </p>
           </article>
         ))}
       </div>
-      <h2>Nhu cầu 14 ngày tới</h2>
-      {intents.isPending ? <p role="status">Đang tải nhu cầu…</p> : null}
-      {intents.isError ? (
-        <p role="alert">Không thể tải nhu cầu di chuyển.</p>
-      ) : null}
-      {intents.data?.length === 0 ? (
-        <p>Chưa có nhu cầu nào được sinh.</p>
-      ) : null}
-      {intents.data?.map((intent) => (
-        <article className="settings-card" key={intent.id}>
-          <h3>
-            <Link href={`/travel-intents/${encodeURIComponent(intent.id)}`}>
-              {intent.origin.displayLabel} → {intent.destination.displayLabel}
-            </Link>
-          </h3>
-          <p>
-            {intent.localDate} · {intent.direction} · {intent.commitmentState}
-          </p>
-        </article>
-      ))}
+      <section className="upcoming-intents">
+        <div className="section-heading">
+          <div>
+            <p className="app-eyebrow">Tự động đề xuất</p>
+            <h2>Nhu cầu 14 ngày tới</h2>
+          </div>
+          <span>{intents.data?.length ?? 0} lịch dự kiến</span>
+        </div>
+        {intents.isPending ? <LoadingState label="Đang tải nhu cầu" /> : null}
+        {intents.isError ? (
+          <ErrorState
+            message="Không thể tải nhu cầu di chuyển."
+            onRetry={() => void intents.refetch()}
+          />
+        ) : null}
+        {intents.data?.length === 0 ? (
+          <EmptyState
+            icon={Route}
+            title="Chưa có nhu cầu được sinh"
+            description="Các hành trình dự kiến sẽ xuất hiện sau khi lịch trình của bạn được kích hoạt."
+          />
+        ) : null}
+        {intents.data?.map((intent) => (
+          <article className="settings-card intent-row" key={intent.id}>
+            <span className="intent-date">
+              <strong>{new Date(intent.localDate).getDate()}</strong>
+              <small>Tháng {new Date(intent.localDate).getMonth() + 1}</small>
+            </span>
+            <div>
+              <h3>
+                <Link href={`/travel-intents/${encodeURIComponent(intent.id)}`}>
+                  {intent.origin.displayLabel} →{" "}
+                  {intent.destination.displayLabel}
+                </Link>
+              </h3>
+              <p>
+                {intent.localDate} · {intent.direction} ·{" "}
+                {intent.commitmentState}
+              </p>
+            </div>
+          </article>
+        ))}
+      </section>
     </main>
   );
 }

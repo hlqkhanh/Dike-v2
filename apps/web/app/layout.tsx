@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { Providers } from "./providers";
 import { ServiceWorkerRegistration } from "./service-worker-registration";
+import { AppShell } from "./components/app-shell";
 
 export const metadata: Metadata = {
   title: "DIKÉ SHARE — Chuyến đi xanh của bạn",
@@ -24,7 +25,9 @@ export default function RootLayout({
           Chuyển đến nội dung chính
         </a>
         <div id="main-content" tabIndex={-1}>
-          <Providers>{children}</Providers>
+          <Providers>
+            <AppShell>{children}</AppShell>
+          </Providers>
         </div>
         <ServiceWorkerRegistration />
       </body>
