@@ -4,6 +4,7 @@ import { Card } from "@dike/web-ui";
 import { useQuery } from "@tanstack/react-query";
 
 import { authApi } from "../../src/auth/api";
+import { ErrorState, LoadingState, PageHeader } from "../components/app-ui";
 
 export default function VerificationPage() {
   const session = useQuery({
@@ -15,14 +16,17 @@ export default function VerificationPage() {
   if (session.isPending) {
     return (
       <main className="settings-page">
-        <p role="status">Đang tải trạng thái tài khoản…</p>
+        <LoadingState label="Đang tải trạng thái tài khoản" />
       </main>
     );
   }
   if (session.isError || !session.data) {
     return (
       <main className="settings-page">
-        <p role="alert">Không thể tải trạng thái. Vui lòng thử lại.</p>
+        <ErrorState
+          message="Không thể tải trạng thái tài khoản."
+          onRetry={() => void session.refetch()}
+        />
       </main>
     );
   }
@@ -31,11 +35,11 @@ export default function VerificationPage() {
   const simulated = user.accessMode === "SIMULATED";
   return (
     <main className="settings-page">
-      <p className="eyebrow">Minh bạch trạng thái</p>
-      <h1>Xác minh và quyền truy cập</h1>
-      <p>
-        Trạng thái tài khoản của <strong>{user.displayName}</strong>
-      </p>
+      <PageHeader
+        eyebrow="Minh bạch trạng thái"
+        title="Xác minh và quyền truy cập"
+        description={`Trạng thái tài khoản của ${user.displayName}`}
+      />
       {simulated ? (
         <p className="simulation-notice" role="status">
           Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này

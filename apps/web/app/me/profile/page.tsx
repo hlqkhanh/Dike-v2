@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
+import { ErrorState, LoadingState, PageHeader } from "../../components/app-ui";
 
 const schema = z.object({
   displayName: z.string().trim().min(2).max(80),
@@ -80,19 +81,28 @@ export default function MyProfilePage() {
   useAuthFailure(upload.error);
 
   if (profile.isPending)
-    return <p className="settings-state">Đang tải hồ sơ…</p>;
+    return (
+      <main className="settings-page">
+        <LoadingState label="Đang tải hồ sơ" />
+      </main>
+    );
   if (profile.isError)
-    return <p className="settings-state auth-error">Không thể tải hồ sơ.</p>;
+    return (
+      <main className="settings-page">
+        <ErrorState
+          message={profile.error.message}
+          onRetry={() => void profile.refetch()}
+        />
+      </main>
+    );
 
   return (
     <main className="settings-page">
-      <header>
-        <p className="eyebrow">Tài khoản</p>
-        <h1>Hồ sơ của bạn</h1>
-        <p className="settings-copy">
-          Tên và giới thiệu này được hiển thị theo quyền riêng tư bạn chọn.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Tài khoản"
+        title="Hồ sơ của bạn"
+        description="Tên và giới thiệu này được hiển thị theo quyền riêng tư bạn chọn."
+      />
       <Card className="settings-card">
         <div className="avatar-row">
           {profile.data.avatarUrl ? (

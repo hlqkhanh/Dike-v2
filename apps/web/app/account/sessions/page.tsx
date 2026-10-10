@@ -1,75 +1,113 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Status } from "@dike/web-ui";
 import { useRouter } from "next/navigation";
-
+import { Laptop, LogOut, ShieldCheck } from "lucide-react";
 import { authApi } from "../../../src/auth/api";
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+} from "../../components/app-ui";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const client = useQueryClient();
   const sessions = useQuery({
     queryKey: ["auth", "sessions"],
     queryFn: authApi.sessions,
   });
   const revoke = useMutation({
     mutationFn: authApi.revoke,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth"] }),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: ["auth", "sessions"] }),
   });
   const logoutAll = useMutation({
     mutationFn: authApi.logoutAll,
     onSuccess: () => {
-      queryClient.clear();
+      client.clear();
       router.replace("/login");
     },
   });
   useAuthFailure(sessions.error ?? revoke.error ?? logoutAll.error);
-
   return (
-    <main className="shell auth-management">
-      <div>
-        <p className="eyebrow">Bảo mật tài khoản</p>
-        <h1>Các thiết bị đã đăng nhập</h1>
-      </div>
-      {sessions.isLoading ? <p aria-live="polite">Đang tải phiên…</p> : null}
-      {sessions.isError ? (
+    <main className="settings-page auth-management">
+      <PageHeader
+        eyebrow="Bảo mật tài khoản"
+        title="Các thiết bị đã đăng nhập"
+        description="Kiểm tra hoạt động gần nhất và thu hồi những phiên bạn không nhận ra."
+        actions={
+          <button
+            className="app-button app-button--secondary"
+            type="button"
+            disabled={logoutAll.isPending}
+            onClick={() => logoutAll.mutate()}
+          >
+            <LogOut aria-hidden="true" size={17} /> Đăng xuất tất cả
+          </button>
+        }
+      />
+      {sessions.isPending ? (
+        <LoadingState label="Đang tải các phiên" />
+      ) : sessions.isError ? (
+        <ErrorState
+          message={sessions.error.message}
+          onRetry={() => void sessions.refetch()}
+        />
+      ) : sessions.data.sessions.length === 0 ? (
+        <EmptyState
+          icon={Laptop}
+          title="Không có phiên hoạt động"
+          description="Các thiết bị đã đăng nhập sẽ xuất hiện tại đây."
+        />
+      ) : (
+        <div className="session-list">
+          {sessions.data.sessions.map((session) => (
+            <article className="settings-card session-card" key={session.id}>
+              <span className="session-device-icon">
+                <Laptop aria-hidden="true" size={22} />
+              </span>
+              <div>
+                <div className="session-heading">
+                  <strong>{session.deviceLabel}</strong>
+                  {session.current ? (
+                    <span className="status-pill status-pill--success">
+                      <ShieldCheck aria-hidden="true" size={14} /> Thiết bị này
+                    </span>
+                  ) : null}
+                </div>
+                <p>
+                  Hoạt động gần nhất:{" "}
+                  <time dateTime={session.lastSeenAt}>
+                    {new Date(session.lastSeenAt).toLocaleString("vi-VN")}
+                  </time>
+                </p>
+                <small>
+                  Hết hạn:{" "}
+                  {new Date(session.absoluteExpiresAt).toLocaleString("vi-VN")}
+                </small>
+              </div>
+              {!session.current ? (
+                <button
+                  className="app-button app-button--secondary"
+                  type="button"
+                  disabled={revoke.isPending}
+                  onClick={() => revoke.mutate(session.id)}
+                >
+                  Đăng xuất
+                </button>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      )}
+      {revoke.isError || logoutAll.isError ? (
         <p className="auth-error" role="alert">
-          Không thể tải danh sách phiên.
+          Không thể cập nhật phiên đăng nhập. Vui lòng thử lại.
         </p>
       ) : null}
-      <div className="session-list">
-        {sessions.data?.sessions.map((session) => (
-          <Card key={session.id}>
-            <div className="session-heading">
-              <strong>{session.deviceLabel}</strong>
-              {session.current ? (
-                <Status tone="success">Thiết bị này</Status>
-              ) : null}
-            </div>
-            <p>
-              Hoạt động gần nhất:{" "}
-              {new Date(session.lastSeenAt).toLocaleString("vi-VN")}
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={revoke.isPending}
-              onClick={() => revoke.mutate(session.id)}
-            >
-              Đăng xuất thiết bị
-            </Button>
-          </Card>
-        ))}
-      </div>
-      <Button
-        type="button"
-        disabled={logoutAll.isPending}
-        onClick={() => logoutAll.mutate()}
-      >
-        Đăng xuất tất cả thiết bị
-      </Button>
     </main>
   );
 }

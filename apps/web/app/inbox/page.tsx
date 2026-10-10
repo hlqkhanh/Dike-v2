@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, MessageCircle, Plus, Search, Users } from "lucide-react";
 import { journeyApi } from "../../src/journey/api";
 import {
@@ -12,14 +12,24 @@ import {
   PageHeader,
 } from "../components/app-ui";
 
+type Filter = "ALL" | "UNREAD" | "BOOKING" | "DIRECT";
+const filters: Array<[Filter, string]> = [
+  ["ALL", "Tất cả"],
+  ["UNREAD", "Chưa đọc"],
+  ["BOOKING", "Chuyến đi"],
+  ["DIRECT", "Trực tiếp"],
+];
+
 export default function InboxPage() {
   const client = useQueryClient();
+  const [recipient, setRecipient] = useState("");
+  const [filter, setFilter] = useState<Filter>("ALL");
+  const [search, setSearch] = useState("");
   const conversations = useQuery({
     queryKey: ["conversations"],
     queryFn: journeyApi.conversations,
     refetchInterval: 15000,
   });
-  const [recipient, setRecipient] = useState("");
   const create = useMutation({
     mutationFn: () => journeyApi.direct(recipient.trim()),
     onSuccess: async () => {
@@ -27,6 +37,25 @@ export default function InboxPage() {
       await client.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
+  const visible = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return [...(conversations.data ?? [])]
+      .filter(
+        (item) =>
+          filter === "ALL" ||
+          (filter === "UNREAD" ? item.unreadCount > 0 : item.type === filter),
+      )
+      .filter(
+        (item) =>
+          !needle ||
+          `${item.id} ${item.bookingId ?? ""} ${item.state}`
+            .toLowerCase()
+            .includes(needle),
+      )
+      .sort((a, b) =>
+        (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""),
+      );
+  }, [conversations.data, filter, search]);
   return (
     <main className="settings-page inbox-page">
       <PageHeader
@@ -66,7 +95,11 @@ export default function InboxPage() {
               Tiếp tục <ArrowRight aria-hidden="true" size={17} />
             </button>
           </form>
-          {create.isError ? <p role="alert">{create.error.message}</p> : null}
+          {create.isError ? (
+            <p className="auth-error" role="alert">
+              {create.error.message}
+            </p>
+          ) : null}
         </section>
         <section className="inbox-list" aria-label="Danh sách hội thoại">
           <div className="inbox-list-heading">
@@ -74,13 +107,27 @@ export default function InboxPage() {
               <h2>Hội thoại gần đây</h2>
               <p>Cập nhật tự động mỗi 15 giây</p>
             </div>
-            <button
-              className="app-icon-button"
-              type="button"
-              aria-label="Tìm hội thoại"
-            >
-              <Search aria-hidden="true" size={18} />
-            </button>
+            <label className="inbox-search">
+              <Search aria-hidden="true" size={17} />
+              <span className="sr-only">Tìm hội thoại</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm theo mã"
+              />
+            </label>
+          </div>
+          <div className="app-filter-tabs" aria-label="Lọc hội thoại">
+            {filters.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={filter === value}
+                onClick={() => setFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           {conversations.isPending ? (
             <LoadingState />
@@ -89,14 +136,22 @@ export default function InboxPage() {
               message={conversations.error.message}
               onRetry={() => void conversations.refetch()}
             />
-          ) : conversations.data.length === 0 ? (
+          ) : visible.length === 0 ? (
             <EmptyState
               icon={MessageCircle}
-              title="Chưa có cuộc trò chuyện"
-              description="Khi bạn kết nối với một chuyến đi hoặc nhắn cho thành viên, hội thoại sẽ xuất hiện tại đây."
+              title={
+                conversations.data.length
+                  ? "Không có hội thoại phù hợp"
+                  : "Chưa có cuộc trò chuyện"
+              }
+              description={
+                conversations.data.length
+                  ? "Thử đổi bộ lọc hoặc từ khóa tìm kiếm."
+                  : "Khi bạn kết nối với một chuyến đi hoặc nhắn cho thành viên, hội thoại sẽ xuất hiện tại đây."
+              }
             />
           ) : (
-            conversations.data.map((conversation) => (
+            visible.map((conversation) => (
               <article
                 className={`settings-card conversation-card${conversation.unreadCount ? " is-unread" : ""}`}
                 key={conversation.id}
@@ -122,6 +177,13 @@ export default function InboxPage() {
                 </div>
                 <div className="conversation-card-meta">
                   <small>{conversation.state}</small>
+                  {conversation.lastMessageAt ? (
+                    <time dateTime={conversation.lastMessageAt}>
+                      {new Date(conversation.lastMessageAt).toLocaleDateString(
+                        "vi-VN",
+                      )}
+                    </time>
+                  ) : null}
                   {conversation.unreadCount ? (
                     <strong
                       aria-label={`${conversation.unreadCount} tin chưa đọc`}

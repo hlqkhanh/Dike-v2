@@ -9,6 +9,7 @@ import { authApi } from "../../../src/auth/api";
 import { onboardingDestination } from "../../../src/auth/onboarding-destination";
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
+import { ErrorState, LoadingState, PageHeader } from "../../components/app-ui";
 
 const labels: Record<string, string> = {
   TERMS: "Điều khoản sử dụng",
@@ -64,19 +65,19 @@ export default function ConsentPage() {
 
   return (
     <main className="settings-page">
-      <header>
-        <p className="eyebrow">Minh bạch</p>
-        <h1>Đồng ý và tài liệu</h1>
-        <p className="settings-copy">
-          Mỗi quyết định được ghi thành receipt riêng theo đúng phiên bản tài
-          liệu.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Minh bạch"
+        title="Đồng ý và tài liệu"
+        description="Mỗi quyết định được lưu theo đúng phiên bản tài liệu để bạn có thể kiểm tra lại."
+      />
       <div className="settings-grid">
         {summary.isPending ? (
-          <p>Đang tải…</p>
+          <LoadingState label="Đang tải tài liệu đồng ý" />
         ) : summary.isError ? (
-          <p className="auth-error">Không thể tải trạng thái đồng ý.</p>
+          <ErrorState
+            message={summary.error.message}
+            onRetry={() => void summary.refetch()}
+          />
         ) : (
           summary.data.requirements.map((requirement) => (
             <Card

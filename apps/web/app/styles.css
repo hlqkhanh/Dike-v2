@@ -2976,6 +2976,42 @@ a {
   font-size: 0.75rem;
   margin: 0.2rem 0 0;
 }
+.inbox-search {
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+}
+.inbox-search input {
+  border: 0;
+  min-width: 8rem;
+  outline: 0;
+  padding: 0;
+  width: 9rem;
+}
+.app-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.app-filter-tabs button {
+  background: white;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.42rem 0.75rem;
+}
+.app-filter-tabs button[aria-pressed="true"] {
+  background: var(--app-green-700);
+  border-color: var(--app-green-700);
+  color: white;
+}
 
 .conversation-card {
   align-items: center;
@@ -3004,6 +3040,10 @@ a {
   color: var(--app-muted);
   font-size: 0.68rem;
 }
+.conversation-card-meta time {
+  color: var(--app-muted);
+  font-size: 0.65rem;
+}
 .conversation-card-meta strong {
   align-items: center;
   background: var(--app-green-700);
@@ -3030,6 +3070,19 @@ a {
   display: flex;
   gap: 0.65rem;
   max-width: 78%;
+}
+.message-row.is-own {
+  align-self: end;
+  flex-direction: row-reverse;
+}
+.message-row.is-own .message-bubble {
+  background: var(--app-green-700);
+  border-radius: 0.9rem 0.3rem 0.9rem 0.9rem;
+}
+.message-row.is-own .message-bubble strong,
+.message-row.is-own .message-bubble p,
+.message-row.is-own .message-bubble small {
+  color: white !important;
 }
 .message-bubble {
   background: #f2f8f5;
@@ -3074,7 +3127,7 @@ a {
   align-items: center;
   display: grid !important;
   gap: 0.55rem !important;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: 1fr auto;
   padding: 0.75rem !important;
 }
 .message-tools {
@@ -3085,11 +3138,29 @@ a {
   min-height: 2.8rem;
   width: 100%;
 }
+.message-input small {
+  color: var(--app-muted);
+  display: block;
+  font-size: 0.65rem;
+  text-align: right;
+}
 
 /* Notifications */
 .notification-list {
   display: grid;
   gap: 0.65rem;
+}
+.notification-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.notification-main {
+  align-items: start;
+  color: inherit !important;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto 1fr;
+  text-decoration: none !important;
 }
 .notification-date-label {
   color: var(--app-muted);
@@ -3126,6 +3197,39 @@ a {
   height: 0.55rem;
   margin-top: 0.3rem;
   width: 0.55rem;
+}
+.public-profile-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.public-profile-copy .eyebrow {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+.session-card {
+  align-items: center;
+  display: grid !important;
+  gap: 0.9rem !important;
+  grid-template-columns: auto 1fr auto;
+}
+.session-device-icon {
+  align-items: center;
+  background: #eef7f2;
+  border-radius: 0.8rem;
+  color: var(--app-green-700);
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+.session-card p {
+  margin: 0.35rem 0 !important;
+}
+.session-card small {
+  color: var(--app-muted);
 }
 
 /* Schedules */

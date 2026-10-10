@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
+import { LoadingState, PageHeader } from "../../components/app-ui";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -29,16 +30,15 @@ export default function AccountSettingsPage() {
 
   return (
     <main className="settings-page">
-      <header>
-        <p className="eyebrow">Tài khoản</p>
-        <h1>Xóa tài khoản</h1>
-        <p className="settings-copy">
-          Yêu cầu được xử lý bất đồng bộ sau thời gian chờ. Backup có thể tuân
-          theo retention riêng.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Tài khoản"
+        title="Xóa tài khoản"
+        description="Xem kỹ thời gian chờ và ảnh hưởng trước khi gửi yêu cầu xóa dữ liệu."
+      />
       <Card className="settings-card danger-card">
-        {deletion.data ? (
+        {deletion.isPending ? (
+          <LoadingState label="Đang kiểm tra yêu cầu xóa" />
+        ) : deletion.data ? (
           <>
             <h2>Yêu cầu đang được xử lý</h2>
             <p>

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
+import { ErrorState, LoadingState, PageHeader } from "../../components/app-ui";
 
 export default function PrivacyPage() {
   const client = useQueryClient();
@@ -36,18 +37,19 @@ export default function PrivacyPage() {
 
   return (
     <main className="settings-page">
-      <header>
-        <p className="eyebrow">Cài đặt</p>
-        <h1>Quyền riêng tư</h1>
-        <p className="settings-copy">
-          Các lựa chọn này được backend kiểm tra trên mỗi lần đọc.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Cài đặt"
+        title="Quyền riêng tư"
+        description="Kiểm soát ai có thể tìm thấy, xem hồ sơ và gửi yêu cầu nhắn tin cho bạn."
+      />
       <Card className="settings-card">
         {privacy.isPending ? (
-          <p>Đang tải…</p>
+          <LoadingState label="Đang tải quyền riêng tư" />
         ) : privacy.isError ? (
-          <p className="auth-error">Không thể tải cài đặt.</p>
+          <ErrorState
+            message={privacy.error.message}
+            onRetry={() => void privacy.refetch()}
+          />
         ) : (
           <form
             onSubmit={(event) => {
