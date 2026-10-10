@@ -3201,6 +3201,201 @@ a {
   margin: 0.25rem 0 0;
 }
 
+/* Journey details */
+.journey-detail-layout {
+  align-items: start;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1.7fr) minmax(17rem, 0.8fr);
+}
+.journey-detail-main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.journey-route-card {
+  display: grid;
+  gap: 1.35rem !important;
+}
+.journey-card-heading {
+  align-items: start;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto 1fr auto;
+}
+.journey-card-heading .app-eyebrow {
+  margin-bottom: 0.3rem;
+}
+.journey-card-heading h2 {
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  line-height: 1.35;
+}
+.journey-heading-icon {
+  align-items: center;
+  background: var(--app-green-100);
+  border-radius: 0.75rem;
+  color: var(--app-green-700);
+  display: inline-flex;
+  height: 2.65rem;
+  justify-content: center;
+  width: 2.65rem;
+}
+.journey-route-line {
+  background: linear-gradient(135deg, #f4fbf7, #fbfdfc);
+  border: 1px solid #d8e9e0;
+  border-radius: 0.9rem;
+  display: grid;
+  gap: 0.15rem 0.75rem;
+  grid-template-columns: 1rem 1fr;
+  padding: 1rem;
+}
+.journey-route-line > span {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.journey-route-line > span:first-child::after {
+  border-left: 2px dashed #9bcab2;
+  content: "";
+  height: calc(100% + 0.7rem);
+  left: 50%;
+  position: absolute;
+  top: 0.75rem;
+}
+.journey-route-line i {
+  background: white;
+  border: 3px solid var(--app-green-700);
+  border-radius: 50%;
+  height: 0.75rem;
+  margin-top: 0.25rem;
+  position: relative;
+  width: 0.75rem;
+  z-index: 1;
+}
+.journey-route-line > span:nth-of-type(2) i {
+  border-color: #f59e0b;
+}
+.journey-route-line div {
+  display: grid;
+  gap: 0.12rem;
+  padding-bottom: 0.75rem;
+}
+.journey-route-line div:last-child {
+  padding-bottom: 0;
+}
+.journey-route-line small,
+.journey-fact-list dt {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+}
+.journey-route-line strong {
+  color: var(--app-ink);
+  font-size: 0.92rem;
+}
+.journey-facts-card {
+  position: sticky;
+  top: 6rem;
+}
+.journey-facts-card > h2 {
+  font-size: 1.05rem;
+  margin-bottom: 1rem !important;
+}
+.journey-fact-list {
+  display: grid;
+  margin: 0;
+}
+.journey-fact-list > div {
+  border-top: 1px solid var(--app-line);
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 0;
+}
+.journey-fact-list > div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.journey-fact-list dt {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+}
+.journey-fact-list dt svg {
+  color: var(--app-green-700);
+}
+.journey-fact-list dd {
+  color: var(--app-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0;
+}
+.journey-actions-card {
+  display: grid;
+  gap: 0.9rem !important;
+}
+.journey-actions-card label {
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 700;
+  gap: 0.45rem;
+}
+.journey-actions-card textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+.journey-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.journey-section-copy {
+  color: var(--app-muted);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  margin: 0;
+}
+.schedule-conflict-notice {
+  align-items: start;
+  background: #fff9dc;
+  border: 1px solid #e8d177;
+  border-radius: 1rem;
+  color: #6d4c0c;
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+}
+.schedule-conflict-notice svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+.schedule-conflict-notice p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 62rem) {
+  .journey-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .journey-facts-card {
+    position: static;
+  }
+}
+
+@media (max-width: 38rem) {
+  .journey-card-heading {
+    grid-template-columns: auto 1fr;
+  }
+  .journey-card-heading .ride-status,
+  .journey-card-heading .status-pill {
+    grid-column: 1 / -1;
+  }
+  .journey-action-row,
+  .journey-action-row .app-button {
+    width: 100%;
+  }
+}
+
 /* Admin */
 .admin-stats {
   display: grid;
