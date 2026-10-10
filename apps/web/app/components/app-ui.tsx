@@ -75,9 +75,11 @@ export function LoadingState({
 }
 
 export function ErrorState({
+  title = "Chưa thể tải nội dung",
   message,
   onRetry,
 }: {
+  title?: string;
   message: string;
   onRetry?: () => void;
 }) {
@@ -85,7 +87,7 @@ export function ErrorState({
     <div className="app-error-state" role="alert">
       <Sparkles aria-hidden="true" size={22} />
       <div>
-        <strong>Chưa thể tải nội dung</strong>
+        <h2>{title}</h2>
         <p>{message}</p>
       </div>
       {onRetry ? (

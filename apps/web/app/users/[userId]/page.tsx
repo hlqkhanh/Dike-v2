@@ -43,6 +43,7 @@ export default function UserProfilePage({
         <LoadingState label="Đang tải hồ sơ" />
       ) : profile.isError ? (
         <ErrorState
+          title="Không tìm thấy hồ sơ"
           message="Hồ sơ không tồn tại hoặc chủ tài khoản không chia sẻ thông tin này."
           onRetry={() => void profile.refetch()}
         />

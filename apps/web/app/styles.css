@@ -2460,6 +2460,11 @@ a {
 .app-error-state div {
   flex: 1;
 }
+.app-error-state h2 {
+  color: inherit;
+  font-size: 0.95rem;
+  margin: 0;
+}
 .app-error-state p {
   margin: 0.25rem 0 0;
 }

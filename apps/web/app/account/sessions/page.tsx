@@ -96,7 +96,7 @@ export default function SessionsPage() {
                   disabled={revoke.isPending}
                   onClick={() => revoke.mutate(session.id)}
                 >
-                  Đăng xuất
+                  Đăng xuất thiết bị
                 </button>
               ) : null}
             </article>

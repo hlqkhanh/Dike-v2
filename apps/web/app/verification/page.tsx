@@ -38,8 +38,11 @@ export default function VerificationPage() {
       <PageHeader
         eyebrow="Minh bạch trạng thái"
         title="Xác minh và quyền truy cập"
-        description={`Trạng thái tài khoản của ${user.displayName}`}
+        description="Kiểm tra mức xác minh và các quyền hiện đang được cấp cho tài khoản."
       />
+      <p className="settings-copy">
+        Trạng thái tài khoản của <strong>{user.displayName}</strong>
+      </p>
       {simulated ? (
         <p className="simulation-notice" role="status">
           Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này
