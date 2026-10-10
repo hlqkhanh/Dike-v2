@@ -147,7 +147,7 @@ export default function FriendsPage() {
         ) : items.length === 0 ? (
           <EmptyState
             icon={tab === "friends" ? Users : UserPlus}
-            title={`Chưa có ${tabs[tab].toLowerCase()}`}
+            title={`Chưa có mục nào trong ${tabs[tab].toLowerCase()}.`}
             description={
               tab === "friends"
                 ? "Tìm người bạn quen biết để xây dựng mạng lưới đi chung đáng tin cậy."

@@ -174,7 +174,7 @@ export function Feed() {
               icon={Route}
               title={
                 tab === "latest"
-                  ? "Chưa có chuyến mới"
+                  ? "Chưa có bài đăng để hiển thị."
                   : "Chưa có nội dung trong mục này"
               }
               description={
@@ -271,6 +271,7 @@ export function PostCard({
       <Link
         className="ride-route-link"
         href={`/feed/${encodeURIComponent(post.id)}`}
+        aria-label={`${post.originLabel} → ${post.destinationLabel}`}
       >
         <span className="ride-route-visual" aria-hidden="true">
           <i />

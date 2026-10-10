@@ -33,6 +33,9 @@ export default function VerificationPage() {
     <main className="settings-page">
       <p className="eyebrow">Minh bạch trạng thái</p>
       <h1>Xác minh và quyền truy cập</h1>
+      <p>
+        Trạng thái tài khoản của <strong>{user.displayName}</strong>
+      </p>
       {simulated ? (
         <p className="simulation-notice" role="status">
           Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này
@@ -54,7 +57,7 @@ export default function VerificationPage() {
           title="Quyền tài xế"
           value={
             simulated
-              ? "Tài xế thử nghiệm"
+              ? "Đã mở quyền thử nghiệm"
               : user.driverApprovalEvidence === "REAL"
                 ? "Đã duyệt"
                 : "Chưa được duyệt"

@@ -193,8 +193,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {initials}
           </span>
           <span>
-            <strong>{displayName}</strong>
-            <small>Thành viên Diké</small>
+            <strong>{displayName} · Thành viên</strong>
+            <small>Tài khoản Diké</small>
           </span>
           <Settings aria-hidden="true" size={17} />
         </Link>
@@ -220,7 +220,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Menu aria-hidden="true" size={21} />
           </button>
-          <Link className="app-command-search" href="/availability">
+          <Link
+            className="app-command-search"
+            href="/availability"
+            aria-label="Tìm địa điểm, chuyến đi hoặc bạn bè"
+          >
             <Search aria-hidden="true" size={18} />
             <span>Tìm địa điểm, chuyến đi hoặc bạn bè…</span>
             <kbd>⌘ K</kbd>
@@ -231,7 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="simulation-badge app-mode-badge"
                 href="/verification"
               >
-                Tài xế thử nghiệm
+                Chế độ thử nghiệm
               </Link>
             ) : null}
             <Link
@@ -250,7 +254,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="app-avatar app-avatar--small" aria-hidden="true">
                 {initials}
               </span>
-              <span>{displayName}</span>
+              <span>Hồ sơ: {displayName}</span>
             </Link>
           </div>
         </header>

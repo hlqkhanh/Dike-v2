@@ -2087,7 +2087,7 @@ a {
   background: white;
   border: 1px solid var(--app-line);
   border-radius: 0.78rem;
-  color: #77877f;
+  color: #53645c;
   display: flex;
   font-size: 0.84rem;
   gap: 0.6rem;
@@ -2102,7 +2102,7 @@ a {
   background: #f1f5f2;
   border: 1px solid #dbe4df;
   border-radius: 0.35rem;
-  color: #68776f;
+  color: #53645c;
   font: inherit;
   font-size: 0.68rem;
   margin-left: auto;
@@ -2557,7 +2557,7 @@ a {
 
   .app-mobile-nav a {
     align-items: center;
-    color: #74857c;
+    color: #53645c;
     display: flex;
     flex-direction: column;
     font-size: 0.62rem;
