@@ -2,6 +2,7 @@
 
 import { Card } from "@dike/web-ui";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 import { authApi } from "../../src/auth/api";
 import { ErrorState, LoadingState, PageHeader } from "../components/app-ui";
@@ -43,6 +44,28 @@ export default function VerificationPage() {
       <p className="settings-copy">
         Trạng thái tài khoản của <strong>{user.displayName}</strong>
       </p>
+      <section className="verification-progress" aria-label="Tiến độ xác minh">
+        <div>
+          <span>Tiến độ thiết lập</span>
+          <strong>
+            {simulated
+              ? "3/5 bước"
+              : user.phoneStatus === "VERIFIED"
+                ? "3/5 bước"
+                : "2/5 bước"}
+          </strong>
+        </div>
+        <progress
+          max="5"
+          value={simulated || user.phoneStatus === "VERIFIED" ? 3 : 2}
+        >
+          3 trên 5
+        </progress>
+        <p>
+          eKYC và duyệt phương tiện thật đang được hoãn; trạng thái thử nghiệm
+          không thay thế xác minh production.
+        </p>
+      </section>
       {simulated ? (
         <p className="simulation-notice" role="status">
           Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này
@@ -58,6 +81,11 @@ export default function VerificationPage() {
           }
           detail={user.phoneMasked ?? undefined}
           tone={user.phoneStatus === "VERIFIED" ? "success" : "warning"}
+          action={
+            user.phoneStatus === "VERIFIED"
+              ? undefined
+              : { href: "/onboarding/phone", label: "Thêm số điện thoại" }
+          }
         />
         <StatusCard title="eKYC" value="Tạm hoãn" tone="neutral" />
         <StatusCard
@@ -70,6 +98,7 @@ export default function VerificationPage() {
                 : "Chưa được duyệt"
           }
           tone={simulated ? "warning" : "neutral"}
+          action={{ href: "/trips/new", label: "Kiểm tra quyền tạo chuyến" }}
         />
         <StatusCard
           title="Phương tiện"
@@ -86,17 +115,20 @@ function StatusCard({
   value,
   detail,
   tone,
+  action,
 }: {
   title: string;
   value: string;
   detail?: string;
   tone: "success" | "warning" | "neutral";
+  action?: { href: string; label: string };
 }) {
   return (
     <Card className="verification-card">
       <p>{title}</p>
       <strong className={`status-pill status-pill--${tone}`}>{value}</strong>
       {detail ? <small>{detail}</small> : null}
+      {action ? <Link href={action.href}>{action.label}</Link> : null}
     </Card>
   );
 }

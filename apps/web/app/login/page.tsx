@@ -67,6 +67,25 @@ export default async function LoginPage({
           Tiếp tục với Google
           <ArrowRight aria-hidden="true" size={18} />
         </a>
+        {process.env.NODE_ENV === "development" ? (
+          <section
+            className="dev-login-panel"
+            aria-labelledby="dev-login-title"
+          >
+            <div>
+              <p className="app-eyebrow">Chỉ môi trường local</p>
+              <h2 id="dev-login-title">Bỏ qua Google để kiểm thử</h2>
+              <p>
+                Chọn vai trò mẫu. Phiên này không phải bằng chứng xác minh thật.
+              </p>
+            </div>
+            <div className="dev-login-actions">
+              <a href="/api/v1/auth/dev?persona=member">Thành viên</a>
+              <a href="/api/v1/auth/dev?persona=driver">Tài xế</a>
+              <a href="/api/v1/auth/dev?persona=admin">Quản trị</a>
+            </div>
+          </section>
+        ) : null}
         <div className="auth-trust-note">
           <ShieldCheck aria-hidden="true" size={18} />
           <p>

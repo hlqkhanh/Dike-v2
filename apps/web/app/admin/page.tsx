@@ -1,13 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import {
   CheckCircle2,
+  ChevronRight,
   LockKeyhole,
+  Search,
   ShieldAlert,
   UnlockKeyhole,
 } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { journeyApi } from "../../src/journey/api";
 import {
   EmptyState,
@@ -16,57 +19,176 @@ import {
   PageHeader,
 } from "../components/app-ui";
 
+const statusLabels: Record<string, string> = {
+  RECEIVED: "Mới tiếp nhận",
+  TRIAGED: "Đã phân loại",
+  IN_REVIEW: "Đang xem xét",
+  RESOLVED: "Đã giải quyết",
+  DISMISSED: "Đã bác bỏ",
+};
+const reasonLabels: Record<string, string> = {
+  SPAM: "Spam",
+  HARASSMENT: "Quấy rối",
+  UNSAFE: "Không an toàn",
+  MISLEADING: "Thông tin sai lệch",
+  HATEFUL_CONTENT: "Nội dung thù ghét",
+  PRIVACY: "Quyền riêng tư",
+  PAYMENT_DISAGREEMENT: "Tranh chấp chi phí",
+  OTHER: "Khác",
+};
+
 export default function AdminPage() {
   const client = useQueryClient();
-  const reports = useQuery({
-    queryKey: ["admin", "reports"],
-    queryFn: journeyApi.adminReports,
-    retry: false,
-  });
+  const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
+  const [search, setSearch] = useState("");
   const [userId, setUserId] = useState("");
   const [reason, setReason] = useState("");
-  const refresh = async () =>
-    client.invalidateQueries({ queryKey: ["admin", "reports"] });
-  const command = useMutation({
-    mutationFn: (run: () => Promise<unknown>) => run(),
-    onSuccess: refresh,
+  const reports = useQuery({
+    queryKey: ["admin", "reports", status, priority],
+    queryFn: () =>
+      journeyApi.adminReports(status || undefined, priority || undefined),
+    retry: false,
   });
+  const command = useMutation({
+    mutationFn: ({ locked }: { locked: boolean }) =>
+      journeyApi.lockUser(userId.trim(), locked, reason.trim()),
+    onSuccess: async () => {
+      setReason("");
+      await client.invalidateQueries({ queryKey: ["admin"] });
+    },
+  });
+  const visible = useMemo(
+    () =>
+      (reports.data ?? []).filter(
+        (item) =>
+          !search.trim() ||
+          `${item.id} ${item.targetId} ${item.reporterId}`
+            .toLowerCase()
+            .includes(search.trim().toLowerCase()),
+      ),
+    [reports.data, search],
+  );
+  const pending = reports.data?.filter(
+    (item) => !["RESOLVED", "DISMISSED"].includes(item.status),
+  ).length;
   return (
     <main className="settings-page admin-page">
       <PageHeader
         eyebrow="Khu vực quản trị"
         title="Kiểm duyệt cộng đồng"
-        description="Xử lý báo cáo và bảo vệ trải nghiệm an toàn cho mọi thành viên Diké."
+        description="Ưu tiên báo cáo, ghi nhận quyết định và bảo vệ trải nghiệm an toàn cho thành viên."
       />
       <section className="admin-stats" aria-label="Tổng quan kiểm duyệt">
-        <div>
-          <span>
-            <ShieldAlert aria-hidden="true" size={19} />
-          </span>
-          <p>
-            <strong>{reports.data?.length ?? "—"}</strong>
-            <small>Báo cáo cần xem</small>
-          </p>
-        </div>
-        <div>
-          <span>
-            <CheckCircle2 aria-hidden="true" size={19} />
-          </span>
-          <p>
-            <strong>
-              {reports.data?.filter((item) => item.status === "RESOLVED")
-                .length ?? "—"}
-            </strong>
-            <small>Đã giải quyết</small>
-          </p>
-        </div>
+        <Stat icon={ShieldAlert} value={pending} label="Cần xử lý" />
+        <Stat
+          icon={CheckCircle2}
+          value={
+            reports.data?.filter((item) => item.status === "RESOLVED").length
+          }
+          label="Đã giải quyết"
+        />
+        <Stat
+          icon={ShieldAlert}
+          value={
+            reports.data?.filter((item) => ["P0", "P1"].includes(item.priority))
+              .length
+          }
+          label="Ưu tiên cao"
+        />
       </section>
+      <section
+        className="settings-card moderation-toolbar"
+        aria-label="Bộ lọc báo cáo"
+      >
+        <label>
+          <span className="sr-only">Tìm báo cáo</span>
+          <Search aria-hidden="true" size={17} />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm report ID, target ID…"
+          />
+        </label>
+        <select
+          aria-label="Lọc trạng thái"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+        >
+          <option value="">Mọi trạng thái</option>
+          {Object.entries(statusLabels).map(([value, label]) => (
+            <option value={value} key={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Lọc độ ưu tiên"
+          value={priority}
+          onChange={(event) => setPriority(event.target.value)}
+        >
+          <option value="">Mọi ưu tiên</option>
+          {["P0", "P1", "P2", "P3"].map((value) => (
+            <option value={value} key={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </section>
+      {reports.isPending ? (
+        <LoadingState />
+      ) : reports.isError ? (
+        <ErrorState
+          message={reports.error.message}
+          onRetry={() => void reports.refetch()}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={CheckCircle2}
+          title="Không có báo cáo phù hợp"
+          description="Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
+        />
+      ) : (
+        <div className="moderation-list">
+          {visible.map((report) => (
+            <Link
+              className="settings-card moderation-card"
+              href={`/admin/reports/${report.id}`}
+              key={report.id}
+            >
+              <span
+                className={`moderation-priority moderation-priority--${report.priority.toLowerCase()}`}
+              >
+                {report.priority}
+              </span>
+              <div>
+                <p className="app-eyebrow">
+                  {statusLabels[report.status] ?? report.status}
+                </p>
+                <h2>{reasonLabels[report.reason] ?? report.reason}</h2>
+                <p>
+                  {report.targetType} · {report.targetId}
+                </p>
+                <small>
+                  {new Date(report.createdAt).toLocaleString("vi-VN")} ·{" "}
+                  {report.assignedTo
+                    ? `Đang xử lý bởi ${report.assignedTo}`
+                    : "Chưa phân công"}
+                </small>
+              </div>
+              <ChevronRight aria-hidden="true" size={20} />
+            </Link>
+          ))}
+        </div>
+      )}
       <section className="settings-card admin-account-card">
         <div className="section-heading">
           <div>
-            <p className="app-eyebrow">Tác vụ nhanh</p>
-            <h2>Khoá hoặc mở tài khoản</h2>
-            <p>Hành động này được ghi lại trong nhật ký kiểm duyệt.</p>
+            <p className="app-eyebrow">Chỉ dành cho admin</p>
+            <h2>Khóa hoặc mở tài khoản</h2>
+            <p>
+              Không thể tự khóa chính mình. Mọi hành động đều được ghi audit.
+            </p>
           </div>
         </div>
         <div className="admin-form-grid">
@@ -88,87 +210,58 @@ export default function AdminPage() {
         <div className="social-tabs">
           <button
             className="app-button app-button--danger"
-            disabled={!userId || !reason || command.isPending}
+            disabled={!userId.trim() || !reason.trim() || command.isPending}
             onClick={() =>
-              command.mutate(() => journeyApi.lockUser(userId, true, reason))
+              window.confirm(`Khóa tài khoản ${userId}?`) &&
+              command.mutate({ locked: true })
             }
           >
-            <LockKeyhole aria-hidden="true" size={17} /> Khoá tài khoản
+            <LockKeyhole aria-hidden="true" size={17} /> Khóa tài khoản
           </button>
           <button
             className="app-button app-button--secondary"
-            disabled={!userId || !reason || command.isPending}
+            disabled={!userId.trim() || !reason.trim() || command.isPending}
             onClick={() =>
-              command.mutate(() => journeyApi.lockUser(userId, false, reason))
+              window.confirm(`Mở khóa tài khoản ${userId}?`) &&
+              command.mutate({ locked: false })
             }
           >
-            <UnlockKeyhole aria-hidden="true" size={17} /> Mở khoá
+            <UnlockKeyhole aria-hidden="true" size={17} /> Mở khóa
           </button>
         </div>
+        {command.isSuccess ? (
+          <p className="success-message" role="status">
+            Đã cập nhật trạng thái tài khoản.
+          </p>
+        ) : null}
+        {command.isError ? (
+          <p className="auth-error" role="alert">
+            Không thể cập nhật. Kiểm tra quyền admin và trạng thái tài khoản.
+          </p>
+        ) : null}
       </section>
-      <div className="section-heading">
-        <div>
-          <p className="app-eyebrow">Hàng đợi</p>
-          <h2>Báo cáo gần đây</h2>
-        </div>
-      </div>
-      {reports.isPending ? (
-        <LoadingState />
-      ) : reports.isError ? (
-        <ErrorState
-          message={reports.error.message}
-          onRetry={() => void reports.refetch()}
-        />
-      ) : reports.data.length === 0 ? (
-        <EmptyState
-          icon={CheckCircle2}
-          title="Không có báo cáo chờ xử lý"
-          description="Cộng đồng đang ổn. Báo cáo mới sẽ xuất hiện ở đây theo mức độ ưu tiên."
-        />
-      ) : (
-        reports.data.map((report) => (
-          <article className="settings-card moderation-card" key={report.id}>
-            <span className="moderation-priority">{report.priority}</span>
-            <h2>
-              {report.targetType} · {report.reason}
-            </h2>
-            <p>
-              {report.status} · {report.priority}
-            </p>
-            <p>Target: {report.targetId}</p>
-            <div className="social-tabs">
-              <button
-                disabled={command.isPending}
-                onClick={() =>
-                  command.mutate(() =>
-                    journeyApi.claimReport(report.id, report.version),
-                  )
-                }
-              >
-                Nhận xử lý
-              </button>
-              {report.status === "IN_REVIEW" ? (
-                <button
-                  disabled={command.isPending}
-                  onClick={() =>
-                    command.mutate(() =>
-                      journeyApi.transitionReport(
-                        report.id,
-                        "RESOLVED",
-                        "REVIEWED",
-                        "Đã xem xét bằng dashboard",
-                        report.version,
-                      ),
-                    )
-                  }
-                >
-                  Hoàn tất
-                </button>
-              ) : null}
-            </div>
-          </article>
-        ))
-      )}
     </main>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: typeof ShieldAlert;
+  value?: number;
+  label: string;
+}) {
+  return (
+    <div>
+      <span>
+        <Icon aria-hidden="true" size={19} />
+      </span>
+      <p>
+        <strong>{value ?? "—"}</strong>
+        <small>{label}</small>
+      </p>
+    </div>
   );
 }

@@ -4,5 +4,7 @@ dike:
     seed-enabled: ${DIKE_DEMO_SEED_ENABLED:true}
   identity:
     simulated-full-access-enabled: ${DIKE_SIMULATED_FULL_ACCESS_ENABLED:true}
+  auth:
+    dev-login-enabled: ${DIKE_DEV_AUTH_ENABLED:true}
   migrations:
     enabled: true

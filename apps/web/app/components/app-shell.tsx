@@ -45,6 +45,7 @@ const rideNavigation = [
 ] as const;
 
 const accountNavigation = [
+  { href: "/settings", label: "Cài đặt", icon: Settings },
   { href: "/notifications", label: "Thông báo", icon: Bell },
   { href: "/me/profile", label: "Hồ sơ cá nhân", icon: CircleUserRound },
   { href: "/settings/privacy", label: "Quyền riêng tư", icon: ShieldCheck },

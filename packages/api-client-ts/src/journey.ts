@@ -97,6 +97,12 @@ export type ReportView = {
   status: string;
   priority: string;
   assignedTo?: string;
+  contextBookingId?: string;
+  note?: string;
+  evidenceSnapshot?: Record<string, string>;
+  resolutionCode?: string;
+  resolutionNote?: string;
+  resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -248,7 +254,20 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
       reason: string;
       note?: string;
     }) => request<ReportView>("/reports", "POST", body),
-    adminReports: () => request<ReportView[]>("/admin/reports"),
+    adminReports: (status?: string, priority?: string) => {
+      const query = new URLSearchParams();
+      if (status) query.set("status", status);
+      if (priority) query.set("priority", priority);
+      const suffix = query.size ? `?${query.toString()}` : "";
+      return request<ReportView[]>(`/admin/reports${suffix}`);
+    },
+    adminReport: (reportId: string) =>
+      request<ReportView>(`/admin/reports/${id(reportId)}`),
+    prioritizeReport: (reportId: string, priority: string, version: number) =>
+      request<ReportView>(`/admin/reports/${id(reportId)}/priority`, "PUT", {
+        priority,
+        version,
+      }),
     claimReport: (reportId: string, version: number) =>
       request<ReportView>(`/admin/reports/${id(reportId)}/claim`, "POST", {
         version,

@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { journeyApi } from "../../../src/journey/api";
 import { profileApi } from "../../../src/profile/api";
 import { ProfileSocialActions } from "../../../src/social/actions";
+import { ReportDialog } from "../../../src/trust/report-dialog";
 import { ErrorState, LoadingState, PageHeader } from "../../components/app-ui";
 
 export default function UserProfilePage({
@@ -89,6 +90,7 @@ export default function UserProfilePage({
                 {message.isPending ? "Đang mở…" : "Nhắn tin"}
               </button>
               <ProfileSocialActions userId={userId} />
+              <ReportDialog targetType="USER" targetId={userId} />
             </div>
             {messageError ? (
               <p className="auth-error" role="alert">

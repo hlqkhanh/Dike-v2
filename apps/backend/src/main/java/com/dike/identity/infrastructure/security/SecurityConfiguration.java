@@ -90,6 +90,7 @@ public class SecurityConfiguration {
                         "/actuator/health/**",
                         "/api/openapi.json",
                         "/api/v1/auth/google",
+                        "/api/v1/auth/dev",
                         "/api/v1/auth/oauth2/authorization/**",
                         "/api/v1/auth/callback/**",
                         "/oauth2/**",
@@ -226,6 +227,8 @@ public class SecurityConfiguration {
       boolean simulatedFullAccess =
           environment.getProperty(
               "dike.identity.simulated-full-access-enabled", Boolean.class, false);
+      boolean devLogin =
+          environment.getProperty("dike.auth.dev-login-enabled", Boolean.class, false);
       if (("production".equals(current) || "staging".equals(current))
           && (!properties.requirePhoneOtp()
               || !properties.cookie().secure()
@@ -240,7 +243,8 @@ public class SecurityConfiguration {
               || otp.hmacSecret().startsWith("local-only-")
               || otp.rateKeySecret().startsWith("local-only-")
               || !otp.sendEnabled()
-              || simulatedFullAccess)) {
+              || simulatedFullAccess
+              || devLogin)) {
         throw new IllegalStateException("Secure auth configuration is required outside local/test");
       }
     };
