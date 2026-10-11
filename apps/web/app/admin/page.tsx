@@ -4,13 +4,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ChevronRight,
+  Clock3,
   LockKeyhole,
   Search,
   ShieldAlert,
+  Siren,
   UnlockKeyhole,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { journeyApi } from "../../src/journey/api";
 import {
   EmptyState,
@@ -38,12 +41,34 @@ const reasonLabels: Record<string, string> = {
 };
 
 export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="settings-page">
+          <LoadingState label="Đang tải hàng đợi kiểm duyệt" />
+        </main>
+      }
+    >
+      <AdminContent />
+    </Suspense>
+  );
+}
+
+function AdminContent() {
   const client = useQueryClient();
-  const [status, setStatus] = useState("");
-  const [priority, setPriority] = useState("");
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const [status, setStatus] = useState(() => params.get("status") ?? "");
+  const [priority, setPriority] = useState(() => params.get("priority") ?? "");
+  const [search, setSearch] = useState(() => params.get("q") ?? "");
+  const [targetType, setTargetType] = useState(
+    () => params.get("target") ?? "",
+  );
+  const [sort, setSort] = useState(() => params.get("sort") ?? "priority");
   const [userId, setUserId] = useState("");
   const [reason, setReason] = useState("");
+  const [pendingLock, setPendingLock] = useState<boolean | null>(null);
   const reports = useQuery({
     queryKey: ["admin", "reports", status, priority],
     queryFn: () =>
@@ -55,19 +80,40 @@ export default function AdminPage() {
       journeyApi.lockUser(userId.trim(), locked, reason.trim()),
     onSuccess: async () => {
       setReason("");
+      setPendingLock(null);
       await client.invalidateQueries({ queryKey: ["admin"] });
     },
   });
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (status) next.set("status", status);
+    if (priority) next.set("priority", priority);
+    if (targetType) next.set("target", targetType);
+    if (search.trim()) next.set("q", search.trim());
+    if (sort !== "priority") next.set("sort", sort);
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, priority, router, search, sort, status, targetType]);
   const visible = useMemo(
     () =>
-      (reports.data ?? []).filter(
-        (item) =>
-          !search.trim() ||
-          `${item.id} ${item.targetId} ${item.reporterId}`
-            .toLowerCase()
-            .includes(search.trim().toLowerCase()),
-      ),
-    [reports.data, search],
+      [...(reports.data ?? [])]
+        .filter(
+          (item) =>
+            (!targetType || item.targetType === targetType) &&
+            (!search.trim() ||
+              `${item.id} ${item.targetId} ${item.reporterId} ${item.contextBookingId ?? ""}`
+                .toLowerCase()
+                .includes(search.trim().toLowerCase())),
+        )
+        .sort((left, right) =>
+          sort === "newest"
+            ? Date.parse(right.createdAt) - Date.parse(left.createdAt)
+            : left.priority.localeCompare(right.priority) ||
+              Date.parse(left.createdAt) - Date.parse(right.createdAt),
+        ),
+    [reports.data, search, sort, targetType],
   );
   const pending = reports.data?.filter(
     (item) => !["RESOLVED", "DISMISSED"].includes(item.status),
@@ -82,6 +128,13 @@ export default function AdminPage() {
       <section className="admin-stats" aria-label="Tổng quan kiểm duyệt">
         <Stat icon={ShieldAlert} value={pending} label="Cần xử lý" />
         <Stat
+          icon={Clock3}
+          value={
+            reports.data?.filter((item) => item.status === "IN_REVIEW").length
+          }
+          label="Đang điều tra"
+        />
+        <Stat
           icon={CheckCircle2}
           value={
             reports.data?.filter((item) => item.status === "RESOLVED").length
@@ -89,7 +142,7 @@ export default function AdminPage() {
           label="Đã giải quyết"
         />
         <Stat
-          icon={ShieldAlert}
+          icon={Siren}
           value={
             reports.data?.filter((item) => ["P0", "P1"].includes(item.priority))
               .length
@@ -121,6 +174,31 @@ export default function AdminPage() {
               {label}
             </option>
           ))}
+        </select>
+        <select
+          aria-label="Lọc loại đối tượng"
+          value={targetType}
+          onChange={(event) => setTargetType(event.target.value)}
+        >
+          <option value="">Mọi đối tượng</option>
+          {[
+            ["USER", "Người dùng"],
+            ["BOOKING", "Booking"],
+            ["POST", "Bài đăng"],
+            ["MESSAGE", "Tin nhắn"],
+          ].map(([value, label]) => (
+            <option value={value} key={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Sắp xếp báo cáo"
+          value={sort}
+          onChange={(event) => setSort(event.target.value)}
+        >
+          <option value="priority">Ưu tiên cao trước</option>
+          <option value="newest">Mới nhất trước</option>
         </select>
         <select
           aria-label="Lọc độ ưu tiên"
@@ -167,7 +245,7 @@ export default function AdminPage() {
                 </p>
                 <h2>{reasonLabels[report.reason] ?? report.reason}</h2>
                 <p>
-                  {report.targetType} · {report.targetId}
+                  {targetLabel(report.targetType)} · {report.targetId}
                 </p>
                 <small>
                   {new Date(report.createdAt).toLocaleString("vi-VN")} ·{" "}
@@ -211,24 +289,58 @@ export default function AdminPage() {
           <button
             className="app-button app-button--danger"
             disabled={!userId.trim() || !reason.trim() || command.isPending}
-            onClick={() =>
-              window.confirm(`Khóa tài khoản ${userId}?`) &&
-              command.mutate({ locked: true })
-            }
+            onClick={() => setPendingLock(true)}
           >
             <LockKeyhole aria-hidden="true" size={17} /> Khóa tài khoản
           </button>
           <button
             className="app-button app-button--secondary"
             disabled={!userId.trim() || !reason.trim() || command.isPending}
-            onClick={() =>
-              window.confirm(`Mở khóa tài khoản ${userId}?`) &&
-              command.mutate({ locked: false })
-            }
+            onClick={() => setPendingLock(false)}
           >
             <UnlockKeyhole aria-hidden="true" size={17} /> Mở khóa
           </button>
         </div>
+        {pendingLock !== null ? (
+          <div
+            className="admin-confirmation"
+            role="alertdialog"
+            aria-labelledby="account-confirmation-title"
+          >
+            <div>
+              <strong id="account-confirmation-title">
+                {pendingLock
+                  ? "Xác nhận khóa tài khoản"
+                  : "Xác nhận mở khóa tài khoản"}
+              </strong>
+              <p>
+                {pendingLock
+                  ? `Người dùng ${userId} sẽ mất quyền truy cập ngay lập tức.`
+                  : `Người dùng ${userId} sẽ có thể truy cập lại hệ thống.`}
+              </p>
+            </div>
+            <div className="journey-action-row">
+              <button
+                className={
+                  pendingLock
+                    ? "app-button app-button--danger"
+                    : "app-button app-button--primary"
+                }
+                disabled={command.isPending}
+                onClick={() => command.mutate({ locked: pendingLock })}
+              >
+                Xác nhận
+              </button>
+              <button
+                className="app-button app-button--secondary"
+                disabled={command.isPending}
+                onClick={() => setPendingLock(null)}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        ) : null}
         {command.isSuccess ? (
           <p className="success-message" role="status">
             Đã cập nhật trạng thái tài khoản.
@@ -241,6 +353,19 @@ export default function AdminPage() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function targetLabel(type: string) {
+  return (
+    (
+      {
+        USER: "Người dùng",
+        BOOKING: "Booking",
+        POST: "Bài đăng",
+        MESSAGE: "Tin nhắn",
+      } as Record<string, string>
+    )[type] ?? type
   );
 }
 

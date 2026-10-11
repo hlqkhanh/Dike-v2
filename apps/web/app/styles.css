@@ -4788,7 +4788,7 @@ a {
 }
 .moderation-toolbar {
   display: grid;
-  grid-template-columns: minmax(14rem, 1fr) auto auto;
+  grid-template-columns: minmax(14rem, 1fr) repeat(4, minmax(8rem, auto));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -4862,6 +4862,168 @@ a {
 }
 .moderation-detail-heading .moderation-priority {
   margin-left: auto;
+  position: static;
+}
+.moderation-workspace {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.moderation-overview-card,
+.moderation-evidence-card,
+.moderation-audit-card {
+  display: grid;
+  gap: 1rem !important;
+}
+.moderation-facts a {
+  align-items: center;
+  color: var(--app-green-700);
+  display: inline-flex;
+  gap: 0.3rem;
+  text-underline-offset: 0.2em;
+}
+.moderation-evidence-card dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.moderation-evidence-card dl > div {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(8rem, 0.5fr) minmax(0, 1fr);
+  padding: 0.75rem 0;
+}
+.moderation-evidence-card dt {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+.moderation-evidence-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.moderation-conflict {
+  align-items: center;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 1rem;
+  color: #9a3412;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto 1fr auto;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+.moderation-conflict p {
+  font-size: 0.76rem;
+  margin: 0.2rem 0 0;
+}
+.moderation-enforcement {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+}
+.moderation-enforcement h3 {
+  font-size: 0.9rem;
+  margin: 0;
+}
+.moderation-enforcement textarea {
+  min-height: 5rem;
+}
+.moderation-timeline {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.moderation-timeline li {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto 1fr;
+  padding-bottom: 1.15rem;
+  position: relative;
+}
+.moderation-timeline li:not(:last-child)::before {
+  border-left: 1px dashed #a9cbbb;
+  bottom: 0;
+  content: "";
+  left: 1rem;
+  position: absolute;
+  top: 2.1rem;
+}
+.moderation-timeline li > span {
+  align-items: center;
+  background: var(--app-green-100);
+  border-radius: 50%;
+  color: var(--app-green-700);
+  display: flex;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+.moderation-timeline p,
+.moderation-timeline small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  margin: 0.2rem 0 0;
+}
+.moderation-timeline .moderation-change {
+  background: var(--color-surface-soft);
+  border-radius: 0.5rem;
+  color: var(--app-ink);
+  padding: 0.45rem 0.6rem;
+}
+.moderation-dialog-backdrop {
+  align-items: center;
+  background: rgb(8 24 19 / 55%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 100;
+}
+.moderation-dialog {
+  display: grid;
+  gap: 0.85rem !important;
+  max-width: 28rem;
+  width: 100%;
+}
+.moderation-dialog > svg {
+  color: #b45309;
+}
+.moderation-dialog h2,
+.moderation-dialog p {
+  margin: 0;
+}
+.moderation-dialog p {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.admin-confirmation {
+  align-items: center;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 0.85rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem;
+}
+.admin-confirmation p {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  margin: 0.2rem 0 0;
+}
+.admin-missing-report {
+  display: grid;
+  gap: 1rem;
+}
+.admin-missing-report > .app-button {
+  justify-self: start;
 }
 .moderation-facts {
   display: grid;
@@ -4975,5 +5137,20 @@ a {
   }
   .moderation-toolbar {
     grid-template-columns: 1fr;
+  }
+  .moderation-conflict,
+  .moderation-evidence-card dl > div {
+    grid-template-columns: 1fr;
+  }
+  .moderation-conflict > svg {
+    display: none;
+  }
+  .admin-confirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .admin-confirmation .app-button,
+  .moderation-dialog .app-button {
+    width: 100%;
   }
 }

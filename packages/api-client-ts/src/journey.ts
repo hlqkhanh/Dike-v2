@@ -107,6 +107,20 @@ export type ReportView = {
   updatedAt: string;
   version: number;
 };
+export type AuditLogView = {
+  id: string;
+  actorUserId: string;
+  actorRole: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  reportId?: string;
+  reason?: string;
+  safeBefore: Record<string, string>;
+  safeAfter: Record<string, string>;
+  requestId?: string;
+  occurredAt: string;
+};
 
 export function createJourneyApi(configuration: ApiClientConfiguration) {
   const config = createApiClientConfiguration(configuration);
@@ -268,6 +282,11 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
         priority,
         version,
       }),
+    assignReport: (reportId: string, userId: string, version: number) =>
+      request<ReportView>(`/admin/reports/${id(reportId)}/assignment`, "PUT", {
+        userId,
+        version,
+      }),
     claimReport: (reportId: string, version: number) =>
       request<ReportView>(`/admin/reports/${id(reportId)}/claim`, "POST", {
         version,
@@ -290,5 +309,10 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
         "POST",
         { reason },
       ),
+    auditLog: (cursor?: string, limit = 100) => {
+      const query = new URLSearchParams({ limit: String(limit) });
+      if (cursor) query.set("cursor", cursor);
+      return request<AuditLogView[]>(`/admin/audit?${query.toString()}`);
+    },
   };
 }
