@@ -16,6 +16,15 @@ test.beforeEach(async ({ page, context }) => {
   await page.route("**/api/v1/social/revision", (route) =>
     route.fulfill({ json: { revision: 1 } }),
   );
+  await page.route("**/api/v1/realtime/tickets", (route) =>
+    route.fulfill({
+      json: {
+        ticket: "e2e-ticket",
+        websocketUrl: "ws://127.0.0.1:1/realtime",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    }),
+  );
 });
 
 test("creates a draft from an owned route before publishing", async ({
@@ -218,4 +227,150 @@ test("boarding code is fetched only on request and can be hidden", async ({
   await page.getByRole("button", { name: "Ẩn mã lên xe" }).click();
   await expect(page.getByText("012345", { exact: true })).toHaveCount(0);
   expect(requests).toBe(1);
+});
+
+test("active journey supports payment acknowledgement and consented location sharing", async ({
+  page,
+  context,
+}) => {
+  let paid = false;
+  let consented = false;
+  let locationUpdates = 0;
+  await context.grantPermissions(["geolocation"], {
+    origin: "http://127.0.0.1:3100",
+  });
+  await context.setGeolocation({ latitude: 10.7769, longitude: 106.7009 });
+  await page.route("**/api/v1/bookings/live", (route) =>
+    route.fulfill({
+      json: {
+        id: "live",
+        tripId: "trip-live",
+        passengerId: "passenger",
+        driverId: "driver",
+        status: "IN_PROGRESS",
+        priceVnd: 30000,
+        pickupAt: "2026-10-08T01:00:00Z",
+        dropoffAt: "2026-10-08T02:00:00Z",
+        reason: "",
+        version: 2,
+      },
+    }),
+  );
+  await page.route("**/api/v1/bookings/live/payment-acknowledgement", (route) =>
+    route.fulfill({
+      json: {
+        bookingId: "live",
+        amountVnd: 30000,
+        passengerPaidAt: paid ? "2026-10-08T02:05:00Z" : null,
+        driverReceivedAt: null,
+        status: paid ? "PASSENGER_PAID" : "PENDING",
+        locked: false,
+        bankVerified: false,
+        version: paid ? 1 : 0,
+      },
+    }),
+  );
+  await page.route(
+    "**/api/v1/bookings/live/payment-acknowledgement/paid",
+    (route) => {
+      paid = route.request().method() === "PUT";
+      return route.fulfill({ json: {} });
+    },
+  );
+  await page.route("**/api/v1/bookings/live/live-location-consent", (route) => {
+    consented = route.request().method() === "PUT";
+    return route.fulfill({ status: 204 });
+  });
+  await page.route("**/api/v1/bookings/live/live-location", (route) => {
+    if (route.request().method() === "PUT") {
+      expect(consented).toBe(true);
+      locationUpdates++;
+      return route.fulfill({ json: {} });
+    }
+    return route.fulfill({ json: { locations: [] } });
+  });
+  await page.route("**/api/v1/bookings/live/review-eligibility", (route) =>
+    route.fulfill({
+      json: { bookingId: "live", eligible: false, submitted: false },
+    }),
+  );
+  await page.route("**/api/v1/bookings/live/reviews", (route) =>
+    route.fulfill({ json: [] }),
+  );
+
+  await page.goto("/bookings/live");
+  await page.getByRole("button", { name: "Xác nhận đã thanh toán" }).click();
+  await expect(page.getByText("Hành khách đã thanh toán")).toBeVisible();
+  await page.getByRole("button", { name: "Cho phép chia sẻ" }).click();
+  await expect(page.getByText("Đang bật", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Gửi vị trí hiện tại" }).click();
+  await expect.poll(() => locationUpdates).toBe(1);
+});
+
+test("completed journey submits one accessible review", async ({ page }) => {
+  let submitted = false;
+  let reviewCalls = 0;
+  await page.route("**/api/v1/bookings/done", (route) =>
+    route.fulfill({
+      json: {
+        id: "done",
+        tripId: "trip-done",
+        passengerId: "passenger",
+        driverId: "driver",
+        status: "COMPLETED",
+        priceVnd: 25000,
+        pickupAt: "2026-10-08T01:00:00Z",
+        dropoffAt: "2026-10-08T02:00:00Z",
+        reason: "",
+        version: 4,
+      },
+    }),
+  );
+  await page.route("**/api/v1/bookings/done/payment-acknowledgement", (route) =>
+    route.fulfill({
+      json: {
+        bookingId: "done",
+        amountVnd: 25000,
+        status: "CONFIRMED",
+        locked: true,
+        bankVerified: false,
+        version: 2,
+      },
+    }),
+  );
+  await page.route("**/api/v1/bookings/done/review-eligibility", (route) =>
+    route.fulfill({
+      json: {
+        bookingId: "done",
+        eligible: !submitted,
+        submitted,
+        revieweeId: "driver",
+        revieweeRole: "DRIVER",
+        deadline: "2026-10-15T00:00:00Z",
+      },
+    }),
+  );
+  await page.route("**/api/v1/bookings/done/reviews", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/reviews", async (route) => {
+    reviewCalls++;
+    expect(route.request().postDataJSON()).toEqual({
+      bookingId: "done",
+      stars: 4,
+      comment: "Chuyến đi an toàn",
+    });
+    submitted = true;
+    await route.fulfill({ json: { id: "review-1" } });
+  });
+
+  await page.goto("/bookings/done");
+  await page.getByRole("button", { name: "4 sao: Tốt" }).click();
+  await page.getByLabel(/Nhận xét/).fill("Chuyến đi an toàn");
+  await page.getByRole("button", { name: "Gửi đánh giá" }).click();
+  await expect(page.getByText(/Đánh giá đã được gửi/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Gửi đánh giá" })).toHaveCount(
+    0,
+  );
+  expect(reviewCalls).toBe(1);
 });

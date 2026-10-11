@@ -3810,6 +3810,13 @@ a {
   flex-wrap: wrap;
   gap: 0.45rem;
 }
+.journey-filter-bar + .journey-filter-bar {
+  margin-top: -0.55rem;
+}
+.journey-next-action {
+  color: var(--app-green-800) !important;
+  font-weight: 750;
+}
 .journey-filter-bar button {
   background: white;
   border: 1px solid var(--app-line);
@@ -3922,6 +3929,232 @@ a {
   letter-spacing: 0.18em;
   margin-top: 0.55rem;
 }
+.journey-tools {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.journey-tool-card {
+  display: grid;
+  gap: 1rem !important;
+}
+.journey-tool-heading {
+  align-items: center;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto 1fr auto;
+}
+.journey-tool-heading .app-eyebrow {
+  margin-bottom: 0.25rem;
+}
+.journey-tool-heading h2 {
+  font-size: 1.05rem;
+}
+.journey-state-pill {
+  background: var(--app-green-50);
+  border: 1px solid var(--app-line);
+  border-radius: 99px;
+  color: var(--app-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.4rem 0.65rem;
+}
+.journey-state-pill.is-success,
+.journey-state-pill.is-live {
+  background: #e8f8ef;
+  border-color: #9fd3b7;
+  color: var(--app-green-900);
+}
+.journey-state-pill.is-live::before {
+  background: #16a34a;
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 0.45rem;
+  margin-right: 0.35rem;
+  width: 0.45rem;
+}
+.journey-payment-amount {
+  color: var(--app-green-950);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+.journey-confirmation-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.journey-confirmation-grid > div {
+  align-items: center;
+  background: #f7f9f8;
+  border: 1px solid var(--app-line);
+  border-radius: 0.8rem;
+  color: var(--app-muted);
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+.journey-confirmation-grid > div.is-complete {
+  background: #edf9f2;
+  border-color: #a9d9c0;
+  color: var(--app-green-800);
+}
+.journey-confirmation-grid span {
+  display: grid;
+  gap: 0.15rem;
+}
+.journey-confirmation-grid strong {
+  color: var(--app-ink);
+  font-size: 0.8rem;
+}
+.journey-confirmation-grid small {
+  font-size: 0.68rem;
+}
+.journey-inline-error {
+  background: #fff4f2;
+  border: 1px solid #f1bbb2;
+  border-radius: 0.75rem;
+  color: #9f2d20;
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+}
+.journey-inline-error p {
+  margin: 0;
+}
+.journey-inline-error button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 800;
+  margin-top: 0.35rem;
+  padding: 0;
+  text-decoration: underline;
+}
+.journey-empty-copy {
+  background: #f7f9f8;
+  border-radius: 0.75rem;
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 0.85rem;
+}
+.journey-location-list,
+.journey-review-list {
+  display: grid;
+  gap: 0.65rem;
+}
+.journey-location-list article {
+  align-items: start;
+  border-top: 1px solid var(--app-line);
+  display: flex;
+  gap: 0.7rem;
+  padding-top: 0.8rem;
+}
+.journey-location-list article > svg {
+  color: var(--app-green-700);
+}
+.journey-location-list p,
+.journey-location-list small {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  margin: 0.2rem 0 0;
+}
+.journey-location-list small {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
+}
+.journey-review-form {
+  display: grid;
+  gap: 1rem;
+}
+.journey-review-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.journey-review-form legend,
+.journey-review-form label {
+  color: var(--app-ink);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+.journey-review-form fieldset > span {
+  color: var(--app-muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+}
+.journey-stars {
+  display: flex;
+  gap: 0.15rem;
+  margin-top: 0.4rem;
+}
+.journey-stars button {
+  background: transparent;
+  border: 0;
+  color: #d7d9d8;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+.journey-stars button:has(~ button[aria-pressed="true"]),
+.journey-stars button[aria-pressed="true"] {
+  color: #e9a008;
+}
+.journey-stars button:focus-visible {
+  border-radius: 0.3rem;
+  outline: 2px solid var(--app-green-700);
+}
+.journey-review-form label {
+  display: grid;
+  gap: 0.45rem;
+  position: relative;
+}
+.journey-review-form label > span {
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  position: absolute;
+  right: 0;
+}
+.journey-review-form textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.journey-review-status {
+  align-items: center;
+  background: var(--app-green-50);
+  border-radius: 0.8rem;
+  color: var(--app-green-800);
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.85rem;
+}
+.journey-review-status p {
+  font-size: 0.78rem;
+  margin: 0;
+}
+.journey-review-list article {
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.8rem;
+}
+.journey-review-list article > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.journey-review-list article span {
+  color: #e9a008;
+  letter-spacing: 0.08em;
+}
+.journey-review-list p {
+  font-size: 0.8rem;
+  margin: 0.4rem 0;
+}
+.journey-review-list small {
+  color: var(--app-muted);
+}
 
 @media (max-width: 62rem) {
   .journey-detail-layout {
@@ -3969,6 +4202,20 @@ a {
   }
   .boarding-code-panel .app-button {
     grid-column: 1 / -1;
+    width: 100%;
+  }
+  .journey-tool-heading {
+    grid-template-columns: auto 1fr;
+  }
+  .journey-tool-heading .journey-state-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .journey-confirmation-grid {
+    grid-template-columns: 1fr;
+  }
+  .journey-tool-card > .app-button,
+  .journey-review-form > .app-button {
     width: 100%;
   }
 }

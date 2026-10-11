@@ -125,7 +125,7 @@ export function BookingDetail({ id }: { id: string }) {
           onRetry={() => void booking.refetch()}
         />
       ) : null}
-      {item ? (
+      {item && !booking.isError ? (
         <>
           <div className="journey-detail-layout">
             <section className="journey-detail-main">
@@ -365,7 +365,11 @@ export function BookingDetail({ id }: { id: string }) {
               </Link>
             </aside>
           </div>
-          <BookingTools bookingId={id} driver={Boolean(driver)} />
+          <BookingTools
+            bookingId={id}
+            driver={Boolean(driver)}
+            bookingStatus={item.status}
+          />
         </>
       ) : null}
     </main>

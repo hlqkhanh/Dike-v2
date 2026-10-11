@@ -434,10 +434,28 @@ export function RideDashboard({
   useAuthFailure(list.error);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const filteredItems =
-    statusFilter === "ALL"
-      ? items
-      : items.filter((item) => item.status === statusFilter);
+  const [bookingRole, setBookingRole] = useState("ALL");
+  const bookingGroups: Record<string, string[]> = {
+    UPCOMING: ["CONFIRMED", "DRIVER_ARRIVED"],
+    ACTIVE: ["BOARDED", "IN_PROGRESS"],
+    COMPLETED: ["COMPLETED"],
+    CANCELLED: ["CANCELLED", "NO_SHOW", "ENDED_EARLY"],
+  };
+  const filteredItems = items.filter((item) => {
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (kind === "bookings"
+        ? bookingGroups[statusFilter]?.includes(item.status)
+        : item.status === statusFilter);
+    const matchesRole =
+      kind !== "bookings" ||
+      bookingRole === "ALL" ||
+      !("passengerId" in item) ||
+      (bookingRole === "DRIVER"
+        ? item.driverId === session.data?.user.id
+        : item.passengerId === session.data?.user.id);
+    return matchesStatus && matchesRole;
+  });
   const title = {
     trips: "Chuyến của tôi",
     proposals: "Đề nghị đi cùng",
@@ -470,10 +488,10 @@ export function RideDashboard({
           role="group"
           aria-label="Lọc theo trạng thái"
         >
-          {[
-            "ALL",
-            ...Array.from(new Set(items.map((item) => item.status))),
-          ].map((status) => (
+          {(kind === "bookings"
+            ? ["ALL", "UPCOMING", "ACTIVE", "COMPLETED", "CANCELLED"]
+            : ["ALL", ...Array.from(new Set(items.map((item) => item.status)))]
+          ).map((status) => (
             <button
               aria-pressed={statusFilter === status}
               className={statusFilter === status ? "is-active" : ""}
@@ -481,7 +499,39 @@ export function RideDashboard({
               type="button"
               onClick={() => setStatusFilter(status)}
             >
-              {status === "ALL" ? "Tất cả" : statusName(status)}
+              {status === "ALL"
+                ? "Tất cả"
+                : kind === "bookings"
+                  ? {
+                      UPCOMING: "Sắp tới",
+                      ACTIVE: "Đang diễn ra",
+                      COMPLETED: "Hoàn thành",
+                      CANCELLED: "Đã hủy",
+                    }[status]
+                  : statusName(status)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {kind === "bookings" && items.length > 0 ? (
+        <div
+          className="journey-filter-bar"
+          role="group"
+          aria-label="Lọc theo vai trò"
+        >
+          {[
+            ["ALL", "Mọi vai trò"],
+            ["DRIVER", "Tài xế"],
+            ["PASSENGER", "Hành khách"],
+          ].map(([value, label]) => (
+            <button
+              aria-pressed={bookingRole === value}
+              className={bookingRole === value ? "is-active" : ""}
+              key={value}
+              type="button"
+              onClick={() => setBookingRole(value)}
+            >
+              {label}
             </button>
           ))}
         </div>
@@ -535,6 +585,13 @@ export function RideDashboard({
               }
             />
           ) : null}
+          {items.length > 0 && filteredItems.length === 0 ? (
+            <EmptyState
+              icon={TicketCheck}
+              title="Không có booking phù hợp"
+              description="Hãy thử đổi trạng thái hoặc vai trò để xem các hành trình khác."
+            />
+          ) : null}
           <div className="ride-dashboard-grid">
             {filteredItems.map((item) =>
               "senderId" in item ? (
@@ -564,6 +621,12 @@ export function RideDashboard({
                   <p>Đón {dateTime(item.pickupAt)}</p>
                   <p>
                     Trả {dateTime(item.dropoffAt)} · {money(item.priceVnd)}
+                  </p>
+                  <p className="journey-next-action">
+                    {bookingNextAction(
+                      item.status,
+                      item.driverId === session.data?.user.id,
+                    )}
                   </p>
                 </article>
               ) : (
@@ -600,6 +663,23 @@ export function RideDashboard({
       )}
     </main>
   );
+}
+function bookingNextAction(status: string, driver: boolean) {
+  if (status === "CONFIRMED")
+    return driver
+      ? "Tiếp theo: xác nhận đã đến điểm đón"
+      : "Tiếp theo: chuẩn bị mã lên xe";
+  if (status === "DRIVER_ARRIVED")
+    return driver
+      ? "Tiếp theo: nhập mã lên xe"
+      : "Tài xế đang chờ tại điểm đón";
+  if (status === "BOARDED") return "Hành khách đã lên xe";
+  if (status === "IN_PROGRESS")
+    return driver
+      ? "Tiếp theo: xác nhận đã trả khách"
+      : "Chuyến đi đang diễn ra";
+  if (status === "COMPLETED") return "Hoàn tất thanh toán và đánh giá";
+  return "Xem chi tiết hành trình";
 }
 function ProposalCard({
   proposal: p,
