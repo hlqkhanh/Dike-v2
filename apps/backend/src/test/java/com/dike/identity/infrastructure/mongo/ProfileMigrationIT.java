@@ -26,6 +26,8 @@ class ProfileMigrationIT {
   private static MongoClient client;
   private static MongoTemplate template;
   private final ProfileIndexesMigration migration = new ProfileIndexesMigration();
+  private final LegacyProfileVisibilityMigration visibilityMigration =
+      new LegacyProfileVisibilityMigration();
 
   @BeforeAll
   static void startMongo() {
@@ -74,5 +76,18 @@ class ProfileMigrationIT {
     assertThat(privacy.getBoolean("discoverableByName")).isTrue();
     assertThat(locked.getString("profileVisibility")).isEqualTo("PRIVATE");
     assertThat(template.getCollection("user_profiles").countDocuments()).isEqualTo(2);
+  }
+
+  @Test
+  void replacesRemovedPublicProfileVisibilityIdempotently() {
+    template.insert(
+        new Document("_id", "legacy-user").append("profileVisibility", "PUBLIC"),
+        "user_privacy_settings");
+
+    visibilityMigration.apply(template);
+    visibilityMigration.apply(template);
+
+    Document privacy = template.findById("legacy-user", Document.class, "user_privacy_settings");
+    assertThat(privacy.getString("profileVisibility")).isEqualTo("MEMBERS");
   }
 }

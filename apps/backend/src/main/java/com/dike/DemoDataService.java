@@ -124,7 +124,7 @@ public class DemoDataService implements ApplicationRunner {
         "user_profiles");
     mongo.save(
         new Document("_id", id)
-            .append("profileVisibility", "PUBLIC")
+            .append("profileVisibility", "MEMBERS")
             .append("discoverableByName", true)
             .append("allowMessageRequests", true)
             .append("updatedAt", date(now))
@@ -273,7 +273,7 @@ public class DemoDataService implements ApplicationRunner {
                 id(actor, "post-offer"),
                 actor,
                 "OFFER_RIDE",
-                actorIntent,
+                id(actor, "trip-open"),
                 home,
                 office,
                 "CAR",
@@ -437,6 +437,29 @@ public class DemoDataService implements ApplicationRunner {
             now.minus(Duration.ofDays(2)),
             "Nam Từ Liêm, Hà Nội",
             "Hà Đông, Hà Nội"),
+        "trips");
+
+    mongo.save(
+        trip(
+            "demo-source-minh",
+            MINH,
+            "OPEN",
+            3,
+            2,
+            now.plus(Duration.ofDays(1)),
+            "Hai Ba Trung, Ha Noi",
+            "Ha Dong, Ha Noi"),
+        "trips");
+    mongo.save(
+        trip(
+            "demo-source-mai",
+            MAI,
+            "OPEN",
+            2,
+            1,
+            now.plus(Duration.ofHours(4)),
+            "Ha Dong, Ha Noi",
+            "Nam Tu Liem, Ha Noi"),
         "trips");
 
     String incomingIntent = id(actor, "proposal-intent-incoming");

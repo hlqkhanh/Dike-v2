@@ -91,6 +91,36 @@ class PostServiceTest {
   }
 
   @Test
+  void feedSkipsOfferWhoseTripNoLongerExists() {
+    var base = post(RidePost.Status.OPEN, null);
+    var orphan =
+        new RidePost(
+            base.id(),
+            "viewer",
+            RidePost.Type.OFFER_RIDE,
+            "missing-trip",
+            base.sourceVersion(),
+            base.status(),
+            base.visibility(),
+            base.communityId(),
+            base.originLabel(),
+            base.destinationLabel(),
+            base.vehicleType(),
+            base.routeId(),
+            base.departureAt(),
+            base.expiresAt(),
+            base.note(),
+            base.version(),
+            base.termsVersion(),
+            base.closureReason(),
+            base.publishedAt());
+    when(store.scan(null, 20, null)).thenReturn(List.of(orphan));
+    when(trips.offer("missing-trip")).thenReturn(Optional.empty());
+
+    assertThat(service.feed("viewer", "latest", null, 20, null, null, null).items()).isEmpty();
+  }
+
+  @Test
   void emptySeatDoesNotReopenOwnerClosedOffer() {
     var p = post(RidePost.Status.CLOSED, "OWNER_CLOSED");
     var offer =

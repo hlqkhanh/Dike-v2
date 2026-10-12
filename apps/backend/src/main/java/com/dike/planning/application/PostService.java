@@ -314,6 +314,8 @@ public class PostService implements PostAccess {
             .filter(p -> vehicle == null || vehicle.equals(p.vehicleType()))
             .filter(p -> from == null || !p.departureAt().isBefore(from))
             .filter(p -> until == null || !p.departureAt().isAfter(until))
+            // A stale post must not make the entire feed unavailable. Detail still returns 404.
+            .filter(p -> p.type() != Type.OFFER_RIDE || trips.offer(p.sourceId()).isPresent())
             .map(this::view)
             .toList();
     return new Page(result, rows.size() == limit ? rows.getLast().id() : null);
