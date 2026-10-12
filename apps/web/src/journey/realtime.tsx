@@ -27,6 +27,8 @@ function JourneyRealtimeConnection() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    let disposed = false;
+    let ticketRetryTimer: number | undefined;
     const invalidateConversation = (message: IMessage) => {
       const event = parse(message);
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -61,9 +63,22 @@ function JourneyRealtimeConnection() {
       heartbeatOutgoing: 20_000,
       debug: () => undefined,
       beforeConnect: async () => {
-        const issued = await journeyApi.realtimeTicket();
-        client.brokerURL = issued.websocketUrl;
-        client.connectHeaders = { ticket: issued.ticket };
+        try {
+          const issued = await journeyApi.realtimeTicket();
+          client.brokerURL = issued.websocketUrl;
+          client.connectHeaders = { ticket: issued.ticket };
+        } catch {
+          // STOMP does not handle rejected beforeConnect promises. Stop this
+          // attempt explicitly so a temporary ticket failure cannot become an
+          // unhandled browser rejection, then retry while the session remains.
+          await client.deactivate();
+          if (!disposed) {
+            ticketRetryTimer = window.setTimeout(
+              () => client.activate(),
+              5_000,
+            );
+          }
+        }
       },
       onConnect: () => {
         client.subscribe("/user/queue/conversations", invalidateConversation);
@@ -73,6 +88,10 @@ function JourneyRealtimeConnection() {
     });
     client.activate();
     return () => {
+      disposed = true;
+      if (ticketRetryTimer !== undefined) {
+        window.clearTimeout(ticketRetryTimer);
+      }
       void client.deactivate();
     };
   }, [queryClient]);

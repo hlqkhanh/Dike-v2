@@ -28,6 +28,8 @@ test("public and offline shells have no serious accessibility violations", async
 });
 
 test("simulated verification status is accessible", async ({ page }) => {
+  const pageErrors: Error[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error));
   await page.route("**/api/v1/auth/session", (route) =>
     route.fulfill({
       json: {
@@ -59,9 +61,22 @@ test("simulated verification status is accessible", async ({ page }) => {
       },
     }),
   );
+  await page.route("**/api/v1/realtime/tickets", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "REALTIME_TEMPORARILY_UNAVAILABLE" } },
+    }),
+  );
+  await page.route("**/api/v1/social/revision", (route) =>
+    route.fulfill({ json: { revision: 1 } }),
+  );
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
   await page.goto("/verification");
   await expect(
-    page.getByText("Tài xế thử nghiệm", { exact: true }),
+    page.getByRole("main").getByText("Tài xế thử nghiệm", { exact: true }),
   ).toBeVisible();
   await expectNoSeriousViolations(page);
+  expect(pageErrors).toEqual([]);
 });
