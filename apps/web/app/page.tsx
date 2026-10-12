@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -8,6 +9,8 @@ import { Button, Card, Status } from "@dike/web-ui";
 
 import { AuthNavigation } from "./auth-navigation";
 import { DikeLogo } from "./components/dike-logo";
+import { authApi } from "../src/auth/api";
+import { AuthenticatedHome } from "./components/authenticated-home";
 
 const Map3DModelViewer = dynamic(
   () =>
@@ -26,6 +29,11 @@ const Map3DModelViewer = dynamic(
 );
 
 export default function HomePage() {
+  const session = useQuery({
+    queryKey: ["auth", "session"],
+    queryFn: authApi.session,
+    retry: false,
+  });
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSupportMenuOpen, setIsSupportMenuOpen] = useState(false);
@@ -33,6 +41,14 @@ export default function HomePage() {
   const [activeDemoTab, setActiveDemoTab] = useState<"route" | "match" | "eco">(
     "route",
   );
+
+  if (session.isPending) {
+    return <HomeSessionSkeleton />;
+  }
+
+  if (session.data) {
+    return <AuthenticatedHome session={session.data} />;
+  }
 
   return (
     <div className="landing-viewport-root">
@@ -689,5 +705,24 @@ export default function HomePage() {
         </footer>
       </main>
     </div>
+  );
+}
+
+function HomeSessionSkeleton() {
+  return (
+    <main
+      className="home-session-skeleton"
+      aria-label="Đang chuẩn bị DIKÉ SHARE"
+    >
+      <div className="home-skeleton-header">
+        <DikeLogo />
+        <span />
+      </div>
+      <div className="home-skeleton-hero">
+        <span className="home-skeleton-line home-skeleton-line--title" />
+        <span className="home-skeleton-line" />
+        <span className="home-skeleton-search" />
+      </div>
+    </main>
   );
 }
