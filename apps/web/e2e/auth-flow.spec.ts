@@ -39,7 +39,9 @@ test("login entry uses the same-origin backend route", async ({ page }) => {
   await page.goto("/login");
 
   await expect(
-    page.getByRole("link", { name: "Tiếp tục với Google" }),
+    page.getByRole("link", {
+      name: /Đăng nhập với Google|Tiếp tục với Google/,
+    }),
   ).toHaveAttribute("href", "/api/v1/auth/google");
 });
 

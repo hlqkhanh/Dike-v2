@@ -88,6 +88,37 @@ Ví dụ, browser nhận `MESSAGE_CREATED` qua WebSocket để cập nhật nhan
 được lưu MongoDB trước đó. Nếu browser mất mạng và bỏ lỡ sự kiện, nó tải lại danh
 sách qua REST.
 
+### 2.2. Bốn loại trạng thái cần phân biệt
+
+**Trạng thái** là dữ liệu mô tả hệ thống tại một thời điểm. Không phải trạng thái
+nào cũng cần lưu vĩnh viễn. Trước khi chọn database, hãy hỏi dữ liệu có cần sống
+qua một lần restart hay có thể tạo lại được.
+
+| Loại trạng thái         | Ví dụ                            | Nơi giữ chính | Vì sao                                       |
+| ----------------------- | -------------------------------- | ------------- | -------------------------------------------- |
+| Nghiệp vụ bền vững      | User, booking, message, report   | MongoDB       | Phải còn sau restart và có thể audit         |
+| Ngắn hạn/có thể tạo lại | Session, rate limit, route cache | Redis         | Cần nhanh, có TTL hoặc mất vẫn phục hồi được |
+| Nội dung file           | Avatar, giấy tờ                  | MinIO/R2      | Không phù hợp nhét bytes lớn vào document    |
+| Trạng thái giao diện    | Modal mở, text đang nhập         | React state   | Chỉ có ý nghĩa trong phiên hiển thị hiện tại |
+
+Một dữ liệu có thể đi qua nhiều nơi nhưng chỉ có một nơi là source of truth. Ví
+dụ message được lưu MongoDB, phát tín hiệu qua Redis và hiển thị trong React. Nếu
+ba nơi khác nhau, MongoDB thắng; client phải gọi REST để đồng bộ lại.
+
+### 2.3. Đồng bộ và bất đồng bộ là gì?
+
+- **Đồng bộ** nghĩa là client chờ tác vụ hoàn thành rồi mới nhận kết quả. Kiểm tra
+  quyền, giữ chỗ và tạo booking là đồng bộ vì response phải nói chính xác thành
+  công hay thất bại.
+- **Bất đồng bộ** nghĩa là tác vụ chính đã hoàn thành, còn side effect được xử lý
+  sau. Tạo notification hoặc xử lý file có thể bất đồng bộ để request không phải
+  chờ công việc chậm.
+- **Side effect** là tác động phát sinh ngoài thay đổi chính, ví dụ gửi thông báo,
+  tạo conversation hoặc xóa object cũ.
+
+Dike dùng Mongo transaction cho invariant phải đúng ngay và dùng outbox/worker
+cho side effect có thể xuất hiện chậm một khoảng ngắn.
+
 ## 3. Vì sao chọn modular monolith?
 
 Backend là một **modular monolith**: một codebase, một artifact Spring Boot và một
@@ -185,6 +216,28 @@ Chứa Mongo adapter, Redis, object storage và provider bên ngoài. **Port** l
 interface mô tả điều application cần; **adapter** là implementation bằng công nghệ
 cụ thể. Cách này giúp test bằng fake adapter hoặc đổi provider mà ít ảnh hưởng
 domain.
+
+### 4.2. Cách các layer phối hợp trong một use case
+
+Ví dụ người dùng chấp nhận một proposal:
+
+```text
+RideController
+  → RideService
+    → Trip / Proposal / Booking domain objects
+    → RideStore port
+      → MongoRideStore adapter
+    → OutboxPublisher
+```
+
+Controller chỉ chuyển dữ liệu qua biên HTTP. Application service quyết định thứ
+tự thao tác. Domain từ chối trạng thái không hợp lệ. Mongo adapter chịu trách
+nhiệm query và optimistic update. Outbox publisher ghi event cho side effect sau
+commit.
+
+Module khác không nên gọi thẳng `MongoRideStore`. Nếu `messaging` cần biết booking,
+`ride` phải cung cấp public API/port phù hợp hoặc phát domain event. Quy tắc này
+ngăn implementation nội bộ bị phụ thuộc chéo.
 
 ## 5. Kiến trúc frontend web
 
@@ -292,6 +345,44 @@ nhưng không tạo booking.
 document đã đổi từ lúc client đọc, update cũ bị từ chối thay vì âm thầm ghi đè.
 Kỹ thuật này quan trọng với số chỗ, booking, moderation và xác nhận hai phía.
 
+### 7.4. Các nhóm collection hiện có
+
+**Collection** trong MongoDB gần giống table trong relational database: nó nhóm
+các document cùng mục đích. **Document** gần giống một row, nhưng có thể chứa
+object hoặc array lồng nhau.
+
+| Module      | Collection tiêu biểu                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `identity`  | `users`, `auth_identities`, `user_profiles`, `user_privacy_settings`, `consent_receipts`, `otp_challenges`, `file_assets`, `account_deletion_requests` |
+| `community` | `social_relations`, `social_revisions`, `social_receipts`, `social_quotas`, `social_audit`                                                             |
+| `planning`  | `schedule_rules`, `schedule_exceptions`, `travel_intents`, `ride_posts`, `saved_posts`, `route_snapshots`                                              |
+| `ride`      | `trips`, `ride_proposals`, `bookings`, `ride_intervals`, `boarding_secrets`, `payment_acknowledgements`, `live_location_consents`                      |
+| `messaging` | `conversations`, `messages`, `conversation_reads`, `notifications`                                                                                     |
+| `trust`     | `reviews`, `rating_summaries`, `reports`, `audit_logs`                                                                                                 |
+| `shared`    | `outbox_events`, `outbox_deliveries`, `command_receipts`, migration metadata                                                                           |
+
+Danh sách trên giúp định hướng khi debug, không phải contract để frontend truy cập
+trực tiếp. Một số collection dùng class có `@Document`; số khác được adapter gọi
+qua `MongoTemplate` với tên collection tường minh.
+
+Các document thường liên hệ bằng ID thay vì join tự động. Ví dụ booking giữ
+`tripId`, `proposalId`, `passengerId` và `driverId`. Application service chịu trách
+nhiệm tải dữ liệu liên quan và kiểm tra quyền. Không nên giả định mọi ID do client
+gửi đều hợp lệ hoặc thuộc về người đang đăng nhập.
+
+### 7.5. Khi nào cần transaction, index và version?
+
+Ba cơ chế giải quyết ba vấn đề khác nhau:
+
+- **Transaction**: nhiều document phải cùng thành công hoặc cùng rollback.
+- **Unique index**: database phải từ chối dữ liệu trùng, kể cả khi hai request chạy
+  đồng thời.
+- **Version**: phát hiện client đang update từ một bản dữ liệu đã cũ.
+
+Ví dụ hai người cùng nhận chỗ cuối: validation ở Java có thể cùng nhìn thấy một
+chỗ trống. Fence, version, unique index và transaction ở database mới là lớp ngăn
+việc tạo hai booking hợp lệ cho cùng tài nguyên.
+
 ## 8. Redis: dữ liệu nhanh và ngắn hạn
 
 Redis không thay MongoDB. Nó phù hợp với dữ liệu cần truy cập nhanh, có TTL hoặc có
@@ -320,6 +411,28 @@ Pub/Sub chỉ phát cho subscriber đang online; subscriber offline có thể b�
 Dike dùng nó để tăng tốc realtime, còn dữ liệu quan trọng đã nằm trong MongoDB và
 có thể tải lại qua REST.
 
+### 8.3. Namespace và vòng đời Redis key
+
+Redis key được đặt prefix theo môi trường để local, staging và production không
+dùng nhầm dữ liệu của nhau:
+
+```text
+dike:{environment}:session:...
+dike:{environment}:routing:place-session:{token}
+dike:{environment}:routing:place:{placeReference}
+dike:{environment}:routing:route:{digest}
+dike:{environment}:availability:user:{userId}
+dike:{environment}:live-location:{bookingId}:{userId}
+```
+
+Một số key chứa ID đã hash hoặc digest thay vì dữ liệu nhạy cảm thô. Route cache
+dùng HMAC để tọa độ và provider place ID không xuất hiện ngay trong key/log.
+
+Redis key phải có chiến lược hết hạn hoặc thu hồi rõ ràng. Nếu một cache key hết
+hạn, hệ thống tính lại. Nếu session hết hạn, user đăng nhập lại. Nếu live location
+hết hạn, thiết bị phải gửi heartbeat/tọa độ mới. Không được âm thầm coi dữ liệu
+Redis đã mất là bằng chứng booking không tồn tại.
+
 ## 9. Object storage
 
 Avatar và tài liệu nằm ở MinIO local hoặc Cloudflare R2 production. MongoDB chỉ lưu
@@ -328,6 +441,38 @@ metadata như owner, object key, loại file và trạng thái xử lý.
 File private không có URL công khai cố định. Sau khi kiểm tra quyền, backend tạo
 signed URL có thời hạn ngắn. Backend container không giữ file lâu dài vì filesystem
 có thể bị thay thế khi deploy.
+
+### 9.1. Vì sao không lưu cả file trong MongoDB?
+
+MongoDB phù hợp metadata cần query và transaction; object storage phù hợp bytes
+lớn, tải theo luồng và signed URL. Tách hai phần giúp API không phải giữ toàn bộ
+file trong RAM, database nghiệp vụ không phình nhanh và quyền download vẫn do
+backend kiểm soát.
+
+### 9.2. Luồng upload và xử lý file
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant API
+  participant M as MongoDB
+  participant O as MinIO/R2
+  participant W as Worker
+
+  B->>API: Xin upload intent
+  API->>M: Tạo metadata file_assets
+  API-->>B: Signed PUT URL + header bắt buộc
+  B->>O: Upload bytes trực tiếp
+  B->>API: Báo complete + idempotency key
+  API->>O: HEAD kiểm tra size/checksum/type
+  API->>M: Cập nhật state + ghi outbox event
+  W->>O: Đọc, inspect và xử lý file
+  W->>M: Đánh dấu READY hoặc REJECTED
+```
+
+Khi download file private, client không nhận object key rồi tự ghép URL. Client xin
+backend một download grant; backend kiểm tra owner/quyền rồi mới tạo signed GET URL
+có thời hạn ngắn.
 
 ## 10. API profile và worker profile
 
@@ -340,6 +485,16 @@ profile khác:
 
 Tách process giúp job nền chậm không chiếm tài nguyên request. Đây chưa phải
 microservice vì hai process vẫn thuộc cùng backend artifact và release.
+
+### 10.1. Local và production khác nhau thế nào?
+
+`pnpm dev` dùng profile `local,combined`: HTTP API và worker chạy trong cùng JVM để
+dễ phát triển. MongoDB, Redis và MinIO chạy bằng Docker Compose.
+
+Ở production, API và worker chạy thành hai process riêng nhưng phải dùng cùng
+version artifact. API có thể scale để phục vụ request; worker scale theo lượng job.
+Chúng vẫn dùng chung domain model, MongoDB, Redis namespace và quy trình release,
+nên chưa phải hai microservice độc lập.
 
 ## 11. Outbox pattern
 
@@ -465,6 +620,67 @@ sequenceDiagram
 
 Không tin quyền, giá, số chỗ hoặc trạng thái do client tự gửi nếu backend có thể
 suy ra từ session và dữ liệu hiện tại.
+
+### 14.1. Điều gì xảy ra trước khi controller chạy?
+
+1. Browser gửi cookie session và CSRF header cho mutation.
+2. Next.js proxy giữ request cùng origin rồi forward tới Spring Boot.
+3. Security filter tra session server-side trong Redis.
+4. Backend dựng principal chứa `userId` và authorization version hiện tại.
+5. Origin, CSRF, account state và quyền endpoint được kiểm tra.
+6. Chỉ sau đó controller mới nhận request.
+
+Vì vậy có session hợp lệ chỉ chứng minh “đây là ai”. Application/domain vẫn phải
+kiểm tra “người này có quyền làm thao tác này trên resource này không”.
+
+### 14.2. Ví dụ vòng đời một mutation
+
+Giả sử client cập nhật một schedule:
+
+```text
+Form React
+  → generated/manual API client
+  → Next.js /api proxy
+  → Spring Security
+  → ScheduleController
+  → ScheduleService
+  → domain rule
+  → MongoPlanningStore
+  → Mongo transaction/optimistic update
+  → response DTO
+  → client invalidate và refetch query
+```
+
+Nếu update tạo side effect, application service ghi thêm outbox event trong cùng
+transaction. Worker xử lý side effect sau; response chính không cần chờ gửi mọi
+notification.
+
+### 14.3. Luồng dữ liệu routing và bản đồ
+
+Routing minh họa rõ việc một use case dùng cả provider ngoài, Redis và MongoDB:
+
+```mermaid
+flowchart TD
+  Q[Người dùng nhập địa điểm] --> S[Backend tạo place session]
+  S --> RS[(Redis session có TTL)]
+  Q --> A[Goong AutoComplete qua backend]
+  A --> REF[Backend trả placeRef nội bộ]
+  REF --> RS
+  REF --> D[User chọn và resolve]
+  D --> P[(Redis PlaceSnapshot có TTL)]
+  P --> C{Có route cache?}
+  C -->|Có| ROUTE[Route result]
+  C -->|Không| G[Goong Direction]
+  G --> RC[(Redis route cache)]
+  RC --> ROUTE
+  ROUTE --> SNAP[(MongoDB route_snapshots)]
+  SNAP --> UI[Leaflet vẽ geometry]
+```
+
+Goong API key chỉ nằm ở backend. Provider place ID được đổi thành reference nội bộ
+để client không phụ thuộc trực tiếp vào provider. Redis giữ dữ liệu tìm kiếm ngắn
+hạn; khi route tham gia nghiệp vụ, backend lưu route snapshot bền vững trong
+MongoDB. Provider tạm lỗi sau đó không làm mất snapshot đã lưu.
 
 ## 15. Luồng booking và chống vượt chỗ
 
@@ -692,6 +908,7 @@ Backend trả `accessMode=SIMULATED`; frontend phải hiển thị “Tài xế 
 
 ## 28. Tài liệu liên quan
 
+- [Lộ trình kiến thức Software Engineering để hiểu Dike](software-engineering-learning-guide.md)
 - [Kế hoạch tổng thể](../../plan/PLAN_MASTER.md)
 - [Backend modules](modules/README.md)
 - [Danh mục ADR](adr/README.md)

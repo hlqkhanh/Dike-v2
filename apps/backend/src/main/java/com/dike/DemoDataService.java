@@ -16,6 +16,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 /** Idempotent, local-only sample data used by the web and mobile demo builds. */
@@ -203,6 +205,24 @@ public class DemoDataService implements ApplicationRunner {
         "schedule_rules");
 
     String actorIntent = id(actor, "intent-outbound");
+    mongo.remove(
+        Query.query(
+            Criteria.where("scheduleId")
+                .is(scheduleId)
+                .and("localDate")
+                .is(localDate(today.plusDays(1)))
+                .and("direction")
+                .is("OUTBOUND")),
+        "travel_intents");
+    mongo.remove(
+        Query.query(
+            Criteria.where("scheduleId")
+                .is("demo-schedule-linh")
+                .and("localDate")
+                .is(localDate(today.plusDays(1)))
+                .and("direction")
+                .is("OUTBOUND")),
+        "travel_intents");
     mongo.save(
         intent(
             actorIntent,

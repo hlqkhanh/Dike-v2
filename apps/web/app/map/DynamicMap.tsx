@@ -51,7 +51,16 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
   }, [route]);
 
   return (
-    <div className="dynamic-map">
+    <div
+      style={{
+        height: "100%",
+        minHeight: "600px",
+        width: "100%",
+        borderRadius: "12px",
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
       <MapContainer
         center={positions.length > 0 ? positions[0] : defaultCenter}
         zoom={15}
@@ -59,8 +68,8 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://maps.google.com">Google Maps</a>'
+          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
         />
 
         {positions.length > 0 && (

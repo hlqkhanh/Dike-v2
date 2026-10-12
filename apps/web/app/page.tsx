@@ -3,10 +3,27 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Button, Card, Status } from "@dike/web-ui";
 
 import { AuthNavigation } from "./auth-navigation";
 import { DikeLogo } from "./components/dike-logo";
+
+const Map3DModelViewer = dynamic(
+  () =>
+    import("./components/map-3d-model-viewer").then(
+      (mod) => mod.Map3DModelViewer,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="map-3d-model-skeleton">
+        <div className="map-3d-spinner" />
+        <span>Đang chuẩn bị không gian 3D…</span>
+      </div>
+    ),
+  },
+);
 
 export default function HomePage() {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
@@ -409,79 +426,84 @@ export default function HomePage() {
       </section>
 
       {/* ======================================================== */}
-      {/* SECTION 2: SERVICES, PLATFORM FOUNDATION & IMPACT */}
+      {/* SECTION 2: FULLSCREEN 3D ISOMETRIC SHOWCASE (THỐNG NHẤT 1 KHUNG HÌNH) */}
+      {/* ======================================================== */}
+      <section
+        className="showcase-stage-viewport"
+        id="dich-vu"
+        aria-labelledby="showcase-title"
+      >
+        <div className="showcase-stage-body">
+          {/* Left Column: Minimalist Content about Rider & Driver */}
+          <div className="showcase-content-col">
+            <p className="showcase-tagline">
+              KẾT NỐI HÀNH TRÌNH · CHIA SẺ CHỖ TRỐNG
+            </p>
+
+            <h2 id="showcase-title" className="showcase-headline">
+              <span className="showcase-headline-dark">ĐỒNG HÀNH</span>
+              <span className="showcase-headline-green">XE KÉ & ĐI CHUNG.</span>
+            </h2>
+
+            <p className="showcase-subhead">
+              Người có xe chia sẻ chỗ ngồi, người đi ké tiết kiệm chi phí.
+            </p>
+
+            <p className="showcase-description">
+              DIKÉ tự động kết nối tài xế còn ghế trống và người có chung lộ
+              trình mỗi ngày. Không còn chuyến xe lãng phí, san sẻ chi phí xăng
+              xe và lan tỏa thói quen di chuyển xanh.
+            </p>
+
+            <div className="showcase-actions">
+              <Link href="/login" className="showcase-btn-primary">
+                <span>Bắt đầu ngay</span>
+                <span className="showcase-btn-arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                className="showcase-btn-demo"
+                onClick={() => setIsDemoOpen(true)}
+                aria-label="Xem bản demo tương tác"
+              >
+                <span className="showcase-play-circle" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="9,6 18,12 9,18" />
+                  </svg>
+                </span>
+                <span>Xem Bản Demo</span>
+              </button>
+            </div>
+
+            <blockquote className="showcase-quote">
+              “ Một ghế trống sẻ chia, triệu hành trình thêm gắn kết. ”
+            </blockquote>
+          </div>
+
+          {/* Right Column: Interactive 3D Model that rotates around Y axis */}
+          <div className="showcase-model-col">
+            <Map3DModelViewer modelUrl="/images/HCMC-map-3dmodel2.glb" />
+          </div>
+        </div>
+
+        {/* Scroll indicator to Section 3 */}
+        <a
+          href="#ve-chung-toi"
+          className="showcase-scroll-hint"
+          aria-label="Cuộn xem tiếp về chúng tôi"
+        >
+          <span>Về chúng tôi</span>
+          <span className="scroll-chevron">↓</span>
+        </a>
+      </section>
+
+      {/* ======================================================== */}
+      {/* SECTION 3: PLATFORM FOUNDATION, IMPACT & COMMUNITY */}
       {/* ======================================================== */}
       <main className="shell">
-        {/* Services Section */}
-        <section
-          className="services-section"
-          id="dich-vu"
-          aria-labelledby="services-title"
-        >
-          <div className="section-header">
-            <p className="eyebrow">Dịch vụ & Tính năng</p>
-            <h2 id="services-title">
-              Giải pháp di chuyển thông minh cho mọi hành trình
-            </h2>
-            <p className="section-subtitle">
-              Kết nối cộng đồng người đi lại hàng ngày trên cùng tuyến đường,
-              tối ưu chi phí và đem lại trải nghiệm di chuyển tiện lợi, văn
-              minh.
-            </p>
-          </div>
-
-          <div className="services-grid">
-            <div className="service-card">
-              <div className="service-card__icon" aria-hidden="true">
-                🛵
-              </div>
-              <h3>Đi chung xe hàng ngày</h3>
-              <p>
-                Dễ dàng tìm bạn đồng hành có chung lộ trình đi học, đi làm. Tiết
-                kiệm đến 50% chi phí xăng xe và phí gửi xe mỗi tháng.
-              </p>
-              <ul className="service-card__features">
-                <li>Ghép chuyến tự động theo tuyến đường</li>
-                <li>Linh hoạt điều chỉnh giờ đón</li>
-                <li>Hẹn trước lịch đi định kỳ</li>
-              </ul>
-            </div>
-
-            <div className="service-card featured">
-              <div className="service-badge">Khuyên dùng</div>
-              <div className="service-card__icon" aria-hidden="true">
-                🌱
-              </div>
-              <h3>Hành trình xanh (Eco-Ride)</h3>
-              <p>
-                Ưu tiên kết nối xe máy điện và phương tiện thân thiện với môi
-                trường, tích lũy điểm thưởng xanh để đổi quà ưu đãi giá trị.
-              </p>
-              <ul className="service-card__features">
-                <li>Đo lường lượng CO₂ giảm phát thải</li>
-                <li>Đổi quà cùng đối tác xanh</li>
-                <li>Huy hiệu thành viên bảo vệ môi trường</li>
-              </ul>
-            </div>
-
-            <div className="service-card">
-              <div className="service-card__icon" aria-hidden="true">
-                🛡️
-              </div>
-              <h3>Cộng đồng an toàn & Tin cậy</h3>
-              <p>
-                100% hồ sơ thành viên được xác thực qua thẻ sinh viên hoặc CCCD.
-                Hệ thống đánh giá hai chiều minh bạch sau mỗi hành trình.
-              </p>
-              <ul className="service-card__features">
-                <li>Xác minh danh tính nghiêm ngặt</li>
-                <li>Đánh giá sao và nhận xét trung thực</li>
-                <li>Chia sẻ vị trí trực tiếp cho người thân</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
         {/* About & Community Impact Section */}
         <section
           className="impact-section"

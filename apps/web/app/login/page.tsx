@@ -1,5 +1,3 @@
-import { Card } from "@dike/web-ui";
-import { ArrowLeft, ArrowRight, Leaf, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { DikeLogo } from "../components/dike-logo";
 
@@ -9,99 +7,84 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+
   return (
-    <main className="auth-page auth-page--split">
-      <section className="auth-story" aria-label="Giới thiệu Diké Share">
-        <Link className="auth-home-link" href="/">
-          <ArrowLeft aria-hidden="true" size={17} /> Trang chủ
-        </Link>
-        <div className="auth-story-copy">
-          <p className="app-eyebrow">Di chuyển cùng cộng đồng</p>
-          <h2>
-            Mỗi chuyến đi,
-            <br />
-            thêm một kết nối xanh.
-          </h2>
-          <p>
-            Gặp người đồng hành phù hợp, chia sẻ chi phí và giảm dấu chân carbon
-            trong từng hành trình.
-          </p>
-          <div className="auth-benefits">
-            <span>
-              <Users aria-hidden="true" size={18} /> Cộng đồng đã xác minh
-            </span>
-            <span>
-              <ShieldCheck aria-hidden="true" size={18} /> Quyền riêng tư chủ
-              động
-            </span>
-            <span>
-              <Leaf aria-hidden="true" size={18} /> Hành trình bền vững
-            </span>
-          </div>
-        </div>
-      </section>
-      <Card className="auth-card auth-card--product">
-        <Link className="brand" href="/" aria-label="Diké Share — Trang đầu">
-          <DikeLogo />
-        </Link>
-        <div>
-          <p className="app-eyebrow">Chào mừng trở lại</p>
-          <h1>Tiếp tục hành trình của bạn</h1>
-          <p className="auth-copy">
-            Đăng nhập để quản lý chuyến đi, trò chuyện với bạn đồng hành và xem
-            các gợi ý dành riêng cho bạn.
-          </p>
-        </div>
-        {error ? (
-          <p className="auth-error" role="alert">
-            Không thể đăng nhập. Vui lòng thử lại.
-          </p>
-        ) : null}
-        <a
-          className="auth-action auth-google-button"
-          href="/api/v1/auth/google"
+    <div className="login-stage-viewport">
+      {/* Top Left Brand Logo */}
+      <header className="login-stage-header">
+        <Link
+          className="login-brand"
+          href="/"
+          aria-label="Diké Share — Trang chủ"
         >
-          <span className="google-mark" aria-hidden="true">
-            G
-          </span>
-          Tiếp tục với Google
-          <ArrowRight aria-hidden="true" size={18} />
-        </a>
-        {process.env.NODE_ENV === "development" ? (
-          <section
-            className="dev-login-panel"
-            aria-labelledby="dev-login-title"
+          <DikeLogo className="login-brand-logo" />
+        </Link>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="login-stage-main">
+        <div className="login-content-box">
+          <p className="login-greeting">Chào bạn,</p>
+          <h1 className="login-title">Đăng nhập Diké Share</h1>
+          <p className="login-subtitle">
+            Tiếp tục hành trình di chuyển xanh cùng chúng tôi.
+          </p>
+
+          {error ? (
+            <div className="login-error-alert" role="alert">
+              <span aria-hidden="true">⚠️</span>
+              <p>Không thể đăng nhập. Vui lòng thử lại.</p>
+            </div>
+          ) : null}
+
+          {/* Google Login Button */}
+          <a
+            className="login-google-btn"
+            href="/api/v1/auth/google"
+            id="google-login-button"
+            aria-label="Đăng nhập với Google"
           >
-            <div>
-              <p className="app-eyebrow">Chỉ môi trường local</p>
-              <h2 id="dev-login-title">Bỏ qua Google để kiểm thử</h2>
-              <p>
-                Chọn vai trò mẫu. Phiên này không phải bằng chứng xác minh thật.
-              </p>
-            </div>
-            <div className="dev-login-actions">
-              <a href="/api/v1/auth/dev?persona=member">Thành viên</a>
-              <a href="/api/v1/auth/dev?persona=driver">Tài xế</a>
-              <a href="/api/v1/auth/dev?persona=admin">Quản trị</a>
-            </div>
-          </section>
-        ) : null}
-        <div className="auth-trust-note">
-          <ShieldCheck aria-hidden="true" size={18} />
-          <p>
-            <strong>Đăng nhập an toàn</strong>
-            <span>
-              Diké chỉ dùng Google để xác minh danh tính. Token đăng nhập không
-              được lưu trong trình duyệt.
-            </span>
+            <svg
+              className="google-icon"
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              aria-hidden="true"
+            >
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span className="google-text">Đăng nhập với Google</span>
+          </a>
+
+          {/* Divider */}
+          <div className="login-divider" aria-hidden="true">
+            <span>hoặc</span>
+          </div>
+
+          {/* Register Link */}
+          <p className="login-footer">
+            Chưa có tài khoản?{" "}
+            <Link className="login-signup-link" href="/onboarding">
+              Đăng ký ngay
+            </Link>
           </p>
         </div>
-        <p className="auth-terms">
-          Bằng việc tiếp tục, bạn đồng ý với{" "}
-          <Link href="/settings/privacy">chính sách quyền riêng tư</Link> của
-          Diké Share.
-        </p>
-      </Card>
-    </main>
+      </main>
+    </div>
   );
 }
