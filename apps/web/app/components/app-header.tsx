@@ -92,7 +92,7 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
       <div className="new-app-header-inner">
         <Link
           className="new-app-brand"
-          href="/home"
+          href="/"
           aria-label="DIKÉ SHARE — Trang chủ"
         >
           <DikeLogo />
@@ -102,9 +102,9 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
           aria-label="Điều hướng chính"
         >
           <Link
-            href="/home"
-            className={pathname === "/home" ? "nav-link-active" : ""}
-            aria-current={pathname === "/home" ? "page" : undefined}
+            href="/"
+            className={pathname === "/" ? "nav-link-active" : ""}
+            aria-current={pathname === "/" ? "page" : undefined}
             onClick={() => setMenuOpen(false)}
           >
             Trang chủ

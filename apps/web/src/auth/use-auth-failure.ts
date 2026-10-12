@@ -12,7 +12,7 @@ export function useAuthFailure(error: unknown) {
   useEffect(() => {
     if (error instanceof ApiError && error.status === 401) {
       queryClient.clear();
-      router.replace("/");
+      router.replace("/login");
     }
   }, [error, queryClient, router]);
 }
