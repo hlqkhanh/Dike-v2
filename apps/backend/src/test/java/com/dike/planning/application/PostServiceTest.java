@@ -179,6 +179,41 @@ class PostServiceTest {
   }
 
   @Test
+  void openingTripPublishesOfferToFeed() {
+    when(store.bySource("t")).thenReturn(List.of());
+    when(trips.offer("t"))
+        .thenReturn(
+            Optional.of(
+                new TripSource.Offer(
+                    "t",
+                    "owner",
+                    "OPEN",
+                    1,
+                    0,
+                    "PUBLIC",
+                    "",
+                    "A",
+                    "B",
+                    now.plusSeconds(3600),
+                    2,
+                    1000,
+                    "CAR",
+                    "r")));
+
+    service.publishOffer("t");
+
+    verify(store)
+        .insert(
+            argThat(
+                p ->
+                    p.type() == RidePost.Type.OFFER_RIDE
+                        && p.status() == RidePost.Status.OPEN
+                        && p.sourceId().equals("t")
+                        && p.sourceVersion() == 1
+                        && p.publishedAt().equals(now)));
+  }
+
+  @Test
   void malformedVisibilityReturnsControlledError() {
     when(accounts.verified("owner")).thenReturn(true);
     assertThatThrownBy(

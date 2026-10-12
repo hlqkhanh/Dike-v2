@@ -3,6 +3,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import type { RelationView } from "@dike/api-client-ts";
+import {
+  Ban,
+  Check,
+  RotateCcw,
+  Send,
+  UserMinus,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { socialApi } from "./api";
 import { broadcastSocialChange, clearSocialContent } from "./invalidation";
 
@@ -15,6 +24,15 @@ const labels: Record<string, string> = {
   BLOCK: "Chặn",
   UNBLOCK: "Bỏ chặn",
 };
+const actionIcons = {
+  SEND: UserPlus,
+  ACCEPT: Check,
+  DECLINE: X,
+  CANCEL: RotateCcw,
+  REMOVE: UserMinus,
+  BLOCK: Ban,
+  UNBLOCK: RotateCcw,
+} as const;
 export function RelationActions({ relation }: { relation: RelationView }) {
   const client = useQueryClient();
   const pendingKey = useRef<{ action: string; key: string } | null>(null);
@@ -54,16 +72,21 @@ export function RelationActions({ relation }: { relation: RelationView }) {
   }
   return (
     <div className="social-actions">
-      {relation.allowedActions.map((action) => (
-        <button
-          type="button"
-          key={action}
-          disabled={mutation.isPending}
-          onClick={() => act(action)}
-        >
-          {labels[action] ?? action}
-        </button>
-      ))}
+      {relation.allowedActions.map((action) => {
+        const Icon = actionIcons[action as keyof typeof actionIcons] ?? Send;
+        return (
+          <button
+            type="button"
+            key={action}
+            data-action={action.toLowerCase()}
+            disabled={mutation.isPending}
+            onClick={() => act(action)}
+          >
+            <Icon aria-hidden="true" size={16} />
+            {labels[action] ?? action}
+          </button>
+        );
+      })}
       {relation.cooldownUntil && !relation.allowedActions.includes("SEND") ? (
         <p>
           Có thể gửi lại từ{" "}

@@ -438,6 +438,66 @@ public class PostService implements PostAccess {
   }
 
   @Transactional(propagation = Propagation.MANDATORY)
+  public void publishOffer(String tripId) {
+    var trip = trips.offer(tripId).orElseThrow(PostService::missing);
+    if (!"OPEN".equals(trip.status()) || trip.remainingSeats() < 1) throw conflict();
+    var existing =
+        store.bySource(tripId).stream().filter(p -> p.type() == Type.OFFER_RIDE).findFirst();
+    if (existing.isPresent()) {
+      var before = existing.get();
+      if (before.status() == Status.OPEN || before.status() == Status.MATCHED) return;
+      if (before.status() != Status.DRAFT) throw conflict();
+      var published =
+          new RidePost(
+              before.id(),
+              trip.ownerId(),
+              Type.OFFER_RIDE,
+              trip.id(),
+              trip.version(),
+              Status.OPEN,
+              trip.visibility(),
+              trip.communityId(),
+              trip.originLabel(),
+              trip.destinationLabel(),
+              trip.vehicleType(),
+              trip.routeId(),
+              trip.departureAt(),
+              trip.departureAt(),
+              before.note(),
+              before.version() + 1,
+              trip.termsVersion(),
+              null,
+              clock.instant());
+      store.save(before, published);
+      event(published, "post.published");
+      return;
+    }
+    var published =
+        new RidePost(
+            UUID.randomUUID().toString(),
+            trip.ownerId(),
+            Type.OFFER_RIDE,
+            trip.id(),
+            trip.version(),
+            Status.OPEN,
+            trip.visibility(),
+            trip.communityId(),
+            trip.originLabel(),
+            trip.destinationLabel(),
+            trip.vehicleType(),
+            trip.routeId(),
+            trip.departureAt(),
+            trip.departureAt(),
+            "",
+            0,
+            trip.termsVersion(),
+            null,
+            clock.instant());
+    store.insert(published);
+    event(published, "post.published");
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
   public void invalidateTrip(String tripId) {
     for (var p : store.bySource(tripId))
       if (p.type() == Type.OFFER_RIDE

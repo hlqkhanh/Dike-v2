@@ -22,6 +22,8 @@ public interface PostAccess {
 
   void reopenOffer(String tripId, boolean full);
 
+  void publishOffer(String tripId);
+
   void invalidateTrip(String tripId);
 
   void refreshTrip(String tripId);

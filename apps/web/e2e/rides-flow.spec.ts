@@ -85,6 +85,60 @@ test("creates a draft from an owned route before publishing", async ({
   expect(created).toBe(true);
 });
 
+test("draft trip detail continues the creation flow and publishes once", async ({
+  page,
+}) => {
+  let opened = false;
+  let openCalls = 0;
+  const trip = {
+    id: "draft-trip",
+    driverId: "passenger",
+    status: "DRAFT",
+    vehicleType: "MOTORCYCLE",
+    originLabel: "Đại học Bách Khoa",
+    destinationLabel: "Đại học Kinh tế",
+    departureAt: "2026-10-13T01:00:00Z",
+    arrivalAt: "2026-10-13T01:30:00Z",
+    offeredSeats: 1,
+    remainingSeats: 1,
+    contributionPerKm: 500,
+    visibility: "PUBLIC",
+    communityId: "",
+    version: 0,
+    termsVersion: 0,
+    routeVersion: 0,
+  };
+  await page.route("**/api/v1/trips/draft-trip/open", async (route) => {
+    openCalls++;
+    expect(route.request().postDataJSON()).toEqual({ version: 0 });
+    expect(route.request().headers()["idempotency-key"]).toBeTruthy();
+    opened = true;
+    await route.fulfill({ json: { ...trip, status: "OPEN", version: 1 } });
+  });
+  await page.route("**/api/v1/trips/draft-trip", (route) =>
+    route.fulfill({
+      json: opened ? { ...trip, status: "OPEN", version: 1 } : trip,
+    }),
+  );
+
+  await page.goto("/trips/draft-trip");
+  await expect(
+    page.getByRole("heading", { name: "Kiểm tra và đăng chuyến" }),
+  ).toBeVisible();
+  await expect(page.getByText("Chuyến đang ở chế độ bản nháp")).toBeVisible();
+  await expect(page.getByText("Đại học Bách Khoa")).toBeVisible();
+  await page.getByRole("button", { name: "Đăng chuyến" }).click();
+  await expect(page.getByText("Đang mở", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng chuyến" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "Bắt đầu chuyến" }),
+  ).toBeDisabled();
+  await expect(page.getByText(/15 phút trước giờ khởi hành/)).toBeVisible();
+  expect(openCalls).toBe(1);
+});
+
 test("feed provides unavailable state and never retains a denied post after refresh", async ({
   page,
 }) => {

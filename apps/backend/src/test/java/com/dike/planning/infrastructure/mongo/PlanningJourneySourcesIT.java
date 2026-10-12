@@ -98,6 +98,21 @@ class PlanningJourneySourcesIT {
   }
 
   @Test
+  void sourceAllowsRoutesThatTakeLongerThanOneDay() {
+    mongo.updateFirst(
+        org.springframework.data.mongodb.core.query.Query.query(
+            org.springframework.data.mongodb.core.query.Criteria.where("_id").is("r")),
+        new org.springframework.data.mongodb.core.query.Update().set("durationSeconds", 36 * 3600),
+        RouteSnapshotDocument.class);
+
+    String id =
+        commands.transaction(
+            () -> sources.create("owner", "r", NOW.plusSeconds(3600), NOW.plusSeconds(48 * 3600)));
+
+    assertThat(sources.intent("owner", id)).isPresent();
+  }
+
+  @Test
   void staleManualEditCannotOverwritePublishedCommitment() {
     String id =
         commands.transaction(

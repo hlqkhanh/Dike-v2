@@ -4,12 +4,26 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  AlertTriangle,
+  ArrowLeft,
+  Bookmark,
   CalendarClock,
   CarFront,
+  Check,
   CircleDollarSign,
+  Clock3,
+  Eye,
+  Flag,
+  Map,
   MapPin,
+  MessageCircle,
+  MoreVertical,
+  Play,
   Route,
+  Send,
+  ShieldCheck,
   Users,
+  XCircle,
 } from "lucide-react";
 import { rideApi } from "./api";
 import { authApi } from "../auth/api";
@@ -17,17 +31,12 @@ import { useAuthFailure } from "../auth/use-auth-failure";
 import { BookingTools } from "../journey/booking-tools";
 import {
   RideNav,
-  PostCard,
   dateTime,
   money,
   statusName,
   useRideCommand,
 } from "./dashboard";
-import {
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "../../app/components/app-ui";
+import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
   const post = useQuery({
@@ -42,103 +51,308 @@ export function PostDetail({ id }: { id: string }) {
   });
   const [reason, setReason] = useState("UNSAFE");
   const [note, setNote] = useState("");
-  const command = useRideCommand();
+  const [saved, setSaved] = useState(false);
+  const actionCommand = useRideCommand();
+  const reportCommand = useRideCommand();
   useAuthFailure(post.error);
+  const owner = post.data?.ownerId === session.data?.user.id;
+  const act = (action: "publish" | "close") => {
+    if (!post.data) return;
+    actionCommand.mutate({
+      signature: `post:${id}:${post.data.version}:${action}`,
+      run: (key) => rideApi.postAction(id, action, post.data.version, key),
+    });
+  };
   return (
-    <main className="settings-page journey-detail-page">
-      <PageHeader
-        backHref="/feed"
-        backLabel="Quay lại bảng tin"
-        eyebrow="Nhu cầu di chuyển"
-        title="Chi tiết bài đăng"
-        description="Kiểm tra tuyến đường, khung giờ và trạng thái trước khi trao đổi với người đăng."
-      />
-      <RideNav />
+    <main className="feed-detail-page">
       {post.isPending ? (
-        <LoadingState label="Đang tải chi tiết bài đăng" />
+        <div className="feed-detail-state">
+          <LoadingState label="Đang tải chi tiết bài đăng" />
+        </div>
       ) : post.isError ? (
-        <ErrorState
-          title="Không tìm thấy bài đăng"
-          message={post.error.message}
-          onRetry={() => void post.refetch()}
-        />
-      ) : (
-        <>
-          <section className="post-owner-panel app-panel">
-            <div>
-              <span className="app-avatar" aria-hidden="true">
-                DK
-              </span>
-              <p>
-                <small>Người đăng</small>
-                <Link href={`/users/${encodeURIComponent(post.data.ownerId)}`}>
-                  Xem hồ sơ thành viên
-                </Link>
-              </p>
-            </div>
-            <span
-              className={`ride-status ride-status--${post.data.status.toLowerCase()}`}
-            >
-              {statusName(post.data.status)}
-            </span>
-          </section>
-          <PostCard
-            post={post.data}
-            owner={post.data.ownerId === session.data?.user.id}
+        <div className="feed-detail-state">
+          <ErrorState
+            title="Không tìm thấy bài đăng"
+            message={post.error.message}
+            onRetry={() => void post.refetch()}
           />
-          <details className="settings-card report-disclosure">
-            <summary>Báo cáo nội dung không phù hợp</summary>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                command.mutate({
-                  signature: `report:${id}:${reason}:${note}`,
-                  run: (key) =>
-                    rideApi.report({ postId: id, reason, note }, key),
-                });
-              }}
-            >
-              <label className="dike-field">
-                Lý do
-                <select
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
+        </div>
+      ) : post.data ? (
+        <>
+          <header className="feed-detail-hero">
+            <div>
+              <Link className="feed-detail-back" href="/feed">
+                <ArrowLeft aria-hidden="true" size={17} /> Quay lại bảng tin
+              </Link>
+              <p>
+                {post.data.type === "NEED_RIDE"
+                  ? "Nhu cầu di chuyển"
+                  : "Chuyến đi chia sẻ"}
+              </p>
+              <h1>Chi tiết bài đăng</h1>
+              <span>
+                Kiểm tra tuyến đường, khung giờ và trạng thái trước khi trao đổi
+                với người đăng.
+              </span>
+            </div>
+          </header>
+
+          <div className="feed-detail-layout">
+            <section className="feed-detail-main">
+              <article className="feed-detail-card">
+                <header className="feed-detail-author">
+                  <Link
+                    href={`/users/${encodeURIComponent(post.data.ownerId)}`}
+                  >
+                    <span className="feed-detail-avatar" aria-hidden="true">
+                      DK
+                    </span>
+                    <span>
+                      <strong>Thành viên Diké</strong>
+                      <small>{dateTime(post.data.departureAt)}</small>
+                    </span>
+                  </Link>
+                  <span
+                    className={`feed-detail-status is-${post.data.status.toLowerCase()}`}
+                  >
+                    {statusName(post.data.status)}
+                  </span>
+                  <button aria-label="Thêm tùy chọn" type="button">
+                    <MoreVertical aria-hidden="true" size={19} />
+                  </button>
+                </header>
+
+                <div className="feed-detail-route">
+                  <span className="feed-detail-route-line" aria-hidden="true">
+                    <i />
+                    <b />
+                    <i />
+                  </span>
+                  <div>
+                    <span>
+                      <small>Điểm đón</small>
+                      <strong>{post.data.originLabel}</strong>
+                    </span>
+                    <span>
+                      <small>Điểm đến</small>
+                      <strong>{post.data.destinationLabel}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="feed-detail-facts">
+                  <span>
+                    <CarFront aria-hidden="true" size={20} />
+                    <strong>
+                      {post.data.vehicleType === "MOTORCYCLE"
+                        ? "Xe máy"
+                        : "Ô tô"}
+                    </strong>
+                  </span>
+                  <span>
+                    <Users aria-hidden="true" size={20} />
+                    <strong>
+                      {post.data.type === "NEED_RIDE"
+                        ? "Cần người đồng hành"
+                        : `${post.data.remainingSeats} chỗ trống`}
+                    </strong>
+                  </span>
+                  <span>
+                    <CalendarClock aria-hidden="true" size={20} />
+                    <strong>
+                      {post.data.type === "NEED_RIDE"
+                        ? "Cần đi nhờ"
+                        : "Có chỗ đi cùng"}
+                    </strong>
+                  </span>
+                </div>
+
+                {post.data.note ? (
+                  <blockquote>“{post.data.note}”</blockquote>
+                ) : null}
+
+                <footer className="feed-detail-actions">
+                  <button
+                    disabled={actionCommand.isPending}
+                    onClick={() =>
+                      actionCommand.mutate({
+                        signature: `save:${id}:${saved}`,
+                        run: async () => {
+                          await rideApi.save(id, !saved);
+                          setSaved((value) => !value);
+                        },
+                      })
+                    }
+                  >
+                    <Bookmark
+                      aria-hidden="true"
+                      size={19}
+                      fill={saved ? "currentColor" : "none"}
+                    />
+                    {saved ? "Đã lưu" : "Lưu bài"}
+                  </button>
+                  <Link href="/inbox">
+                    <MessageCircle aria-hidden="true" size={19} /> Trao đổi
+                  </Link>
+                  {owner && post.data.status === "DRAFT" ? (
+                    <button
+                      className="is-primary"
+                      disabled={actionCommand.isPending}
+                      onClick={() => act("publish")}
+                    >
+                      <Send aria-hidden="true" size={18} /> Đăng bài
+                    </button>
+                  ) : null}
+                  {owner &&
+                  ["DRAFT", "OPEN", "MATCHED"].includes(post.data.status) ? (
+                    <button
+                      disabled={actionCommand.isPending}
+                      onClick={() => act("close")}
+                    >
+                      <Check aria-hidden="true" size={18} /> Đóng bài
+                    </button>
+                  ) : null}
+                </footer>
+                {actionCommand.isError ? (
+                  <p className="feed-detail-feedback" role="alert">
+                    {actionCommand.error.message}
+                  </p>
+                ) : null}
+                {actionCommand.isSuccess ? (
+                  <p className="feed-detail-feedback is-success" role="status">
+                    Đã cập nhật bài đăng.
+                  </p>
+                ) : null}
+              </article>
+
+              <details className="feed-detail-report">
+                <summary>
+                  <AlertTriangle aria-hidden="true" size={22} />
+                  <span>
+                    <strong>Báo cáo nội dung không phù hợp</strong>
+                    <small>
+                      Nếu bài đăng có nội dung vi phạm, bạn có thể báo cáo để
+                      đội ngũ Diké xem xét.
+                    </small>
+                  </span>
+                </summary>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    reportCommand.mutate({
+                      signature: `report:${id}:${reason}:${note}`,
+                      run: (key) =>
+                        rideApi.report({ postId: id, reason, note }, key),
+                    });
+                  }}
                 >
-                  <option value="UNSAFE">Không an toàn</option>
-                  <option value="SPAM">Spam</option>
-                  <option value="MISLEADING">Sai thông tin</option>
-                  <option value="OTHER">Khác</option>
-                </select>
-              </label>
-              <label className="dike-field">
-                Thông tin bổ sung
-                <textarea
-                  maxLength={1000}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </label>
-              <button
-                className="app-button app-button--danger"
-                disabled={command.isPending || command.isSuccess}
-              >
-                {command.isPending ? "Đang gửi…" : "Gửi báo cáo"}
-              </button>
-            </form>
-            {command.isSuccess ? (
-              <p role="status">Đã tiếp nhận báo cáo.</p>
-            ) : null}
-            {command.isError ? (
-              <p role="alert">{command.error.message}</p>
-            ) : null}
-          </details>
+                  <label className="dike-field">
+                    Lý do
+                    <select
+                      value={reason}
+                      onChange={(event) => setReason(event.target.value)}
+                    >
+                      <option value="UNSAFE">Không an toàn</option>
+                      <option value="SPAM">Spam</option>
+                      <option value="MISLEADING">Sai thông tin</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  </label>
+                  <label className="dike-field">
+                    Thông tin bổ sung
+                    <textarea
+                      maxLength={1000}
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                    />
+                  </label>
+                  <button
+                    className="app-button app-button--danger"
+                    disabled={
+                      reportCommand.isPending || reportCommand.isSuccess
+                    }
+                  >
+                    {reportCommand.isPending ? "Đang gửi…" : "Gửi báo cáo"}
+                  </button>
+                </form>
+                {reportCommand.isSuccess ? (
+                  <p role="status">Đã tiếp nhận báo cáo.</p>
+                ) : null}
+                {reportCommand.isError ? (
+                  <p role="alert">{reportCommand.error.message}</p>
+                ) : null}
+              </details>
+            </section>
+
+            <aside className="feed-detail-sidebar">
+              <section className="feed-detail-map-card">
+                <h2>
+                  <span>
+                    <Map aria-hidden="true" size={20} />
+                  </span>
+                  Tuyến đường
+                </h2>
+                <div className="feed-detail-map" aria-label="Sơ đồ tuyến đường">
+                  <i className="map-road map-road--one" />
+                  <i className="map-road map-road--two" />
+                  <span className="map-place map-place--origin">
+                    <MapPin aria-hidden="true" size={19} fill="currentColor" />
+                    <strong>{post.data.originLabel}</strong>
+                  </span>
+                  <b aria-hidden="true" />
+                  <span className="map-place map-place--destination">
+                    <MapPin aria-hidden="true" size={19} fill="currentColor" />
+                    <strong>{post.data.destinationLabel}</strong>
+                  </span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>
+                      <CalendarClock aria-hidden="true" size={18} /> Khởi hành
+                    </dt>
+                    <dd>{dateTime(post.data.departureAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <Clock3 aria-hidden="true" size={18} /> Bài hết hạn
+                    </dt>
+                    <dd>{dateTime(post.data.expiresAt)}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section className="feed-detail-state-card">
+                <h2>Trạng thái bài đăng</h2>
+                <div>
+                  <i className={`is-${post.data.status.toLowerCase()}`} />
+                  <span>
+                    <strong>{statusName(post.data.status)}</strong>
+                    <small>
+                      {post.data.status === "DRAFT"
+                        ? "Bài đăng chưa được hiển thị công khai."
+                        : post.data.status === "OPEN"
+                          ? "Bài đăng đang hiển thị với những thành viên phù hợp."
+                          : "Bài đăng không còn nhận đề nghị mới."}
+                    </small>
+                  </span>
+                </div>
+              </section>
+            </aside>
+          </div>
         </>
-      )}
+      ) : null}
     </main>
   );
 }
 
 export function TripDetail({ id }: { id: string }) {
+  const [currentTime, setCurrentTime] = useState(0);
+  useEffect(() => {
+    const update = () => setCurrentTime(Date.now());
+    update();
+    const timer = window.setInterval(update, 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const trip = useQuery({
     queryKey: ["rides", "trip", id],
     queryFn: () => rideApi.trip(id),
@@ -163,181 +377,324 @@ export function TripDetail({ id }: { id: string }) {
           : rideApi.tripAction(id, { version, action, reason }, key),
     });
   };
+  const visibilityName =
+    trip.data?.visibility === "FRIENDS" ? "Chỉ bạn bè" : "Công khai";
+  const vehicleName =
+    trip.data?.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô";
+  const isDraft = trip.data?.status === "DRAFT";
+  const startAvailableAt = trip.data
+    ? new Date(trip.data.departureAt).getTime() - 15 * 60 * 1000
+    : 0;
+  const canStart = currentTime > 0 && currentTime >= startAvailableAt;
+  const commandErrorCode = (command.error as { code?: string } | null)?.code;
   return (
-    <main className="settings-page journey-detail-page">
-      <PageHeader
-        eyebrow="Quản lý hành trình"
-        title="Chi tiết chuyến"
-        description="Theo dõi lộ trình, số chỗ còn lại và cập nhật trạng thái chuyến đi."
-        backHref="/trips"
-        backLabel="Quay lại danh sách chuyến"
-      />
-      <RideNav />
+    <main className="trip-detail-page">
       {trip.isPending ? (
-        <LoadingState label="Đang tải chi tiết chuyến" />
+        <div className="trip-detail-state">
+          <LoadingState label="Đang tải chi tiết chuyến" />
+        </div>
       ) : trip.isError ? (
-        <ErrorState
-          message={trip.error.message}
-          onRetry={() => void trip.refetch()}
-        />
+        <div className="trip-detail-state">
+          <ErrorState
+            message={trip.error.message}
+            onRetry={() => void trip.refetch()}
+          />
+        </div>
       ) : trip.data ? (
-        <div className="journey-detail-layout">
-          <section className="journey-detail-main">
-            <article className="settings-card journey-route-card">
-              <div className="journey-card-heading">
-                <span className="journey-heading-icon">
-                  <Route aria-hidden="true" size={22} />
-                </span>
+        <>
+          <section className="trip-detail-hero">
+            <div className="trip-detail-hero-inner">
+              <Link className="trip-detail-back" href="/trips">
+                <ArrowLeft aria-hidden="true" size={17} /> Quay lại chuyến của
+                tôi
+              </Link>
+              <div className="trip-detail-hero-copy">
                 <div>
-                  <p className="app-eyebrow">Lộ trình</p>
-                  <h2>
-                    {trip.data.originLabel} → {trip.data.destinationLabel}
-                  </h2>
+                  <p>
+                    {isDraft ? "Bản nháp đã được tạo" : "Quản lý hành trình"}
+                  </p>
+                  <h1>
+                    {isDraft
+                      ? "Kiểm tra và đăng chuyến"
+                      : "Thông tin chuyến đi"}
+                  </h1>
+                  <span>
+                    {isDraft
+                      ? "Chuyến chưa hiển thị với cộng đồng. Hãy kiểm tra thông tin trước khi đăng."
+                      : "Theo dõi lộ trình, chỗ ngồi và trạng thái hành trình của bạn."}
+                  </span>
                 </div>
                 <span
-                  className={`ride-status ride-status--${trip.data.status.toLowerCase()}`}
+                  className={`trip-detail-status trip-detail-status--${trip.data.status.toLowerCase()}`}
                 >
                   {statusName(trip.data.status)}
                 </span>
               </div>
-              <div className="journey-route-line">
-                <span>
-                  <i />
-                </span>
-                <div>
-                  <small>Xuất phát</small>
-                  <strong>{trip.data.originLabel}</strong>
-                </div>
-                <span>
-                  <i />
-                </span>
-                <div>
-                  <small>Điểm đến</small>
-                  <strong>{trip.data.destinationLabel}</strong>
-                </div>
-              </div>
-            </article>
 
-            {session.data?.user.id === trip.data.driverId ? (
-              <section className="settings-card journey-actions-card">
-                <div className="section-heading">
+              <nav
+                className="trip-detail-stepper"
+                aria-label="Tiến độ tạo chuyến"
+              >
+                <div className="is-complete">
+                  <span>
+                    <Check aria-hidden="true" size={16} />
+                  </span>
+                  <strong>Chọn tuyến đường</strong>
+                </div>
+                <i aria-hidden="true" />
+                <div className="is-complete">
+                  <span>
+                    <Check aria-hidden="true" size={16} />
+                  </span>
+                  <strong>Thông tin chuyến</strong>
+                </div>
+                <i aria-hidden="true" />
+                <div className="is-active">
+                  <span>3</span>
+                  <strong>Xác nhận</strong>
+                </div>
+              </nav>
+            </div>
+          </section>
+
+          <div className="trip-detail-layout">
+            <section className="trip-detail-main">
+              {isDraft ? (
+                <div className="trip-detail-draft-notice" role="status">
+                  <ShieldCheck aria-hidden="true" size={21} />
+                  <span>
+                    <strong>Chuyến đang ở chế độ bản nháp</strong>
+                    Chỉ bạn nhìn thấy chuyến này cho đến khi chọn “Đăng chuyến”.
+                  </span>
+                </div>
+              ) : null}
+
+              <article className="trip-detail-card trip-detail-route-card">
+                <div className="trip-detail-section-heading">
+                  <span>
+                    <Route aria-hidden="true" size={20} />
+                  </span>
                   <div>
-                    <p className="app-eyebrow">Dành cho tài xế</p>
-                    <h2>Cập nhật chuyến</h2>
+                    <p>Lộ trình chuyến đi</p>
+                    <h2>Điểm đón và điểm đến</h2>
+                    <small>
+                      Thông tin đã được lưu từ tuyến đường bạn chọn.
+                    </small>
                   </div>
                 </div>
-                {["DRAFT", "OPEN", "FULL"].includes(trip.data.status) ? (
-                  <label>
-                    Lý do hủy chuyến
-                    <textarea
-                      value={reason}
-                      maxLength={500}
-                      placeholder="Nhập lý do nếu bạn cần hủy chuyến"
-                      onChange={(event) => setReason(event.target.value)}
-                    />
-                  </label>
-                ) : null}
-                <div className="journey-action-row">
-                  {trip.data.status === "DRAFT" ? (
+
+                <div className="trip-detail-route">
+                  <div className="trip-detail-route-marker">
+                    <i className="is-origin" />
+                    <b aria-hidden="true" />
+                    <i className="is-destination" />
+                  </div>
+                  <div className="trip-detail-route-copy">
+                    <span>
+                      <small>Điểm đi</small>
+                      <strong>{trip.data.originLabel}</strong>
+                    </span>
+                    <span>
+                      <small>Điểm đến</small>
+                      <strong>{trip.data.destinationLabel}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="trip-detail-quick-facts">
+                  <span>
+                    <CalendarClock aria-hidden="true" size={18} />
+                    <small>Khởi hành</small>
+                    <strong>{dateTime(trip.data.departureAt)}</strong>
+                  </span>
+                  <span>
+                    <Users aria-hidden="true" size={18} />
+                    <small>Chỗ trống</small>
+                    <strong>
+                      {trip.data.remainingSeats}/{trip.data.offeredSeats} chỗ
+                    </strong>
+                  </span>
+                  <span>
+                    <CircleDollarSign aria-hidden="true" size={18} />
+                    <small>Đóng góp</small>
+                    <strong>{money(trip.data.contributionPerKm)}/km</strong>
+                  </span>
+                </div>
+              </article>
+
+              {session.data?.user.id === trip.data.driverId ? (
+                <section className="trip-detail-card trip-detail-actions-card">
+                  <div className="trip-detail-section-heading">
+                    <span>
+                      <Flag aria-hidden="true" size={20} />
+                    </span>
+                    <div>
+                      <p>Quản lý chuyến</p>
+                      <h2>
+                        {isDraft
+                          ? "Sẵn sàng đăng chuyến?"
+                          : "Cập nhật hành trình"}
+                      </h2>
+                      <small>
+                        {isDraft
+                          ? "Sau khi đăng, chuyến sẽ hiển thị theo phạm vi bạn đã chọn."
+                          : "Chỉ cập nhật trạng thái khi hành trình thực tế thay đổi."}
+                      </small>
+                    </div>
+                  </div>
+
+                  {isDraft ? (
                     <button
-                      className="app-button app-button--primary"
+                      className="trip-detail-primary-action"
                       disabled={command.isPending}
                       onClick={() => act("open")}
                     >
-                      Mở chuyến
+                      <Eye aria-hidden="true" size={18} />
+                      {command.isPending ? "Đang đăng chuyến…" : "Đăng chuyến"}
                     </button>
                   ) : null}
+
                   {["OPEN", "FULL"].includes(trip.data.status) ? (
-                    <button
-                      className="app-button app-button--primary"
-                      disabled={command.isPending}
-                      onClick={() => act("start")}
-                    >
-                      Bắt đầu chuyến
-                    </button>
+                    <>
+                      <button
+                        className="trip-detail-primary-action"
+                        disabled={command.isPending || !canStart}
+                        onClick={() => act("start")}
+                      >
+                        <Play aria-hidden="true" size={18} /> Bắt đầu chuyến
+                      </button>
+                      {!canStart ? (
+                        <p className="trip-detail-feedback" role="status">
+                          Bạn có thể bắt đầu chuyến từ{" "}
+                          {dateTime(new Date(startAvailableAt).toISOString())}{" "}
+                          (15 phút trước giờ khởi hành).
+                        </p>
+                      ) : null}
+                    </>
                   ) : null}
+
                   {trip.data.status === "IN_PROGRESS" ? (
                     <button
-                      className="app-button app-button--primary"
+                      className="trip-detail-primary-action"
                       disabled={command.isPending}
                       onClick={() => act("complete")}
                     >
-                      Hoàn tất chuyến
+                      <Check aria-hidden="true" size={18} /> Hoàn tất chuyến
                     </button>
                   ) : null}
-                  {["DRAFT", "OPEN", "FULL"].includes(trip.data.status) ? (
-                    <button
-                      className="app-button app-button--danger"
-                      disabled={command.isPending || !reason.trim()}
-                      onClick={() => act("cancel")}
-                    >
-                      Hủy chuyến
-                    </button>
-                  ) : null}
-                </div>
-                {command.isPending ? (
-                  <p className="form-hint" role="status">
-                    Đang cập nhật chuyến…
-                  </p>
-                ) : null}
-                {command.isSuccess ? (
-                  <p className="success-notice" role="status">
-                    Trạng thái chuyến đã được cập nhật.
-                  </p>
-                ) : null}
-              </section>
-            ) : null}
-          </section>
 
-          <aside
-            className="settings-card journey-facts-card"
-            aria-label="Thông tin chuyến"
-          >
-            <h2>Thông tin chuyến</h2>
-            <dl className="journey-fact-list">
-              <div>
-                <dt>
-                  <CalendarClock aria-hidden="true" size={18} /> Khởi hành
-                </dt>
-                <dd>{dateTime(trip.data.departureAt)}</dd>
+                  {["DRAFT", "OPEN", "FULL"].includes(trip.data.status) ? (
+                    <div className="trip-detail-cancel-area">
+                      <label>
+                        <span>Lý do hủy chuyến</span>
+                        <textarea
+                          value={reason}
+                          maxLength={500}
+                          placeholder="Cho người đồng hành biết lý do bạn hủy chuyến"
+                          onChange={(event) => setReason(event.target.value)}
+                        />
+                      </label>
+                      <button
+                        className="trip-detail-cancel-action"
+                        disabled={command.isPending || !reason.trim()}
+                        onClick={() => act("cancel")}
+                      >
+                        <XCircle aria-hidden="true" size={18} /> Hủy chuyến
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {command.isPending && !isDraft ? (
+                    <p className="trip-detail-feedback" role="status">
+                      Đang cập nhật chuyến…
+                    </p>
+                  ) : null}
+                  {command.isSuccess ? (
+                    <p
+                      className="trip-detail-feedback is-success"
+                      role="status"
+                    >
+                      Trạng thái chuyến đã được cập nhật.
+                    </p>
+                  ) : null}
+                  {command.isError ? (
+                    <p className="trip-detail-feedback is-error" role="alert">
+                      {commandErrorCode === "TOO_EARLY_TO_START"
+                        ? "Chưa đến thời gian bắt đầu. Bạn chỉ có thể bắt đầu trong vòng 15 phút trước giờ khởi hành."
+                        : command.error.message}
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
+            </section>
+
+            <aside
+              className="trip-detail-summary"
+              aria-label="Thông tin chuyến"
+            >
+              <div className="trip-detail-summary-card">
+                <div className="trip-detail-summary-heading">
+                  <div>
+                    <p>Tóm tắt chuyến đi</p>
+                    <h2>Thông tin đã xác nhận</h2>
+                  </div>
+                  <CarFront aria-hidden="true" size={22} />
+                </div>
+                <dl className="trip-detail-fact-list">
+                  <div>
+                    <dt>
+                      <CalendarClock aria-hidden="true" size={18} /> Khởi hành
+                    </dt>
+                    <dd>{dateTime(trip.data.departureAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <Clock3 aria-hidden="true" size={18} /> Dự kiến đến
+                    </dt>
+                    <dd>{dateTime(trip.data.arrivalAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <Users aria-hidden="true" size={18} /> Chỗ ngồi
+                    </dt>
+                    <dd>
+                      Còn {trip.data.remainingSeats}/{trip.data.offeredSeats}{" "}
+                      chỗ
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <CircleDollarSign aria-hidden="true" size={18} /> Mức đóng
+                      góp
+                    </dt>
+                    <dd>{money(trip.data.contributionPerKm)}/km</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <CarFront aria-hidden="true" size={18} /> Phương tiện
+                    </dt>
+                    <dd>{vehicleName}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <Eye aria-hidden="true" size={18} /> Phạm vi hiển thị
+                    </dt>
+                    <dd>{visibilityName}</dd>
+                  </div>
+                </dl>
+
+                <Link
+                  className="trip-detail-edit-route"
+                  href="/rides/new?mode=driver"
+                >
+                  <Route aria-hidden="true" size={17} /> Tạo chuyến với tuyến
+                  khác
+                </Link>
               </div>
-              <div>
-                <dt>
-                  <MapPin aria-hidden="true" size={18} /> Dự kiến đến
-                </dt>
-                <dd>{dateTime(trip.data.arrivalAt)}</dd>
-              </div>
-              <div>
-                <dt>
-                  <Users aria-hidden="true" size={18} /> Chỗ ngồi
-                </dt>
-                <dd>
-                  Còn {trip.data.remainingSeats}/{trip.data.offeredSeats} chỗ
-                </dd>
-              </div>
-              <div>
-                <dt>
-                  <CircleDollarSign aria-hidden="true" size={18} /> Mức đóng góp
-                </dt>
-                <dd>{money(trip.data.contributionPerKm)}/km</dd>
-              </div>
-              <div>
-                <dt>
-                  <CarFront aria-hidden="true" size={18} /> Phương tiện
-                </dt>
-                <dd>
-                  {trip.data.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
-                </dd>
-              </div>
-              <div>
-                <dt>Phạm vi hiển thị</dt>
-                <dd>{trip.data.visibility}</dd>
-              </div>
-            </dl>
-          </aside>
-        </div>
+            </aside>
+          </div>
+        </>
       ) : null}
-      {command.isError ? <p role="alert">{command.error.message}</p> : null}
     </main>
   );
 }

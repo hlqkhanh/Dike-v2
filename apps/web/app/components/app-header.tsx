@@ -5,12 +5,23 @@ import type {
   JourneyNotification,
 } from "@dike/api-client-ts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, LogOut, Menu, X } from "lucide-react";
+import {
+  Bell,
+  CarFront,
+  Check,
+  ChevronRight,
+  Clock3,
+  List,
+  Menu,
+  MessageSquareText,
+  Settings,
+  UserPlus,
+  X,
+} from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { authApi } from "../../src/auth/api";
 import { journeyApi } from "../../src/journey/api";
 import { DikeLogo } from "./dike-logo";
 
@@ -23,12 +34,31 @@ function notificationTarget(item: JourneyNotification) {
     return `/proposals/${encodeURIComponent(item.data.proposalId)}`;
   if (item.data.tripId) return `/trips/${encodeURIComponent(item.data.tripId)}`;
   if (item.data.userId) return `/users/${encodeURIComponent(item.data.userId)}`;
-  return "/";
+  return "/notifications";
+}
+
+function notificationAppearance(item: JourneyNotification) {
+  const value = `${item.type} ${item.title}`.toLowerCase();
+  if (
+    value.includes("friend") ||
+    value.includes("kết bạn") ||
+    value.includes("connection")
+  ) {
+    return { Icon: UserPlus, tone: "friend" };
+  }
+  if (
+    value.includes("message") ||
+    value.includes("proposal") ||
+    value.includes("tin nhắn") ||
+    value.includes("đề nghị")
+  ) {
+    return { Icon: MessageSquareText, tone: "message" };
+  }
+  return { Icon: CarFront, tone: "trip" };
 }
 
 export function AppHeader({ session }: { session: AuthSessionResponse }) {
   const pathname = usePathname();
-  const router = useRouter();
   const client = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -45,20 +75,44 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
     client.invalidateQueries({ queryKey: ["notifications"] });
   const readAll = useMutation({
     mutationFn: journeyApi.readAllNotifications,
+    onMutate: async () => {
+      await client.cancelQueries({ queryKey: ["notifications"] });
+      const previous = client.getQueryData<JourneyNotification[]>([
+        "notifications",
+      ]);
+      const readAt = new Date().toISOString();
+      client.setQueryData<JourneyNotification[]>(["notifications"], (items) =>
+        items?.map((item) => ({ ...item, readAt: item.readAt ?? readAt })),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous)
+        client.setQueryData(["notifications"], context.previous);
+    },
     onSuccess: refresh,
   });
   const readOne = useMutation({
     mutationFn: journeyApi.readNotification,
+    onMutate: async (notificationId) => {
+      await client.cancelQueries({ queryKey: ["notifications"] });
+      const previous = client.getQueryData<JourneyNotification[]>([
+        "notifications",
+      ]);
+      const readAt = new Date().toISOString();
+      client.setQueryData<JourneyNotification[]>(["notifications"], (items) =>
+        items?.map((item) =>
+          item.id === notificationId ? { ...item, readAt } : item,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous)
+        client.setQueryData(["notifications"], context.previous);
+    },
     onSuccess: refresh,
   });
-  const logout = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
-      client.clear();
-      router.push("/login");
-    },
-  });
-
   useEffect(() => {
     if (!notificationsOpen) return;
     closeButton.current?.focus();
@@ -132,7 +186,8 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
             type="button"
             aria-label={`Thông báo${unread ? `, ${unread} chưa đọc` : ""}`}
             aria-expanded={notificationsOpen}
-            onClick={() => setNotificationsOpen(true)}
+            aria-controls="header-notification-panel"
+            onClick={() => setNotificationsOpen((open) => !open)}
           >
             <Bell aria-hidden="true" size={20} />
             {unread ? <span>{unread > 9 ? "9+" : unread}</span> : null}
@@ -166,6 +221,7 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
           }}
         >
           <section
+            id="header-notification-panel"
             className="notification-panel"
             role="dialog"
             aria-modal="true"
@@ -182,7 +238,7 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
                 aria-label="Đóng thông báo"
                 onClick={() => setNotificationsOpen(false)}
               >
-                <X />
+                <X aria-hidden="true" />
               </button>
             </header>
             <div className="notification-panel-toolbar">
@@ -192,8 +248,8 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
                 disabled={!unread || readAll.isPending}
                 onClick={() => readAll.mutate()}
               >
-                <CheckCheck aria-hidden="true" size={16} />
-                Đọc tất cả
+                <Check aria-hidden="true" size={17} />
+                Đánh dấu tất cả đã đọc
               </button>
             </div>
             <div className="notification-panel-list">
@@ -202,26 +258,47 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
               ) : notifications.isError ? (
                 <p role="alert">Chưa thể tải thông báo.</p>
               ) : notifications.data?.length ? (
-                notifications.data.slice(0, 8).map((item) => (
-                  <Link
-                    className={item.readAt ? "" : "is-unread"}
-                    key={item.id}
-                    href={notificationTarget(item)}
-                    onClick={() => {
-                      if (!item.readAt) readOne.mutate(item.id);
-                      setNotificationsOpen(false);
-                    }}
-                  >
-                    <span aria-hidden="true" />
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.body}</p>
-                      <small>
-                        {new Date(item.createdAt).toLocaleString("vi-VN")}
-                      </small>
-                    </div>
-                  </Link>
-                ))
+                notifications.data.slice(0, 8).map((item) => {
+                  const { Icon, tone } = notificationAppearance(item);
+                  return (
+                    <Link
+                      className={`${item.readAt ? "" : "is-unread"} notification-panel-item`}
+                      key={item.id}
+                      href={notificationTarget(item)}
+                      onClick={() => {
+                        if (!item.readAt) readOne.mutate(item.id);
+                        setNotificationsOpen(false);
+                      }}
+                    >
+                      <span
+                        className={`notification-panel-icon is-${tone}`}
+                        aria-hidden="true"
+                      >
+                        <Icon size={24} strokeWidth={2.1} />
+                      </span>
+                      <div className="notification-panel-copy">
+                        <strong>{item.title}</strong>
+                        <p>{item.body}</p>
+                        <small>
+                          <Clock3 aria-hidden="true" size={14} />
+                          {new Date(item.createdAt).toLocaleString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </small>
+                      </div>
+                      {!item.readAt ? (
+                        <span
+                          className="notification-panel-unread-dot"
+                          aria-label="Chưa đọc"
+                        />
+                      ) : null}
+                    </Link>
+                  );
+                })
               ) : (
                 <div className="notification-empty">
                   <Bell aria-hidden="true" />
@@ -232,19 +309,21 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
             </div>
             <footer>
               <Link
+                href="/notifications"
+                onClick={() => setNotificationsOpen(false)}
+              >
+                <List aria-hidden="true" size={18} />
+                <span>Xem tất cả thông báo</span>
+                <ChevronRight aria-hidden="true" size={18} />
+              </Link>
+              <Link
                 href="/profile?tab=settings"
                 onClick={() => setNotificationsOpen(false)}
               >
-                Cài đặt thông báo
+                <Settings aria-hidden="true" size={18} />
+                <span>Cài đặt thông báo</span>
+                <ChevronRight aria-hidden="true" size={18} />
               </Link>
-              <button
-                type="button"
-                disabled={logout.isPending}
-                onClick={() => logout.mutate()}
-              >
-                <LogOut aria-hidden="true" size={16} />
-                Đăng xuất
-              </button>
             </footer>
           </section>
         </div>

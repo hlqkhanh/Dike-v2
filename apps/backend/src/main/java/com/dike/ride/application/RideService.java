@@ -202,6 +202,7 @@ public class RideService {
               actor, "trip:" + id, t.departureAt(), t.arrivalAt().plusSeconds(900), id);
           var next = t.status(Trip.Status.OPEN);
           store.saveTrip(t, next);
+          posts.publishOffer(id);
           event("trip.opened", id, next.version());
           return id;
         });

@@ -1,26 +1,54 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
-  CalendarClock,
+  ArrowLeft,
+  CalendarDays,
+  CarFront,
+  Clock3,
   Eye,
   FileText,
-  MapPinned,
+  Map,
+  MapPin,
   Route,
+  Send,
   ShieldCheck,
+  Users,
 } from "lucide-react";
-import { routingApi } from "../routing/client";
-import { rideApi } from "./api";
-import { RideNav, useRideCommand } from "./dashboard";
-import { useAuthFailure } from "../auth/use-auth-failure";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+
 import {
   ErrorState,
   LoadingState,
   PageHeader,
 } from "../../app/components/app-ui";
+import { useAuthFailure } from "../auth/use-auth-failure";
+import { routingApi } from "../routing/client";
+import { rideApi } from "./api";
+import { useRideCommand } from "./dashboard";
+
+const displayDateTime = (value: string) =>
+  value ? new Date(value).toLocaleString("vi-VN") : "Chưa chọn";
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const dateTimeLocalValue = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return new Date(timestamp - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+};
+
+const displayDuration = (seconds: number) => {
+  const totalMinutes = Math.ceil(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return [hours ? `${hours} giờ` : "", minutes ? `${minutes} phút` : ""]
+    .filter(Boolean)
+    .join(" ");
+};
 
 export function NewPost({ routeId }: { routeId: string }) {
   const router = useRouter();
@@ -28,6 +56,13 @@ export function NewPost({ routeId }: { routeId: string }) {
   const [arrival, setArrival] = useState("");
   const [visibility, setVisibility] = useState("FRIENDS");
   const [note, setNote] = useState("");
+  const [currentTime, setCurrentTime] = useState(0);
+  useEffect(() => {
+    const updateTime = () => setCurrentTime(Date.now());
+    updateTime();
+    const timer = window.setInterval(updateTime, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const route = useQuery({
     queryKey: ["rides", "source-route", routeId],
     queryFn: () => routingApi.getRoute(routeId),
@@ -36,9 +71,37 @@ export function NewPost({ routeId }: { routeId: string }) {
   });
   const command = useRideCommand();
   useAuthFailure(route.error);
-  const invalidWindow = Boolean(
-    departure && arrival && new Date(arrival) <= new Date(departure),
+  const departureTime = departure ? new Date(departure).getTime() : 0;
+  const arrivalTime = arrival ? new Date(arrival).getTime() : 0;
+  const routeDurationMs = (route.data?.durationSeconds ?? 0) * 1000;
+  const minimumArrivalTime = departureTime + routeDurationMs;
+  const maximumArrivalTime = departureTime + SEVEN_DAYS_MS;
+  const routeExpired = Boolean(
+    currentTime &&
+      route.data &&
+      new Date(route.data.expiresAt).getTime() <= currentTime,
   );
+  let timeError = "";
+  if (currentTime && departureTime && departureTime <= currentTime) {
+    timeError = "Thời gian khởi hành phải ở tương lai.";
+  } else if (
+    currentTime &&
+    departureTime &&
+    departureTime > currentTime + SEVEN_DAYS_MS
+  ) {
+    timeError = "Thời gian khởi hành phải nằm trong 7 ngày tới.";
+  } else if (departureTime && arrivalTime && arrivalTime < minimumArrivalTime) {
+    timeError = `Tuyến đường cần khoảng ${displayDuration(route.data?.durationSeconds ?? 0)}. Hãy chọn thời gian đến muộn hơn.`;
+  } else if (departureTime && arrivalTime && arrivalTime > maximumArrivalTime) {
+    timeError = "Khung giờ di chuyển không được vượt quá 7 ngày.";
+  }
+  const canSubmit = Boolean(
+    departure && arrival && !timeError && !routeExpired,
+  );
+  const commandErrorCode = command.isError
+    ? (command.error as { code?: string }).code
+    : undefined;
+
   if (!routeId)
     return (
       <main className="settings-page create-flow-page">
@@ -49,9 +112,8 @@ export function NewPost({ routeId }: { routeId: string }) {
           title="Đăng nhu cầu đi cùng"
           description="Bắt đầu bằng cách chọn điểm đi và điểm đến trên bản đồ."
         />
-        <RideNav />
         <section className="settings-card create-route-required">
-          <MapPinned aria-hidden="true" size={34} />
+          <MapPin aria-hidden="true" size={34} />
           <h2>Chưa chọn tuyến đường</h2>
           <p>Tuyến đường giúp Diké tìm đúng người có hành trình phù hợp.</p>
           <Link className="app-button app-button--primary" href="/map">
@@ -60,32 +122,64 @@ export function NewPost({ routeId }: { routeId: string }) {
         </section>
       </main>
     );
+
   return (
-    <main className="settings-page create-flow-page">
-      <PageHeader
-        backHref="/feed"
-        backLabel="Bảng tin"
-        eyebrow="Nhu cầu di chuyển"
-        title="Đăng nhu cầu đi cùng"
-        description="Cung cấp khung giờ và phạm vi chia sẻ; bạn có thể kiểm tra bản nháp trước khi đăng."
-      />
-      <RideNav />
+    <main className="need-post-page">
+      <section className="need-post-hero">
+        <div className="need-post-hero-inner">
+          <Link className="need-post-back" href="/rides/new?mode=passenger">
+            <ArrowLeft aria-hidden="true" size={17} /> Quay lại
+          </Link>
+          <div className="need-post-hero-copy">
+            <p>Nhu cầu di chuyển</p>
+            <h1>Đăng nhu cầu đi cùng</h1>
+            <span>
+              Cung cấp khung giờ và phạm vi chia sẻ, bạn có thể kiểm tra bản
+              nháp trước khi đăng.
+            </span>
+          </div>
+          <div className="need-post-hero-art" aria-hidden="true">
+            <i className="need-post-city" />
+            <i className="need-post-road" />
+            <span className="need-post-car">
+              <CarFront size={34} />
+            </span>
+            <span className="need-post-pin">
+              <MapPin size={35} fill="currentColor" />
+            </span>
+            <i className="need-post-tree need-post-tree--one" />
+            <i className="need-post-tree need-post-tree--two" />
+          </div>
+        </div>
+      </section>
+
       {route.isPending ? (
-        <LoadingState label="Đang kiểm tra tuyến đường" />
+        <div className="need-post-state">
+          <LoadingState label="Đang kiểm tra tuyến đường" />
+        </div>
       ) : route.isError ? (
-        <ErrorState
-          message={route.error.message}
-          onRetry={() => void route.refetch()}
-        />
-      ) : (
-        <div className="create-flow-layout">
+        <div className="need-post-state">
+          <ErrorState
+            message={route.error.message}
+            onRetry={() => void route.refetch()}
+          />
+        </div>
+      ) : route.data ? (
+        <div className="need-post-layout">
           <form
-            className="settings-card trip-form"
+            className="need-post-form"
             onSubmit={(event) => {
               event.preventDefault();
-              if (invalidWindow) return;
+              if (!canSubmit) return;
               command.mutate({
-                signature: `draft:${routeId}:${departure}:${arrival}:${visibility}:${note}`,
+                signature: [
+                  "draft",
+                  routeId,
+                  departure,
+                  arrival,
+                  visibility,
+                  note,
+                ].join(":"),
                 run: async (key) => {
                   const source = await rideApi.createSource(
                     {
@@ -105,84 +199,96 @@ export function NewPost({ routeId }: { routeId: string }) {
                     },
                     key,
                   );
-                  router.push(`/feed/${encodeURIComponent(draft.id)}`);
+                  router.push("/feed/" + encodeURIComponent(draft.id));
                   return draft;
                 },
               });
             }}
           >
-            <section className="form-section">
-              <div className="form-section-heading">
-                <span>
-                  <Route aria-hidden="true" size={19} />
-                </span>
-                <div>
-                  <p>Bước 1</p>
-                  <h2>Tuyến đường</h2>
-                  <small>
-                    Chỉ khu vực công khai được hiển thị cho thành viên khác.
-                  </small>
-                </div>
-              </div>
-              <div className="post-route-preview">
-                <span>{route.data.origin.publicAreaLabel}</span>
+            <NeedPostSection
+              number="1"
+              title="Tuyến đường"
+              description="Kiểm tra tuyến đường bạn muốn đi hoặc chọn lại nếu cần."
+            >
+              <div className="need-post-route-fields">
+                <RoutePoint
+                  label="Điểm đi"
+                  value={route.data.origin.publicAreaLabel}
+                />
                 <i aria-hidden="true" />
-                <span>{route.data.destination.publicAreaLabel}</span>
-                <Link href="/map">Chọn lại</Link>
+                <RoutePoint
+                  label="Điểm đến"
+                  value={route.data.destination.publicAreaLabel}
+                />
               </div>
-            </section>
-            <section className="form-section">
-              <div className="form-section-heading">
+              <div className="need-post-selected-route">
+                <Route aria-hidden="true" size={18} />
                 <span>
-                  <CalendarClock aria-hidden="true" size={19} />
+                  {route.data.origin.publicAreaLabel} →{" "}
+                  {route.data.destination.publicAreaLabel}
                 </span>
-                <div>
-                  <p>Bước 2</p>
-                  <h2>Khung giờ</h2>
-                  <small>
-                    Cho biết thời gian linh hoạt bạn có thể di chuyển.
-                  </small>
-                </div>
+                <Link href="/rides/new?mode=passenger">Chọn lại</Link>
               </div>
-              <div className="form-grid form-grid--two">
-                <label className="dike-field">
-                  <span>Có thể đi từ</span>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={departure}
-                    onChange={(event) => setDeparture(event.target.value)}
-                  />
-                </label>
-                <label className="dike-field">
-                  <span>Cần đến trước</span>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={arrival}
-                    onChange={(event) => setArrival(event.target.value)}
-                  />
-                </label>
+            </NeedPostSection>
+
+            <NeedPostSection
+              number="2"
+              title="Khung giờ"
+              description="Chọn thời gian linh hoạt để tăng khả năng tìm được bạn đồng hành."
+            >
+              <div className="need-post-time-grid">
+                <DateField
+                  label="Có thể đi từ"
+                  value={departure}
+                  onChange={setDeparture}
+                  min={
+                    currentTime ? dateTimeLocalValue(currentTime) : undefined
+                  }
+                  max={
+                    currentTime
+                      ? dateTimeLocalValue(currentTime + SEVEN_DAYS_MS)
+                      : undefined
+                  }
+                />
+                <DateField
+                  label="Cần đến trước"
+                  value={arrival}
+                  onChange={setArrival}
+                  min={
+                    departureTime
+                      ? dateTimeLocalValue(minimumArrivalTime)
+                      : undefined
+                  }
+                  max={
+                    departureTime
+                      ? dateTimeLocalValue(maximumArrivalTime)
+                      : undefined
+                  }
+                />
               </div>
-              {invalidWindow ? (
-                <p className="auth-error" role="alert">
-                  Thời gian đến phải sau thời gian khởi hành.
+              <p className="need-post-duration">
+                <Clock3 aria-hidden="true" size={16} /> Thời gian di chuyển ước
+                tính: {displayDuration(route.data.durationSeconds)}
+              </p>
+              {routeExpired ? (
+                <p className="need-post-error" role="alert">
+                  Tuyến đường đã hết hiệu lực. Vui lòng chọn lại tuyến đường.
+                </p>
+              ) : timeError ? (
+                <p className="need-post-error" role="alert">
+                  {timeError}
                 </p>
               ) : null}
-            </section>
-            <section className="form-section">
-              <div className="form-section-heading">
-                <span>
-                  <Eye aria-hidden="true" size={19} />
-                </span>
-                <div>
-                  <p>Bước 3</p>
-                  <h2>Chia sẻ</h2>
-                  <small>Chọn ai có thể nhìn thấy nhu cầu này.</small>
-                </div>
-              </div>
-              <label className="dike-field">
-                <span>Ai được xem</span>
+            </NeedPostSection>
+
+            <NeedPostSection
+              number="3"
+              title="Chia sẻ"
+              description="Chọn ai có thể nhìn thấy nhu cầu này."
+            >
+              <label className="need-post-select">
+                <Users aria-hidden="true" size={19} />
+                <span className="sr-only">Ai được xem</span>
                 <select
                   value={visibility}
                   onChange={(event) => setVisibility(event.target.value)}
@@ -191,82 +297,176 @@ export function NewPost({ routeId }: { routeId: string }) {
                   <option value="PUBLIC">Thành viên Diké</option>
                 </select>
               </label>
-            </section>
-            <section className="form-section">
-              <div className="form-section-heading">
-                <span>
-                  <FileText aria-hidden="true" size={19} />
-                </span>
-                <div>
-                  <p>Bước 4</p>
-                  <h2>Ghi chú</h2>
-                  <small>
-                    Không chia sẻ số điện thoại hoặc dữ liệu nhạy cảm.
-                  </small>
-                </div>
-              </div>
-              <label className="dike-field">
-                <span>Thông tin bổ sung</span>
+            </NeedPostSection>
+
+            <NeedPostSection
+              number="4"
+              title="Ghi chú"
+              description="Không bắt buộc, bạn có thể thêm thông tin chi tiết hoặc lưu ý khác."
+            >
+              <label className="need-post-note">
+                <span className="sr-only">Thông tin bổ sung</span>
                 <textarea
                   maxLength={500}
-                  rows={5}
+                  rows={4}
+                  placeholder="Ví dụ: điểm đón cụ thể, hành lý, yêu cầu đặc biệt,…"
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                 />
+                <small>{note.length}/500</small>
               </label>
-              <small className="character-count">{note.length}/500</small>
-            </section>
+            </NeedPostSection>
+
             {command.isError ? (
-              <p className="auth-error" role="alert">
-                {command.error.message}
+              <p className="need-post-error" role="alert">
+                {commandErrorCode === "SOURCE_ROUTE_CHANGED"
+                  ? "Tuyến đường đã hết hiệu lực hoặc khung giờ chưa phù hợp. Vui lòng chọn lại tuyến và kiểm tra thời gian."
+                  : command.error.message}
               </p>
             ) : null}
-            <div className="form-submit-row">
+            <footer className="need-post-submit">
               <p>
-                <ShieldCheck aria-hidden="true" size={17} /> Bài được lưu dưới
-                dạng bản nháp để bạn kiểm tra.
+                <ShieldCheck aria-hidden="true" size={17} /> Bài đăng được lưu
+                dưới dạng bản nháp để bạn kiểm tra.
               </p>
-              <button
-                className="app-button app-button--primary"
-                disabled={command.isPending || invalidWindow}
-              >
+              <button disabled={command.isPending || !canSubmit}>
+                <Send aria-hidden="true" size={18} />
                 {command.isPending ? "Đang lưu…" : "Lưu và xem bản nháp"}
               </button>
-            </div>
+            </footer>
           </form>
-          <aside className="create-flow-aside app-panel">
-            <p className="app-eyebrow">Tóm tắt</p>
-            <h2>
-              {route.data.origin.publicAreaLabel} →{" "}
-              {route.data.destination.publicAreaLabel}
-            </h2>
+
+          <aside className="need-post-summary">
+            <header>
+              <h2>Tóm tắt nhu cầu</h2>
+              <span>
+                <Map aria-hidden="true" size={22} />
+              </span>
+            </header>
+            <div className="need-post-summary-route">
+              <i className="is-origin" />
+              <span>
+                <strong>{route.data.origin.publicAreaLabel}</strong>
+                <small>Điểm đi</small>
+              </span>
+              <b aria-hidden="true" />
+              <i className="is-destination" />
+              <span>
+                <strong>{route.data.destination.publicAreaLabel}</strong>
+                <small>Điểm đến</small>
+              </span>
+            </div>
             <dl>
-              <div>
-                <dt>Khởi hành</dt>
-                <dd>
-                  {departure
-                    ? new Date(departure).toLocaleString("vi-VN")
-                    : "Chưa chọn"}
-                </dd>
-              </div>
-              <div>
-                <dt>Đến trước</dt>
-                <dd>
-                  {arrival
-                    ? new Date(arrival).toLocaleString("vi-VN")
-                    : "Chưa chọn"}
-                </dd>
-              </div>
-              <div>
-                <dt>Phạm vi</dt>
-                <dd>
-                  {visibility === "FRIENDS" ? "Bạn bè" : "Thành viên Diké"}
-                </dd>
-              </div>
+              <SummaryItem
+                icon={<CalendarDays />}
+                label="Khởi hành"
+                value={displayDateTime(departure)}
+              />
+              <SummaryItem
+                icon={<Clock3 />}
+                label="Cần đến trước"
+                value={displayDateTime(arrival)}
+              />
+              <SummaryItem
+                icon={<Eye />}
+                label="Phạm vi chia sẻ"
+                value={visibility === "FRIENDS" ? "Bạn bè" : "Thành viên Diké"}
+              />
+              {note ? (
+                <SummaryItem icon={<FileText />} label="Ghi chú" value={note} />
+              ) : null}
             </dl>
           </aside>
         </div>
-      )}
+      ) : null}
     </main>
+  );
+}
+
+function NeedPostSection({
+  number,
+  title,
+  description,
+  children,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="need-post-section">
+      <div className="need-post-section-heading">
+        <span>{number}</span>
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+      <div className="need-post-section-content">{children}</div>
+    </section>
+  );
+}
+
+function RoutePoint({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <MapPin aria-hidden="true" size={18} />
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+      </span>
+    </div>
+  );
+}
+
+function DateField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  max?: string;
+}) {
+  return (
+    <label>
+      <span>{label}</span>
+      <span className="need-post-control">
+        <CalendarDays aria-hidden="true" size={18} />
+        <input
+          type="datetime-local"
+          required
+          min={min}
+          max={max}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </span>
+    </label>
+  );
+}
+
+function SummaryItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <dt>
+        {icon}
+        {label}
+      </dt>
+      <dd>{value}</dd>
+    </div>
   );
 }

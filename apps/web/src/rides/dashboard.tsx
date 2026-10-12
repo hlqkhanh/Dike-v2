@@ -7,7 +7,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type {
   BookingView,
   ProposalView,
@@ -21,15 +21,21 @@ import {
   CarFront,
   Check,
   Clock3,
+  Coins,
+  Grid2X2,
   Handshake,
+  MapPin,
   MessageCircle,
+  MoreHorizontal,
   Plus,
   Route,
   Search,
   Send,
   Sparkles,
   TicketCheck,
+  Trash2,
   Users,
+  X,
 } from "lucide-react";
 import {
   EmptyState,
@@ -462,26 +468,58 @@ export function RideDashboard({
     bookings: "Booking của tôi",
   }[kind];
   return (
-    <main className="settings-page ride-dashboard-page">
-      <PageHeader
-        eyebrow="Quản lý hành trình"
-        title={title}
-        description={
-          kind === "trips"
-            ? "Theo dõi các chuyến bạn tạo và tình trạng ghép chỗ."
-            : kind === "proposals"
-              ? "Xem và phản hồi các lời mời đi cùng đang chờ bạn."
-              : "Tất cả chuyến đã xác nhận, sẵn sàng cho ngày khởi hành."
-        }
-        actions={
-          kind === "trips" ? (
-            <Link className="app-button app-button--primary" href="/trips/new">
-              <Plus aria-hidden="true" size={18} /> Tạo chuyến
+    <main
+      className={
+        kind === "trips"
+          ? "trip-gallery-page"
+          : kind === "proposals"
+            ? "proposal-board-page"
+            : "settings-page ride-dashboard-page"
+      }
+    >
+      {kind === "trips" ? (
+        <header className="trip-gallery-hero">
+          <div className="trip-gallery-hero-copy">
+            <p>Quản lý hành trình</p>
+            <h1>Chuyến của tôi</h1>
+            <span>Theo dõi các chuyến bạn tạo và tình trạng ghép chỗ.</span>
+            <Link href="/trips/new">
+              <Plus aria-hidden="true" size={23} /> Tạo chuyến
             </Link>
-          ) : undefined
-        }
-      />
-      <RideNav />
+          </div>
+          <div className="trip-gallery-hero-art" aria-hidden="true">
+            <i className="trip-gallery-pin" />
+            <b />
+            <span />
+          </div>
+        </header>
+      ) : kind === "proposals" ? (
+        <header className="proposal-board-hero">
+          <div className="proposal-board-hero-copy">
+            <p>Quản lý hành trình</p>
+            <h1>Đề nghị đi cùng</h1>
+            <span>Xem và phản hồi các lời mời đi cùng đang chờ bạn.</span>
+          </div>
+          <div className="proposal-board-hero-art" aria-hidden="true">
+            <i className="proposal-art-pin is-first" />
+            <i className="proposal-art-pin is-second" />
+            <i className="proposal-art-pin is-third" />
+            <b />
+            <span>
+              <CarFront size={32} />
+            </span>
+          </div>
+        </header>
+      ) : (
+        <>
+          <PageHeader
+            eyebrow="Quản lý hành trình"
+            title={title}
+            description="Tất cả chuyến đã xác nhận, sẵn sàng cho ngày khởi hành."
+          />
+          <RideNav />
+        </>
+      )}
       {kind !== "trips" && items.length > 0 ? (
         <div
           className="journey-filter-bar"
@@ -490,7 +528,12 @@ export function RideDashboard({
         >
           {(kind === "bookings"
             ? ["ALL", "UPCOMING", "ACTIVE", "COMPLETED", "CANCELLED"]
-            : ["ALL", ...Array.from(new Set(items.map((item) => item.status)))]
+            : kind === "proposals"
+              ? ["ALL", "PENDING"]
+              : [
+                  "ALL",
+                  ...Array.from(new Set(items.map((item) => item.status))),
+                ]
           ).map((status) => (
             <button
               aria-pressed={statusFilter === status}
@@ -499,16 +542,25 @@ export function RideDashboard({
               type="button"
               onClick={() => setStatusFilter(status)}
             >
+              {kind === "proposals" ? (
+                status === "ALL" ? (
+                  <Grid2X2 aria-hidden="true" size={16} />
+                ) : (
+                  <Clock3 aria-hidden="true" size={16} />
+                )
+              ) : null}
               {status === "ALL"
                 ? "Tất cả"
-                : kind === "bookings"
-                  ? {
-                      UPCOMING: "Sắp tới",
-                      ACTIVE: "Đang diễn ra",
-                      COMPLETED: "Hoàn thành",
-                      CANCELLED: "Đã hủy",
-                    }[status]
-                  : statusName(status)}
+                : kind === "proposals" && status === "PENDING"
+                  ? "Chờ phản hồi"
+                  : kind === "bookings"
+                    ? {
+                        UPCOMING: "Sắp tới",
+                        ACTIVE: "Đang diễn ra",
+                        COMPLETED: "Hoàn thành",
+                        CANCELLED: "Đã hủy",
+                      }[status]
+                    : statusName(status)}
             </button>
           ))}
         </div>
@@ -545,21 +597,13 @@ export function RideDashboard({
         />
       ) : (
         <>
-          {items.length === 0 ? (
+          {items.length === 0 && kind !== "proposals" ? (
             <EmptyState
-              icon={
-                kind === "trips"
-                  ? CarFront
-                  : kind === "proposals"
-                    ? Handshake
-                    : TicketCheck
-              }
+              icon={kind === "trips" ? CarFront : TicketCheck}
               title={
                 kind === "trips"
                   ? "Bạn chưa có chuyến nào"
-                  : kind === "proposals"
-                    ? "Chưa có đề nghị mới"
-                    : "Chưa có booking nào"
+                  : "Chưa có booking nào"
               }
               description={
                 kind === "trips"
@@ -585,72 +629,72 @@ export function RideDashboard({
               }
             />
           ) : null}
-          {items.length > 0 && filteredItems.length === 0 ? (
+          {kind === "bookings" &&
+          items.length > 0 &&
+          filteredItems.length === 0 ? (
             <EmptyState
               icon={TicketCheck}
               title="Không có booking phù hợp"
               description="Hãy thử đổi trạng thái hoặc vai trò để xem các hành trình khác."
             />
           ) : null}
-          <div className="ride-dashboard-grid">
-            {filteredItems.map((item) =>
-              "senderId" in item ? (
-                <ProposalCard
-                  key={item.id}
-                  proposal={item}
-                  userId={session.data?.user.id}
-                />
-              ) : "passengerId" in item ? (
-                <article
-                  className="settings-card ride-summary-card"
-                  key={item.id}
-                >
-                  <span className="ride-summary-icon">
-                    <TicketCheck aria-hidden="true" size={20} />
-                  </span>
-                  <h2>
-                    <Link href={`/bookings/${encodeURIComponent(item.id)}`}>
-                      Booking lúc {dateTime(item.pickupAt)}
-                    </Link>
-                  </h2>
-                  <span
-                    className={`ride-status ride-status--${item.status.toLowerCase()}`}
+          {kind === "proposals" ? (
+            <ProposalBoard
+              proposals={filteredItems as ProposalView[]}
+              userId={session.data?.user.id}
+            />
+          ) : (
+            <div
+              className={
+                kind === "trips" ? "trip-gallery-grid" : "ride-dashboard-grid"
+              }
+            >
+              {filteredItems.map((item, index) =>
+                "senderId" in item ? (
+                  <ProposalCard
+                    key={item.id}
+                    proposal={item}
+                    userId={session.data?.user.id}
+                  />
+                ) : "passengerId" in item ? (
+                  <article
+                    className="settings-card ride-summary-card"
+                    key={item.id}
                   >
-                    {statusName(item.status)}
-                  </span>
-                  <p>Đón {dateTime(item.pickupAt)}</p>
-                  <p>
-                    Trả {dateTime(item.dropoffAt)} · {money(item.priceVnd)}
-                  </p>
-                  <p className="journey-next-action">
-                    {bookingNextAction(
-                      item.status,
-                      item.driverId === session.data?.user.id,
-                    )}
-                  </p>
-                </article>
-              ) : (
-                <article
-                  className="settings-card ride-summary-card"
-                  key={item.id}
-                >
-                  <span className="ride-summary-icon">
-                    <Route aria-hidden="true" size={20} />
-                  </span>
-                  <h2>
-                    <Link href={`/trips/${encodeURIComponent(item.id)}`}>
-                      {item.originLabel} → {item.destinationLabel}
-                    </Link>
-                  </h2>
-                  <p>
-                    {statusName(item.status)} · Còn {item.remainingSeats}/
-                    {item.offeredSeats} chỗ
-                  </p>
-                  <p>{dateTime(item.departureAt)}</p>
-                </article>
-              ),
-            )}
-          </div>
+                    <span className="ride-summary-icon">
+                      <TicketCheck aria-hidden="true" size={20} />
+                    </span>
+                    <h2>
+                      <Link href={`/bookings/${encodeURIComponent(item.id)}`}>
+                        Booking lúc {dateTime(item.pickupAt)}
+                      </Link>
+                    </h2>
+                    <span
+                      className={`ride-status ride-status--${item.status.toLowerCase()}`}
+                    >
+                      {statusName(item.status)}
+                    </span>
+                    <p>Đón {dateTime(item.pickupAt)}</p>
+                    <p>
+                      Trả {dateTime(item.dropoffAt)} · {money(item.priceVnd)}
+                    </p>
+                    <p className="journey-next-action">
+                      {bookingNextAction(
+                        item.status,
+                        item.driverId === session.data?.user.id,
+                      )}
+                    </p>
+                  </article>
+                ) : (
+                  <TripGalleryCard
+                    key={item.id}
+                    trip={item}
+                    variant={index % 3}
+                  />
+                ),
+              )}
+            </div>
+          )}
           {list.hasNextPage ? (
             <button
               disabled={list.isFetchingNextPage}
@@ -664,6 +708,143 @@ export function RideDashboard({
     </main>
   );
 }
+
+function ProposalBoard({
+  proposals,
+  userId,
+}: {
+  proposals: ProposalView[];
+  userId?: string;
+}) {
+  const incoming = proposals.filter((item) => item.recipientId === userId);
+  const outgoing = proposals.filter((item) => item.recipientId !== userId);
+  return (
+    <div className="proposal-board-grid">
+      <ProposalColumn
+        icon={<Handshake aria-hidden="true" size={25} />}
+        title="Đề nghị đến"
+        description="Các lời mời đi cùng từ người khác đang chờ bạn phản hồi."
+        empty="Chưa có đề nghị gửi đến."
+        items={incoming}
+        userId={userId}
+      />
+      <ProposalColumn
+        icon={<Send aria-hidden="true" size={25} />}
+        title="Đề nghị đã gửi"
+        description="Các đề nghị đi cùng bạn đã gửi cho người khác."
+        empty="Bạn chưa gửi đề nghị nào."
+        items={outgoing}
+        userId={userId}
+      />
+    </div>
+  );
+}
+
+function ProposalColumn({
+  icon,
+  title,
+  description,
+  empty,
+  items,
+  userId,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  empty: string;
+  items: ProposalView[];
+  userId?: string;
+}) {
+  return (
+    <section className="proposal-board-column">
+      <header>
+        <span>{icon}</span>
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </header>
+      <div className="proposal-board-list">
+        {items.length ? (
+          items.map((proposal) => (
+            <ProposalCard
+              key={proposal.id}
+              proposal={proposal}
+              userId={userId}
+            />
+          ))
+        ) : (
+          <p className="proposal-board-empty">{empty}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TripGalleryCard({
+  trip,
+  variant,
+}: {
+  trip: TripView;
+  variant: number;
+}) {
+  const departure = new Date(trip.departureAt);
+  return (
+    <article className="trip-gallery-card">
+      <Link
+        className="trip-gallery-card-link"
+        href={`/trips/${encodeURIComponent(trip.id)}`}
+        aria-label={`${trip.originLabel} đến ${trip.destinationLabel}`}
+      >
+        <div className={`trip-gallery-art is-variant-${variant}`}>
+          <span className="trip-gallery-route-icon">
+            <Route aria-hidden="true" size={20} />
+          </span>
+          <span className="trip-gallery-more" aria-hidden="true">
+            <MoreHorizontal size={22} />
+          </span>
+          <i className="trip-gallery-landmark" />
+          <b className="trip-gallery-road" />
+          <span className="trip-gallery-art-pin" />
+        </div>
+        <div className="trip-gallery-card-body">
+          <h2>
+            {trip.originLabel} → {trip.destinationLabel}
+          </h2>
+          <div className="trip-gallery-meta">
+            <span
+              className={`trip-gallery-status is-${trip.status.toLowerCase()}`}
+            >
+              <i /> {statusName(trip.status)}
+            </span>
+            <span>
+              <Users aria-hidden="true" size={17} /> Còn {trip.remainingSeats}/
+              {trip.offeredSeats} chỗ
+            </span>
+          </div>
+          <time dateTime={trip.departureAt}>
+            <CalendarClock aria-hidden="true" size={19} />
+            <span>
+              <strong>
+                {departure.toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </strong>
+              <small>
+                {departure.toLocaleDateString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </small>
+            </span>
+          </time>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
 function bookingNextAction(status: string, driver: boolean) {
   if (status === "CONFIRMED")
     return driver
@@ -699,40 +880,69 @@ function ProposalCard({
           : rideApi.decide(p.id, action, p.version, key),
     });
   return (
-    <article className="settings-card ride-summary-card proposal-card">
-      <span className="ride-summary-icon">
-        <Handshake aria-hidden="true" size={20} />
-      </span>
-      <h2>
-        <Link href={`/proposals/${encodeURIComponent(p.id)}`}>
-          {recipient ? "Đề nghị đến" : "Đề nghị đã gửi"}
+    <article className="proposal-board-card">
+      <header>
+        <span className={`proposal-board-status is-${p.status.toLowerCase()}`}>
+          <Clock3 aria-hidden="true" size={16} /> {statusName(p.status)}
+        </span>
+        <Link
+          href={`/proposals/${encodeURIComponent(p.id)}`}
+          aria-label="Xem chi tiết đề nghị"
+        >
+          <MoreHorizontal aria-hidden="true" size={21} />
         </Link>
-      </h2>
-      <span className={`ride-status ride-status--${p.status.toLowerCase()}`}>
-        {statusName(p.status)}
-      </span>
-      <p>
-        {statusName(p.status)} · {money(p.priceVnd)}
-      </p>
-      <p>
-        Đón {dateTime(p.pickupAt)} · Đến {dateTime(p.dropoffAt)}
-      </p>
-      <p>Hiệu lực đến {dateTime(p.expiresAt)}</p>
+      </header>
+      <div className="proposal-board-route">
+        <span aria-hidden="true">
+          <i />
+          <b />
+          <i />
+        </span>
+        <div>
+          <section>
+            <small>Đón</small>
+            <strong>{dateTime(p.pickupAt)}</strong>
+            <p>Điểm đón sẽ hiển thị trong chi tiết đề nghị.</p>
+          </section>
+          <MapPin aria-hidden="true" size={18} />
+          <section>
+            <small>Đến</small>
+            <strong>{dateTime(p.dropoffAt)}</strong>
+            <p>Điểm đến sẽ hiển thị trong chi tiết đề nghị.</p>
+          </section>
+          <MapPin aria-hidden="true" size={18} />
+        </div>
+      </div>
+      <dl className="proposal-board-facts">
+        <div>
+          <dt>
+            <Coins aria-hidden="true" size={18} /> Mức đóng góp
+          </dt>
+          <dd>{money(p.priceVnd)}</dd>
+        </div>
+        <div>
+          <dt>
+            <Clock3 aria-hidden="true" size={18} /> Hiệu lực đến
+          </dt>
+          <dd>{dateTime(p.expiresAt)}</dd>
+        </div>
+      </dl>
       {p.status === "PENDING" ? (
-        <div className="social-tabs">
+        <footer>
           {recipient ? (
             <>
               <button
+                className="is-primary"
                 disabled={command.isPending}
                 onClick={() => act("accept")}
               >
-                Đồng ý đi cùng
+                <Check aria-hidden="true" size={18} /> Đồng ý đi cùng
               </button>
               <button
                 disabled={command.isPending}
                 onClick={() => act("reject")}
               >
-                Từ chối
+                <X aria-hidden="true" size={18} /> Từ chối
               </button>
             </>
           ) : (
@@ -740,14 +950,18 @@ function ProposalCard({
               disabled={command.isPending}
               onClick={() => act("withdraw")}
             >
-              Rút đề nghị
+              <Trash2 aria-hidden="true" size={18} /> Rút đề nghị
             </button>
           )}
-        </div>
+        </footer>
       ) : null}
-      {command.isError ? <p role="alert">{command.error.message}</p> : null}
+      {command.isError ? (
+        <p className="proposal-board-feedback" role="alert">
+          {command.error.message}
+        </p>
+      ) : null}
       {command.isSuccess ? (
-        <p role="status">
+        <p className="proposal-board-feedback is-success" role="status">
           Đã xử lý đề nghị. <Link href="/bookings">Xem booking</Link>
         </p>
       ) : null}

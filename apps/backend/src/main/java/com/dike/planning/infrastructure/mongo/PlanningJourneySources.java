@@ -41,7 +41,7 @@ public class PlanningJourneySources
         || !departure.isAfter(clock.instant())
         || departure.isAfter(clock.instant().plusSeconds(7 * 86400))
         || arrival.isBefore(departure.plusSeconds(route.durationSeconds()))
-        || arrival.isAfter(departure.plusSeconds(86400))) throw changed();
+        || arrival.isAfter(departure.plusSeconds(7 * 86400))) throw changed();
     String id = UUID.randomUUID().toString();
     mongo.insert(
         new TravelIntentDocument(
