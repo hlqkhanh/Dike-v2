@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 
 import { authApi } from "../../src/auth/api";
 import { AppHeader } from "./app-header";
@@ -14,10 +14,12 @@ const bareRoutes = [
   "/auth/complete",
   "/onboarding/phone",
   "/offline",
+  "/home",
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const bare = bareRoutes.includes(pathname);
   const session = useQuery({
     queryKey: ["auth", "session"],
@@ -25,6 +27,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     retry: false,
     enabled: !bare,
   });
+
+  useEffect(() => {
+    if (!bare && (session.isError || (!session.isPending && !session.data))) {
+      router.replace("/");
+    }
+  }, [bare, session.isError, session.isPending, session.data, router]);
 
   if (bare) return children;
   if (session.isPending) {
@@ -43,9 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  if (!session.data) {
+    return null;
+  }
+
   return (
     <div className="new-app-shell">
-      {session.data ? <AppHeader session={session.data} /> : null}
+      <AppHeader session={session.data} />
       <div className="new-app-content">{children}</div>
     </div>
   );

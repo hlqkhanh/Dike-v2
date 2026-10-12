@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "vi",
     icons: [
       {
-        src: "/images/dike_logo_clean.png",
+        src: "/images/logo.png",
         sizes: "any",
         type: "image/png",
         purpose: "any",

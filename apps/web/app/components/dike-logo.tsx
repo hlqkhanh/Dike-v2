@@ -4,13 +4,14 @@ export function DikeLogo({ className = "" }: { className?: string }) {
   return (
     <span className={`brand-logo-wrap ${className}`}>
       <Image
-        src="/images/dike_logo_clean.png"
-        alt="DIKÉ SHARE"
+        src="/images/logo.png"
+        alt="Logo Diké"
         className="brand-logo-img"
-        width={180}
-        height={48}
-        style={{ height: "2.35rem", width: "auto", display: "block" }}
+        width={38}
+        height={38}
+        priority
       />
+      <span className="brand-logo-text">Diké</span>
     </span>
   );
 }

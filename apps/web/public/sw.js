@@ -1,11 +1,7 @@
 /* global self, caches, URL, fetch */
 
 const CACHE = "dike-shell-v1";
-const SHELL = [
-  "/offline",
-  "/manifest.webmanifest",
-  "/images/dike_logo_clean.png",
-];
+const SHELL = ["/offline", "/manifest.webmanifest", "/images/logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));

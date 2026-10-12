@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button, Card, Status } from "@dike/web-ui";
 
 import { AuthNavigation } from "./auth-navigation";
 import { DikeLogo } from "./components/dike-logo";
 import { authApi } from "../src/auth/api";
-import { AuthenticatedHome } from "./components/authenticated-home";
 
 const Map3DModelViewer = dynamic(
   () =>
@@ -29,11 +29,19 @@ const Map3DModelViewer = dynamic(
 );
 
 export default function HomePage() {
+  const router = useRouter();
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
     retry: false,
   });
+
+  useEffect(() => {
+    if (session.data) {
+      router.replace("/home");
+    }
+  }, [session.data, router]);
+
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSupportMenuOpen, setIsSupportMenuOpen] = useState(false);
@@ -41,13 +49,19 @@ export default function HomePage() {
   const [activeDemoTab, setActiveDemoTab] = useState<"route" | "match" | "eco">(
     "route",
   );
+  const [scrolled, setScrolled] = useState(false);
 
-  if (session.isPending) {
-    return <HomeSessionSkeleton />;
-  }
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 30);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   if (session.data) {
-    return <AuthenticatedHome session={session.data} />;
+    return null;
   }
 
   return (
@@ -277,7 +291,7 @@ export default function HomePage() {
       {/* ======================================================== */}
       <section className="hero-stage-viewport" id="top">
         {/* Floating Top Navigation Bar */}
-        <header className="hero-stage-header">
+        <header className={`hero-stage-header${scrolled ? " scrolled" : ""}`}>
           <nav className="nav" aria-label="Điều hướng chính">
             {/* Brand Logo */}
             <a
@@ -289,7 +303,7 @@ export default function HomePage() {
             </a>
 
             {/* Centered Navigation Links */}
-            <ul className="nav-links">
+            <ul className={`nav-links${scrolled ? " is-scrolled" : ""}`}>
               <li>
                 <a href="#top" className="nav-link active">
                   Trang chủ
@@ -705,24 +719,5 @@ export default function HomePage() {
         </footer>
       </main>
     </div>
-  );
-}
-
-function HomeSessionSkeleton() {
-  return (
-    <main
-      className="home-session-skeleton"
-      aria-label="Đang chuẩn bị DIKÉ SHARE"
-    >
-      <div className="home-skeleton-header">
-        <DikeLogo />
-        <span />
-      </div>
-      <div className="home-skeleton-hero">
-        <span className="home-skeleton-line home-skeleton-line--title" />
-        <span className="home-skeleton-line" />
-        <span className="home-skeleton-search" />
-      </div>
-    </main>
   );
 }

@@ -6,6 +6,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { ApiError } from "@dike/api-client-ts";
 import { socialApi } from "./api";
 import { authApi } from "../auth/api";
 
@@ -58,6 +59,9 @@ export function SocialInvalidation({ userId }: { userId: string }) {
   });
   useEffect(() => {
     if (revision.isError) {
+      if (revision.error instanceof ApiError && revision.error.status === 401) {
+        return;
+      }
       void clearSocialContent(client);
       return;
     }
@@ -66,7 +70,7 @@ export function SocialInvalidation({ userId }: { userId: string }) {
         void clearSocialContent(client);
       seen.current = revision.data.revision;
     }
-  }, [revision.data, revision.isError, client]);
+  }, [revision.data, revision.isError, revision.error, client]);
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
     const channel = new BroadcastChannel("dike-social");

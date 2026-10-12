@@ -6,12 +6,12 @@ import {
   ArrowRight,
   CalendarDays,
   CarFront,
+  ChevronDown,
   Clock3,
   MapPin,
   Search,
-  SlidersHorizontal,
-  Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -85,145 +85,168 @@ export function AuthenticatedHome({
       : values;
   }, [filter, list.data, query, sort]);
 
-  const firstName = session.user.displayName.trim().split(/\s+/u).at(-1);
-
   return (
     <div className="new-home-shell">
+      <div className="new-home-bg-layer" aria-hidden="true" />
       <AppHeader session={session} />
       <main className="new-home-main">
         <section className="new-home-hero" aria-labelledby="home-greeting">
-          <div className="new-home-landscape" aria-hidden="true">
-            <span className="landscape-sun" />
-            <span className="landscape-hill landscape-hill--one" />
-            <span className="landscape-hill landscape-hill--two" />
-            <span className="landscape-city" />
-            <span className="landscape-road" />
-          </div>
           <div className="new-home-hero-content">
-            <p className="new-home-kicker">Cùng nhau đi xanh hơn mỗi ngày</p>
-            <h1 id="home-greeting">
-              Chào {firstName || "bạn"}! <span aria-hidden="true">👋</span>
+            <h1 id="home-greeting" className="new-home-hero-title">
+              Chào bạn! <span aria-hidden="true">👋</span>
             </h1>
-            <p>Tìm một người đồng hành phù hợp cho hành trình tiếp theo.</p>
+            <p className="new-home-hero-sub">Cùng Diké đi xa hơn mỗi ngày</p>
+
             <label className="new-home-search">
-              <Search aria-hidden="true" size={23} />
+              <Search
+                aria-hidden="true"
+                size={20}
+                className="new-home-search-lens"
+              />
               <span className="sr-only">Tìm chuyến đi</span>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Bạn muốn đi đâu, lúc nào?"
+                placeholder="Bạn muốn đi đâu, ăn gì?"
               />
-              <MapPin aria-hidden="true" size={22} />
+              <span className="new-home-search-sep" aria-hidden="true">
+                ⊹
+              </span>
+              <button
+                type="button"
+                className="new-home-search-pin-btn"
+                aria-label="Định vị điểm đến"
+              >
+                <MapPin aria-hidden="true" size={17} />
+              </button>
             </label>
-          </div>
-        </section>
 
-        <section className="new-home-actions" aria-label="Tạo hành trình">
-          <Link
-            className="journey-cta journey-cta--driver"
-            href="/rides/new?mode=driver"
-          >
-            <span className="journey-cta-icon">
-              <CarFront aria-hidden="true" />
-            </span>
-            <span>
-              <small>Bạn có chỗ trống?</small>
-              <strong>Tôi chở</strong>
-              <em>Đăng chuyến và tìm người đi cùng</em>
-            </span>
-            <ArrowRight aria-hidden="true" />
-          </Link>
-          <Link
-            className="journey-cta journey-cta--passenger"
-            href="/rides/new?mode=passenger"
-          >
-            <span className="journey-cta-icon">
-              <Users aria-hidden="true" />
-            </span>
-            <span>
-              <small>Bạn cần một chuyến đi?</small>
-              <strong>Tôi đi ké</strong>
-              <em>Tìm tài xế có cùng lộ trình</em>
-            </span>
-            <ArrowRight aria-hidden="true" />
-          </Link>
+            <div className="new-home-cards-row">
+              <Link
+                className="home-feature-card home-feature-card--car"
+                href="/rides/new?mode=driver"
+              >
+                <div className="feature-card-content">
+                  <span>Đặt xe</span>
+                  <strong>đi chung</strong>
+                </div>
+                <div className="feature-card-graphic">
+                  <Image
+                    src="/images/card_car_3d.png"
+                    alt="Đặt xe đi chung"
+                    width={180}
+                    height={120}
+                    priority
+                    className="feature-card-img"
+                  />
+                </div>
+              </Link>
+
+              <Link
+                className="home-feature-card home-feature-card--scooter"
+                href="/rides/new?mode=passenger"
+              >
+                <div className="feature-card-content">
+                  <strong>Tìm người chở</strong>
+                  <div className="feature-card-arrow">
+                    <ArrowRight aria-hidden="true" size={18} />
+                  </div>
+                </div>
+                <div className="feature-card-graphic">
+                  <Image
+                    src="/images/card_scooter_mascot.png"
+                    alt="Tìm người chở"
+                    width={160}
+                    height={120}
+                    priority
+                    className="feature-card-img"
+                  />
+                </div>
+              </Link>
+            </div>
+          </div>
         </section>
 
         <section className="new-feed-section" aria-labelledby="feed-heading">
-          <div className="new-feed-heading">
-            <div>
-              <p className="new-home-kicker">Hành trình đang mở</p>
-              <h2 id="feed-heading">Bảng feed</h2>
+          <div className="new-feed-container">
+            <div className="new-feed-heading">
+              <div>
+                <h2 id="feed-heading">Bảng feed</h2>
+                <p className="new-feed-subtitle">
+                  Những chuyến đi đang chờ bạn
+                </p>
+              </div>
+              <label className="new-feed-sort">
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as FeedSort)}
+                >
+                  <option value="latest">Mới nhất</option>
+                  <option value="departure">Sắp khởi hành</option>
+                </select>
+                <ChevronDown aria-hidden="true" size={15} />
+              </label>
             </div>
-            <label className="new-feed-sort">
-              <SlidersHorizontal aria-hidden="true" size={16} />
-              <span className="sr-only">Sắp xếp</span>
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value as FeedSort)}
-              >
-                <option value="latest">Mới nhất</option>
-                <option value="departure">Sắp khởi hành</option>
-              </select>
-            </label>
-          </div>
-          <div
-            className="new-feed-filters"
-            role="group"
-            aria-label="Lọc bài đăng"
-          >
-            {(
-              [
-                ["ALL", "Tất cả"],
-                ["OFFER_RIDE", "Có chỗ trống"],
-                ["NEED_RIDE", "Cần người chở"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={filter === value}
-                onClick={() => setFilter(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {list.isPending ? (
-            <FeedSkeleton />
-          ) : list.isError ? (
-            <div className="new-feed-state" role="alert">
-              <h3>Chưa thể tải bảng feed</h3>
-              <p>{list.error.message}</p>
-              <button type="button" onClick={() => void list.refetch()}>
-                Thử lại
-              </button>
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="new-feed-state">
-              <span>🌿</span>
-              <h3>Chưa tìm thấy hành trình phù hợp</h3>
-              <p>Thử đổi từ khóa hoặc bộ lọc, hoặc tạo nhu cầu mới của bạn.</p>
-              <Link href="/rides/new?mode=passenger">Tạo nhu cầu đi ké</Link>
-            </div>
-          ) : (
-            <div className="new-feed-grid">
-              {posts.map((post) => (
-                <HomeRideCard key={post.id} post={post} />
+            <div
+              className="new-feed-filters"
+              role="group"
+              aria-label="Lọc bài đăng"
+            >
+              {(
+                [
+                  ["ALL", "Tất cả"],
+                  ["OFFER_RIDE", "Có chỗ trống"],
+                  ["NEED_RIDE", "Cần người chở"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={filter === value}
+                  onClick={() => setFilter(value)}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-          )}
-          {list.hasNextPage ? (
-            <button
-              className="new-feed-more"
-              type="button"
-              disabled={list.isFetchingNextPage}
-              onClick={() => void list.fetchNextPage()}
-            >
-              {list.isFetchingNextPage ? "Đang tải…" : "Xem thêm hành trình"}
-            </button>
-          ) : null}
+
+            {list.isPending ? (
+              <FeedSkeleton />
+            ) : list.isError ? (
+              <div className="new-feed-state" role="alert">
+                <h3>Chưa thể tải bảng feed</h3>
+                <p>{list.error.message}</p>
+                <button type="button" onClick={() => void list.refetch()}>
+                  Thử lại
+                </button>
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="new-feed-state">
+                <span>🌿</span>
+                <h3>Chưa tìm thấy hành trình phù hợp</h3>
+                <p>
+                  Thử đổi từ khóa hoặc bộ lọc, hoặc tạo nhu cầu mới của bạn.
+                </p>
+                <Link href="/rides/new?mode=passenger">Tạo nhu cầu đi ké</Link>
+              </div>
+            ) : (
+              <div className="new-feed-grid">
+                {posts.map((post) => (
+                  <HomeRideCard key={post.id} post={post} />
+                ))}
+              </div>
+            )}
+            {list.hasNextPage ? (
+              <button
+                className="new-feed-more"
+                type="button"
+                disabled={list.isFetchingNextPage}
+                onClick={() => void list.fetchNextPage()}
+              >
+                {list.isFetchingNextPage ? "Đang tải…" : "Xem thêm hành trình"}
+              </button>
+            ) : null}
+          </div>
         </section>
       </main>
       <footer className="new-home-footer">

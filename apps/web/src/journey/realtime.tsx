@@ -4,6 +4,7 @@ import { Client, type IMessage } from "@stomp/stompjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+import { ApiError } from "@dike/api-client-ts";
 import { authApi } from "../auth/api";
 import { journeyApi } from "./api";
 
@@ -67,12 +68,12 @@ function JourneyRealtimeConnection() {
           const issued = await journeyApi.realtimeTicket();
           client.brokerURL = issued.websocketUrl;
           client.connectHeaders = { ticket: issued.ticket };
-        } catch {
+        } catch (err) {
           // STOMP does not handle rejected beforeConnect promises. Stop this
           // attempt explicitly so a temporary ticket failure cannot become an
           // unhandled browser rejection, then retry while the session remains.
           await client.deactivate();
-          if (!disposed) {
+          if (!disposed && !(err instanceof ApiError && err.status === 401)) {
             ticketRetryTimer = window.setTimeout(
               () => client.activate(),
               5_000,

@@ -69,6 +69,17 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [notificationsOpen]);
 
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 30);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const initials = session.user.displayName
     .split(/\s+/u)
     .filter(Boolean)
@@ -77,42 +88,43 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
     .join("")
     .toUpperCase();
   return (
-    <header className="new-app-header">
+    <header className={`new-app-header${scrolled ? " scrolled" : ""}`}>
       <div className="new-app-header-inner">
         <Link
           className="new-app-brand"
-          href="/"
+          href="/home"
           aria-label="DIKÉ SHARE — Trang chủ"
         >
           <DikeLogo />
         </Link>
-        <button
-          className="new-mobile-menu-button"
-          type="button"
-          aria-label="Mở điều hướng"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((value) => !value)}
-        >
-          {menuOpen ? <X /> : <Menu />}
-        </button>
         <nav
-          className={`new-app-nav${menuOpen ? " is-open" : ""}`}
+          className={`new-app-nav${scrolled ? " is-scrolled" : ""}${menuOpen ? " is-open" : ""}`}
           aria-label="Điều hướng chính"
         >
-          {[
-            ["/", "Trang chủ"],
-            ["/friends", "Bạn bè"],
-            ["/profile", "Profile"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-              onClick={() => setMenuOpen(false)}
-            >
-              {label}
-            </Link>
-          ))}
+          <Link
+            href="/home"
+            className={pathname === "/home" ? "nav-link-active" : ""}
+            aria-current={pathname === "/home" ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            Trang chủ
+          </Link>
+          <Link
+            href="/friends"
+            className={pathname.startsWith("/friends") ? "nav-link-active" : ""}
+            aria-current={pathname.startsWith("/friends") ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            Bạn bè
+          </Link>
+          <Link
+            href="/profile"
+            className={pathname.startsWith("/profile") ? "nav-link-active" : ""}
+            aria-current={pathname.startsWith("/profile") ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            Cá nhân
+          </Link>
         </nav>
         <div className="new-app-actions">
           <button
@@ -122,7 +134,7 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
             aria-expanded={notificationsOpen}
             onClick={() => setNotificationsOpen(true)}
           >
-            <Bell aria-hidden="true" size={21} />
+            <Bell aria-hidden="true" size={20} />
             {unread ? <span>{unread > 9 ? "9+" : unread}</span> : null}
           </button>
           <Link
@@ -133,6 +145,15 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
             <span>{initials || "DK"}</span>
             <strong>{session.user.displayName}</strong>
           </Link>
+          <button
+            className="new-mobile-menu-button"
+            type="button"
+            aria-label="Mở điều hướng"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((value) => !value)}
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
         </div>
       </div>
       {notificationsOpen ? (
