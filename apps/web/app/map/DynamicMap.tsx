@@ -13,7 +13,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import type { RoutePoint } from "../../src/routing/api";
 
-const duckIcon = L.divIcon({
+const originIcon = L.divIcon({
   html: '<div style="font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); transform: scaleX(-1);">🚕</div>',
   className: "custom-duck-icon",
   iconSize: [24, 24],
@@ -42,7 +42,13 @@ function MapBounds({ route }: { route: RoutePoint[] }) {
   return null;
 }
 
-export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
+export default function DynamicMap({
+  route,
+  layer = "map",
+}: {
+  route?: RoutePoint[];
+  layer?: "map" | "satellite";
+}) {
   const defaultCenter: [number, number] = [10.762622, 106.660172]; // HCMC Default
   const positions = useMemo(() => {
     return route
@@ -68,8 +74,17 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://maps.google.com">Google Maps</a>'
-          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          key={layer}
+          attribution={
+            layer === "satellite"
+              ? "Tiles &copy; Esri"
+              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }
+          url={
+            layer === "satellite"
+              ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
         />
 
         {positions.length > 0 && (
@@ -80,8 +95,8 @@ export default function DynamicMap({ route }: { route?: RoutePoint[] }) {
               weight={6}
               opacity={0.8}
             />
-            <Marker position={positions[0]} icon={duckIcon}>
-              <Popup>Vịt Dike xuất phát!</Popup>
+            <Marker position={positions[0]} icon={originIcon}>
+              <Popup>Điểm xuất phát</Popup>
             </Marker>
             <Marker
               position={positions[positions.length - 1]}
