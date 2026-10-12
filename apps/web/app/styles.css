@@ -905,10 +905,31 @@ a {
 }
 
 .stage-badge--cta {
-  background: #10b981 !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: #c1ead1 !important;
+  border: 1px solid #99deb6 !important;
   border-radius: 9999px !important;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(8, 127, 91, 0.12) !important;
+  color: #064d36 !important;
+  display: inline-flex !important;
+  font-size: 0.95rem !important;
+  font-weight: 750 !important;
+  gap: 0.35rem !important;
+  padding: 0.62rem 1.45rem !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.stage-badge--cta:hover {
+  background: #a4e4be !important;
+  box-shadow: 0 4px 14px rgba(8, 127, 91, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+.nav-actions .stage-badge--cta {
+  background: #087f5b !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 12px rgba(8, 127, 91, 0.25) !important;
   color: #ffffff !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -923,9 +944,9 @@ a {
   transition: all 0.2s ease !important;
 }
 
-.stage-badge--cta:hover {
-  background: #059669 !important;
-  transform: scale(1.03);
+.nav-actions .stage-badge--cta:hover {
+  background: #065f46 !important;
+  transform: translateY(-1px);
 }
 
 /* Hero Stage Body & Left Column */
