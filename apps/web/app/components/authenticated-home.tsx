@@ -30,6 +30,8 @@ export function AuthenticatedHome({
   const [filter, setFilter] = useState<FeedFilter>("ALL");
   const [sort, setSort] = useState<FeedSort>("latest");
   const [urlReady, setUrlReady] = useState(false);
+  const [feedScrolled, setFeedScrolled] = useState(false);
+  const [cardsHidden, setCardsHidden] = useState(false);
   const list = useInfiniteQuery({
     queryKey: ["feed", "latest"],
     initialPageParam: undefined as string | undefined,
@@ -87,8 +89,22 @@ export function AuthenticatedHome({
   return (
     <div className="new-home-shell">
       <div className="new-home-bg-layer" aria-hidden="true" />
-      <AppHeader session={session} />
-      <main className="new-home-main">
+      <AppHeader session={session} scrollState={feedScrolled} />
+      <main
+        className="new-home-main"
+        tabIndex={0}
+        aria-label="Trang chủ Diké"
+        onScroll={(event) => {
+          const scrollArea = event.currentTarget;
+          const progress = Math.min(1, Math.max(0, scrollArea.scrollTop / 180));
+          scrollArea.style.setProperty(
+            "--home-cards-progress",
+            String(progress),
+          );
+          setFeedScrolled(scrollArea.scrollTop > 30);
+          setCardsHidden(progress === 1);
+        }}
+      >
         <section className="new-home-hero" aria-labelledby="home-greeting">
           <div className="new-home-hero-content">
             <h1 id="home-greeting" className="new-home-hero-title">
@@ -119,30 +135,33 @@ export function AuthenticatedHome({
                 <MapPin aria-hidden="true" size={17} />
               </button>
             </label>
-
-            <div className="new-home-cards-row">
-              <Link
-                className="home-feature-card home-feature-card--car"
-                href="/rides/new?mode=driver"
-              >
-                <div className="feature-card-content">
-                  <strong>Tôi chở</strong>
-                </div>
-              </Link>
-
-              <Link
-                className="home-feature-card home-feature-card--scooter"
-                href="/rides/new?mode=passenger"
-              >
-                <div className="feature-card-content">
-                  <strong>Tôi đi ké</strong>
-                </div>
-              </Link>
-            </div>
           </div>
         </section>
 
         <section className="new-feed-section" aria-labelledby="feed-heading">
+          <div
+            className="new-home-cards-row"
+            aria-hidden={cardsHidden || undefined}
+            inert={cardsHidden}
+          >
+            <Link
+              className="home-feature-card home-feature-card--car"
+              href="/rides/new?mode=driver"
+            >
+              <div className="feature-card-content">
+                <strong>Tôi chở</strong>
+              </div>
+            </Link>
+
+            <Link
+              className="home-feature-card home-feature-card--scooter"
+              href="/rides/new?mode=passenger"
+            >
+              <div className="feature-card-content">
+                <strong>Tôi đi ké</strong>
+              </div>
+            </Link>
+          </div>
           <div className="new-feed-container">
             <div className="new-feed-heading">
               <div>
@@ -224,11 +243,11 @@ export function AuthenticatedHome({
             ) : null}
           </div>
         </section>
+        <footer className="new-home-footer">
+          <DikeLogo />
+          <p>Chia sẻ một chỗ trống, thêm một hành trình xanh.</p>
+        </footer>
       </main>
-      <footer className="new-home-footer">
-        <DikeLogo />
-        <p>Chia sẻ một chỗ trống, thêm một hành trình xanh.</p>
-      </footer>
     </div>
   );
 }

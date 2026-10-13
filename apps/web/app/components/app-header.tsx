@@ -57,7 +57,13 @@ function notificationAppearance(item: JourneyNotification) {
   return { Icon: CarFront, tone: "trip" };
 }
 
-export function AppHeader({ session }: { session: AuthSessionResponse }) {
+export function AppHeader({
+  session,
+  scrollState,
+}: {
+  session: AuthSessionResponse;
+  scrollState?: boolean;
+}) {
   const pathname = usePathname();
   const client = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,16 +129,18 @@ export function AppHeader({ session }: { session: AuthSessionResponse }) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [notificationsOpen]);
 
-  const [scrolled, setScrolled] = useState(false);
+  const [windowScrolled, setWindowScrolled] = useState(false);
+  const scrolled = scrollState ?? windowScrolled;
 
   useEffect(() => {
+    if (scrollState !== undefined) return;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 30);
+      setWindowScrolled(window.scrollY > 30);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [scrollState]);
 
   const initials = session.user.displayName
     .split(/\s+/u)

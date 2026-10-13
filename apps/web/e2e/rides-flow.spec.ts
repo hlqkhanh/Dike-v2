@@ -27,6 +27,69 @@ test.beforeEach(async ({ page, context }) => {
   );
 });
 
+test("home feed scrolls over the stationary banner without scrolling the document", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/ride-posts?**", (route) =>
+    route.fulfill({
+      json: {
+        items: Array.from({ length: 12 }, (_, index) => ({
+          id: `home-post-${index}`,
+          type: index % 2 === 0 ? "OFFER_RIDE" : "NEED_RIDE",
+          status: "OPEN",
+          originLabel: "Khu A",
+          destinationLabel: "Khu B",
+          vehicleType: "CAR",
+          departureAt: "2026-10-14T01:00:00Z",
+          note: "Đi cùng",
+          remainingSeats: 2,
+        })),
+      },
+    }),
+  );
+  await page.goto("/home");
+  await expect(page.locator(".new-ride-card")).toHaveCount(12);
+  const greeting = page.getByRole("heading", { name: "Chào bạn!" });
+  const initialGreeting = await greeting.boundingBox();
+  const feed = page.locator(".new-feed-section");
+  const initialFeed = await feed.boundingBox();
+  const scrollArea = page.getByRole("main", { name: "Trang chủ Diké" });
+  const roleCards = page.locator(".new-home-cards-row");
+  await expect(roleCards).toHaveCSS("opacity", "1");
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = 90;
+  });
+  await expect(roleCards).toHaveCSS("opacity", "1");
+  await expect(roleCards).not.toHaveAttribute("inert", "");
+  await scrollArea.focus();
+  await scrollArea.press("PageDown");
+  await expect
+    .poll(() => scrollArea.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(100);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect
+    .poll(async () => (await greeting.boundingBox())!.y)
+    .toBeCloseTo(initialGreeting!.y, 0);
+  await expect
+    .poll(async () => (await feed.boundingBox())!.y)
+    .toBeLessThan(initialFeed!.y - 100);
+  await expect(page.locator(".new-app-header")).toHaveClass(/scrolled/);
+  await expect(roleCards).toHaveAttribute("aria-hidden", "true");
+  await expect(roleCards).toHaveAttribute("inert", "");
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(page.locator(".new-home-footer")).toBeInViewport();
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+  await expect(roleCards).toHaveCSS("opacity", "1");
+  await expect(roleCards).not.toHaveAttribute("inert", "");
+});
+
 test("creates a draft from an owned route before publishing", async ({
   page,
 }) => {
