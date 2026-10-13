@@ -3,6 +3,7 @@
 import {
   ArrowDownUp,
   ArrowRight,
+  Bike,
   CarFront,
   Info,
   MapPin,
@@ -152,8 +153,14 @@ export function UnifiedRideFlow({
     setEstimate(undefined);
   }
 
+  function changeVehicleMode(next: VehicleMode) {
+    setVehicleMode(next);
+    setRoute(undefined);
+    setEstimate(undefined);
+  }
+
   return (
-    <main className="unified-ride-page-v2">
+    <main className={`unified-ride-page-v2 unified-ride-page-v2--${mode}`}>
       <section className="unified-ride-intro">
         <p>Tạo hành trình</p>
         <h1>
@@ -236,20 +243,29 @@ export function UnifiedRideFlow({
           <div className="unified-options-row">
             <div className="unified-option-vehicle">
               <span className="unified-option-label">Phương tiện</span>
-              <div className="unified-vehicle-select">
-                <span className="unified-vehicle-icon" aria-hidden="true">
-                  {vehicleMode === "MOTORBIKE" ? "🏍️" : "🚗"}
-                </span>
-                <select
-                  aria-label="Phương tiện"
-                  value={vehicleMode}
-                  onChange={(e) =>
-                    setVehicleMode(e.target.value as VehicleMode)
-                  }
+              <div
+                className="unified-vehicle-icons"
+                role="group"
+                aria-label="Phương tiện"
+              >
+                <button
+                  type="button"
+                  aria-label="Xe máy"
+                  title="Xe máy"
+                  aria-pressed={vehicleMode === "MOTORBIKE"}
+                  onClick={() => changeVehicleMode("MOTORBIKE")}
                 >
-                  <option value="MOTORBIKE">Xe máy</option>
-                  <option value="CAR">Ô tô</option>
-                </select>
+                  <Bike aria-hidden="true" size={23} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Ô tô"
+                  title="Ô tô"
+                  aria-pressed={vehicleMode === "CAR"}
+                  onClick={() => changeVehicleMode("CAR")}
+                >
+                  <CarFront aria-hidden="true" size={23} />
+                </button>
               </div>
             </div>
             <div className="unified-option-seats">
@@ -332,16 +348,6 @@ export function UnifiedRideFlow({
           </div>
           <div className="unified-map-canvas">
             <DynamicMap route={route?.geometry} layer={mapLayer} />
-            {route ? (
-              <div className="unified-route-badge">
-                <CarFront size={14} />
-                <span>
-                  {duration(route.durationSeconds)}
-                  <br />
-                  {distance(route.distanceMeters)}
-                </span>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
@@ -439,11 +445,11 @@ function PlacePicker({
     <div className="unified-place-picker">
       <label className="unified-place-label">
         <span className={`unified-place-dot unified-place-dot--${dotColor}`} />
-        <span>{label}</span>
       </label>
       <div className="unified-place-input-row">
         <MapPin size={16} className="unified-place-pin" />
         <input
+          aria-label={label}
           value={state.query}
           placeholder={`Nhập ${label.toLowerCase()}`}
           onChange={(e) =>
@@ -466,11 +472,6 @@ function PlacePicker({
           <Search size={16} />
         </button>
       </div>
-      {state.selected ? (
-        <p className="unified-place-selected">
-          ✓ {state.selected.publicAreaLabel}
-        </p>
-      ) : null}
       {state.suggestions.length ? (
         <ul className="unified-place-suggestions">
           {state.suggestions.map((item) => (

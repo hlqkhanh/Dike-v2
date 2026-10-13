@@ -9495,7 +9495,7 @@ a {
 .unified-place-group {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 40px;
-  grid-template-rows: repeat(2, 84px);
+  grid-template-rows: repeat(2, 54px);
   gap: 4px;
   position: relative;
 }
@@ -9536,15 +9536,15 @@ a {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   min-width: 0;
-  padding-bottom: 18px;
+  padding-bottom: 0;
 }
 .unified-place-picker:focus-within {
   z-index: 20;
 }
 .unified-place-label {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
@@ -9623,7 +9623,7 @@ a {
 }
 .unified-place-suggestions {
   position: absolute;
-  top: 68px;
+  top: 50px;
   left: 0;
   right: 0;
   z-index: 30;
@@ -9706,6 +9706,33 @@ a {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+}
+.unified-vehicle-icons {
+  display: grid;
+  grid-template-columns: repeat(2, 48px);
+  gap: 8px;
+}
+.unified-vehicle-icons button {
+  width: 48px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dce9e2;
+  border-radius: 12px;
+  background: #fff;
+  color: #6b8a7e;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+.unified-vehicle-icons button[aria-pressed="true"] {
+  color: var(--ride-accent);
+  border-color: var(--ride-accent);
+  background: var(--ride-accent-soft);
+  box-shadow: 0 0 0 2px var(--ride-accent-ring);
+}
+.unified-vehicle-icons button:hover {
+  color: var(--ride-accent);
+  border-color: var(--ride-accent);
 }
 .unified-seats-control {
   display: flex;
@@ -9798,6 +9825,102 @@ a {
 .unified-hint-note svg {
   flex-shrink: 0;
   color: #087f5b;
+}
+
+/* Driver/passenger role colors */
+.unified-ride-page-v2--driver {
+  --ride-accent: #087f5b;
+  --ride-accent-hover: #066a4c;
+  --ride-accent-soft: #e8f5ee;
+  --ride-accent-ring: rgba(8, 127, 91, 0.14);
+}
+.unified-ride-page-v2--passenger {
+  --ride-accent: #e9bd52;
+  --ride-accent-hover: #dcae42;
+  --ride-accent-soft: #fff9e8;
+  --ride-accent-ring: rgba(140, 105, 30, 0.16);
+}
+.unified-ride-page-v2 .unified-panel-icon,
+.unified-ride-page-v2 .unified-place-pin,
+.unified-ride-page-v2 .unified-place-search-btn,
+.unified-ride-page-v2 .unified-seats-icon,
+.unified-ride-page-v2 .unified-hint-note svg {
+  color: var(--ride-accent);
+}
+.unified-ride-page-v2 .unified-panel-icon,
+.unified-ride-page-v2 .unified-hint-note {
+  background: var(--ride-accent-soft);
+}
+.unified-ride-page-v2 .unified-place-input-row:focus-within {
+  border-color: var(--ride-accent);
+  box-shadow: 0 0 0 3px var(--ride-accent-ring);
+}
+.unified-ride-page-v2 .unified-swap-btn:hover,
+.unified-ride-page-v2 .unified-seats-btn:hover:not(:disabled) {
+  color: var(--ride-accent);
+  border-color: var(--ride-accent);
+  background: var(--ride-accent-soft);
+}
+.unified-ride-page-v2 .unified-plan-btn {
+  background: var(--ride-accent);
+  box-shadow: 0 6px 20px var(--ride-accent-ring);
+}
+.unified-ride-page-v2 .unified-plan-btn:hover:not(:disabled) {
+  background: var(--ride-accent-hover);
+  box-shadow: 0 8px 24px var(--ride-accent-ring);
+}
+.unified-ride-page-v2 .unified-map-layer-toggle button.active,
+.unified-ride-page-v2 .unified-step--active .unified-step-number {
+  background: var(--ride-accent);
+}
+.unified-ride-page-v2 .unified-place-suggestions button:hover,
+.unified-ride-page-v2 .unified-map-layer-toggle button:not(.active):hover {
+  color: var(--ride-accent);
+  background: var(--ride-accent-soft);
+}
+.unified-ride-page-v2 .unified-step--active .unified-step-label {
+  color: var(--ride-accent);
+}
+.unified-ride-page-v2--driver
+  .unified-mode-switch
+  button:first-child[aria-pressed="true"] {
+  color: #087f5b;
+  background: #e8f5ee;
+}
+.unified-ride-page-v2--passenger
+  .unified-mode-switch
+  button:last-child[aria-pressed="true"] {
+  color: #e9bd52;
+  border: 1px solid #e9bd52;
+  background: #fff9e8;
+}
+.unified-ride-page-v2--passenger .unified-swap-btn,
+.unified-ride-page-v2--passenger .unified-seats-btn,
+.unified-ride-page-v2--passenger .unified-map-layer-toggle button,
+.unified-ride-page-v2--passenger .unified-route-result-stats svg {
+  color: #e9bd52;
+}
+.unified-ride-page-v2--passenger .unified-swap-btn,
+.unified-ride-page-v2--passenger .unified-seats-btn,
+.unified-ride-page-v2--passenger .unified-map-layer-toggle button,
+.unified-ride-page-v2--passenger .unified-vehicle-icons button,
+.unified-ride-page-v2--passenger .unified-plan-btn {
+  border: 1px solid #e9bd52;
+  background: #fff9e8;
+  color: #e9bd52;
+  box-shadow: none;
+}
+.unified-ride-page-v2--passenger .app-button--primary {
+  border-color: #e9bd52;
+  background: #fff9e8;
+  color: #e9bd52;
+  box-shadow: none;
+}
+.unified-ride-page-v2--passenger .app-button--primary:hover,
+.unified-ride-page-v2--passenger .unified-plan-btn:hover:not(:disabled) {
+  border-color: #e9bd52;
+  background: #fff4d6;
+  color: #e9bd52;
 }
 
 /* ── Right panel (map card) ── */
