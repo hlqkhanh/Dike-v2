@@ -1,6 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/auth/session", (route) =>
+    route.fulfill({ json: session }),
+  );
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/realtime/tickets", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "REALTIME_TEMPORARILY_UNAVAILABLE" } },
+    }),
+  );
   await page.route("**/api/v1/social/revision", (route) =>
     route.fulfill({ json: { revision: 0 } }),
   );

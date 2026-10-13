@@ -30,6 +30,7 @@ test.beforeEach(async ({ page, context }) => {
 test("creates a draft from an owned route before publishing", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-10-07T00:00:00Z"));
   const draft = {
     id: "draft",
     ownerId: "passenger",
@@ -88,6 +89,7 @@ test("creates a draft from an owned route before publishing", async ({
 test("draft trip detail continues the creation flow and publishes once", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-10-13T00:00:00Z"));
   let opened = false;
   let openCalls = 0;
   const trip = {
