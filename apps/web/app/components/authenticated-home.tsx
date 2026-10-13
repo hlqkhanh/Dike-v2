@@ -11,7 +11,6 @@ import {
   MapPin,
   Search,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -127,18 +126,7 @@ export function AuthenticatedHome({
                 href="/rides/new?mode=driver"
               >
                 <div className="feature-card-content">
-                  <span>Đặt xe</span>
-                  <strong>đi chung</strong>
-                </div>
-                <div className="feature-card-graphic">
-                  <Image
-                    src="/images/card_car_3d.png"
-                    alt="Đặt xe đi chung"
-                    width={180}
-                    height={120}
-                    priority
-                    className="feature-card-img"
-                  />
+                  <strong>Tôi chở</strong>
                 </div>
               </Link>
 
@@ -147,20 +135,7 @@ export function AuthenticatedHome({
                 href="/rides/new?mode=passenger"
               >
                 <div className="feature-card-content">
-                  <strong>Tìm người chở</strong>
-                  <div className="feature-card-arrow">
-                    <ArrowRight aria-hidden="true" size={18} />
-                  </div>
-                </div>
-                <div className="feature-card-graphic">
-                  <Image
-                    src="/images/card_scooter_mascot.png"
-                    alt="Tìm người chở"
-                    width={160}
-                    height={120}
-                    priority
-                    className="feature-card-img"
-                  />
+                  <strong>Tôi đi ké</strong>
                 </div>
               </Link>
             </div>
@@ -195,13 +170,14 @@ export function AuthenticatedHome({
               {(
                 [
                   ["ALL", "Tất cả"],
-                  ["OFFER_RIDE", "Có chỗ trống"],
-                  ["NEED_RIDE", "Cần người chở"],
+                  ["OFFER_RIDE", "Tôi chở"],
+                  ["NEED_RIDE", "Tôi đi ké"],
                 ] as const
               ).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
+                  data-ride-type={value}
                   aria-pressed={filter === value}
                   onClick={() => setFilter(value)}
                 >
@@ -260,7 +236,7 @@ export function AuthenticatedHome({
 function HomeRideCard({ post }: { post: RidePostView }) {
   const isOffer = post.type === "OFFER_RIDE";
   return (
-    <article className="new-ride-card">
+    <article className={`new-ride-card ${isOffer ? "is-offer" : "is-need"}`}>
       <header>
         <span className="new-ride-avatar" aria-hidden="true">
           DK
@@ -270,7 +246,7 @@ function HomeRideCard({ post }: { post: RidePostView }) {
           <small>Hành trình công khai</small>
         </div>
         <span className={`new-ride-kind ${isOffer ? "is-offer" : "is-need"}`}>
-          {isOffer ? "Có chỗ trống" : "Cần người chở"}
+          {isOffer ? "Tôi chở" : "Tôi đi ké"}
         </span>
       </header>
       <div className="new-ride-route">
@@ -311,7 +287,7 @@ function HomeRideCard({ post }: { post: RidePostView }) {
             : "Đang tìm đồng hành"}
         </span>
         <Link href={`/feed/${encodeURIComponent(post.id)}`}>
-          {isOffer ? "Gửi đề nghị" : "Kết nối"}
+          {isOffer ? "Đi ké ngay" : "Chở ngay"}
           <ArrowRight aria-hidden="true" size={15} />
         </Link>
       </footer>

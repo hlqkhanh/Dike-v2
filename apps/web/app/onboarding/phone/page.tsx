@@ -87,7 +87,7 @@ export default function PhoneOnboardingPage() {
       authApi.verifyOtp(challenge!.challengeId, code, crypto.randomUUID()),
     onSuccess: async (updated) => {
       queryClient.setQueryData(["auth", "session"], updated);
-      await router.replace("/");
+      await router.replace("/home");
     },
   });
   useAuthFailure(submit.error);

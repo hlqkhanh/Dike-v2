@@ -466,17 +466,18 @@
 
 :root {
   /* Glass Surface Tokens (from floating-glass-header skill) */
-  --glass-bg-base: rgba(255, 255, 255, 0.2);
-  --glass-bg-hover: rgba(255, 255, 255, 0.35);
-  --glass-bg-scrolled: rgba(255, 255, 255, 0.82);
-  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-bg-base: rgba(255, 255, 255, 0.48);
+  --glass-bg-hover: rgba(255, 255, 255, 0.55);
+  --glass-bg-scrolled: rgba(255, 255, 255, 0.6);
+  --app-header-clearance: 78px;
+  --glass-border: rgba(255, 255, 255, 0.6);
   --glass-border-scrolled: rgba(255, 255, 255, 0.85);
-  --glass-blur: 14px;
-  --glass-saturate: 180%;
 
   /* Specular Highlight & Ambient Shadows */
   --glass-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+    0 8px 32px 0 rgba(10, 57, 47, 0.09),
+    inset 0 2px 3px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.25);
   --glass-shadow-scrolled:
     0 12px 40px 0 rgba(0, 0, 0, 0.09),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
@@ -2988,6 +2989,11 @@ a {
   width: 100%;
   z-index: 80;
   pointer-events: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .hero-stage-header .nav {
@@ -3066,9 +3072,9 @@ a {
   box-sizing: border-box;
   padding: 0 24px;
   background: var(--glass-bg-base);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur))
-    saturate(var(--glass-saturate));
+  /* Literal filter values preserve backdrop blur in the compiled stylesheet. */
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--glass-border);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow);
@@ -3180,9 +3186,8 @@ a {
   box-sizing: border-box;
   padding: 0 8px 0 10px;
   background: var(--glass-bg-base);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur))
-    saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--glass-border);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow);
@@ -8025,7 +8030,7 @@ a {
   pointer-events: none;
 }
 .new-app-content {
-  padding-top: 78px;
+  padding-top: var(--app-header-clearance);
 }
 .new-app-header {
   position: absolute;
@@ -8037,6 +8042,8 @@ a {
   background: transparent;
   border-bottom: none;
   backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
   pointer-events: none;
 }
 .new-home-shell .new-app-header {
@@ -8102,9 +8109,8 @@ a {
   box-sizing: border-box;
   padding: 0 24px;
   background: var(--glass-bg-base);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur))
-    saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--glass-border);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow);
@@ -8204,9 +8210,8 @@ a {
   box-sizing: border-box;
   padding: 0 8px 0 10px;
   background: var(--glass-bg-base);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur))
-    saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--glass-border);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow);
@@ -8216,6 +8221,12 @@ a {
 }
 .new-app-actions:hover {
   background: var(--glass-bg-hover);
+}
+.scrolled .new-app-actions,
+.scrolled .nav-actions {
+  background: var(--glass-bg-scrolled);
+  border-color: var(--glass-border-scrolled);
+  box-shadow: var(--glass-shadow-scrolled);
 }
 .new-header-search-btn {
   width: 32px;
@@ -8332,12 +8343,11 @@ a {
 }
 .notification-layer {
   position: fixed;
-  inset: 72px 0 0;
-  background: rgba(9, 35, 30, 0.18);
-  backdrop-filter: blur(2px);
+  inset: 0;
+  background: transparent;
   display: flex;
   justify-content: flex-end;
-  padding: 14px max(24px, calc((100vw - 1180px) / 2));
+  padding: 86px max(24px, calc((100vw - 1180px) / 2)) 20px;
   z-index: 90;
   pointer-events: auto;
 }
@@ -8349,9 +8359,23 @@ a {
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(210, 231, 222, 0.95);
   border-radius: 22px;
-  box-shadow: 0 24px 70px rgba(10, 57, 47, 0.25);
+  box-shadow:
+    0 20px 50px rgba(10, 57, 47, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
+  animation: notificationDropDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top right;
+}
+@keyframes notificationDropDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .notification-panel > header,
 .notification-panel > footer,
@@ -8701,132 +8725,98 @@ a {
 .new-home-cards-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  width: min(780px, 94vw);
-  margin: 0 auto -71px;
+  gap: 20px;
+  width: min(780px, 100%);
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0 auto -60px;
   position: relative;
   z-index: 12;
 }
 .home-feature-card {
   position: relative;
-  height: 142px;
+  min-width: 0;
+  width: 100%;
+  aspect-ratio: 2.5;
+  min-height: 144px;
   border-radius: 24px;
-  padding: 16px 14px 16px 26px;
+  padding: 24px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   text-decoration: none;
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 14px 34px rgba(10, 45, 35, 0.14);
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    cover;
+  box-shadow:
+    0 6px 10px -4px rgba(10, 45, 35, 0.18),
+    0 18px 36px -10px rgba(10, 45, 35, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
   transition:
     transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.22s;
 }
 .home-feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 42px rgba(10, 45, 35, 0.22);
+  transform: translateY(-5px);
+  box-shadow:
+    0 8px 14px -4px rgba(10, 45, 35, 0.18),
+    0 24px 44px -10px rgba(10, 45, 35, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
-
-/* Card 1: Car */
+.home-feature-card:active {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 8px -4px rgba(10, 45, 35, 0.18),
+    0 10px 22px -8px rgba(10, 45, 35, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.home-feature-card:focus-visible {
+  outline: 3px solid #159d83;
+  outline-offset: 5px;
+}
 .home-feature-card--car {
-  background-color: #174e40;
-  background-image: linear-gradient(135deg, #134639 0%, #1e5a4b 100%);
+  background-color: #216e63;
+  background-image:
+    url("/images/green%20ride%20duck.png"),
+    linear-gradient(120deg, #21665e, #258a78);
+  background-position:
+    right 0 bottom -4px,
+    center;
   color: #ffffff;
 }
-.home-feature-card--car .feature-card-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1px;
-  z-index: 2;
-  text-align: left;
-}
-.home-feature-card--car .feature-card-content span,
-.home-feature-card--car .feature-card-content strong {
-  font-size: 1.45rem;
-  font-weight: 750;
-  color: #ffffff;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  display: block;
-}
-.home-feature-card--car .feature-card-graphic {
-  position: relative;
-  width: 170px;
-  height: 114px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 16px;
-  flex-shrink: 0;
-}
-.home-feature-card--car .feature-card-img {
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
-  border-radius: 14px;
-}
-
-/* Card 2: Scooter */
 .home-feature-card--scooter {
-  background-color: #d8eee0;
-  color: #0b3327;
+  background-color: #fff7dc;
+  background-image:
+    url("/images/yellow%20waiting%20duck.png"),
+    linear-gradient(120deg, #fff7dc, #fffbee);
+  background-position:
+    right 0 bottom -12px,
+    center;
+  color: #074d3b;
 }
-.home-feature-card--scooter .feature-card-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 12px;
+.feature-card-content {
+  position: relative;
   z-index: 2;
   text-align: left;
 }
-.home-feature-card--scooter .feature-card-content strong {
-  font-size: 1.45rem;
-  font-weight: 750;
-  color: #0b3327;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  display: block;
+.feature-card-content > strong {
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
 }
-.feature-card-arrow {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #48bb78;
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  transition:
-    transform 0.2s,
-    background 0.2s;
-}
-.home-feature-card--scooter:hover .feature-card-arrow {
-  transform: translateX(3px);
-  background: #38a169;
-}
-.home-feature-card--scooter .feature-card-graphic {
-  position: relative;
-  width: 150px;
-  height: 114px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 16px;
-  flex-shrink: 0;
-}
-.home-feature-card--scooter .feature-card-img {
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
-  border-radius: 14px;
-}
-
 @media (max-width: 680px) {
   .new-home-cards-row {
     grid-template-columns: 1fr;
+    width: min(460px, 100%);
+    gap: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-feature-card {
+    transition: none;
   }
 }
 
@@ -8923,6 +8913,23 @@ a {
   border-color: #0d795f;
   box-shadow: 0 4px 12px rgba(13, 121, 95, 0.2);
 }
+.new-feed-filters
+  button[data-ride-type="OFFER_RIDE"]:not([aria-pressed="true"]) {
+  background: #e8f6ef;
+  border-color: #c3e4d5;
+  color: #08745b;
+}
+.new-feed-filters button[data-ride-type="NEED_RIDE"] {
+  background: #fff6d9;
+  border-color: #f1dfa1;
+  color: #795710;
+}
+.new-feed-filters button[data-ride-type="NEED_RIDE"][aria-pressed="true"] {
+  background: #f6bd27;
+  border-color: #f6bd27;
+  color: #49350b;
+  box-shadow: 0 4px 12px rgba(190, 138, 19, 0.2);
+}
 .new-feed-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -8935,6 +8942,25 @@ a {
   padding: 18px;
   box-shadow: 0 8px 24px rgba(22, 77, 63, 0.07);
   min-width: 0;
+}
+.new-ride-card.is-offer {
+  background: linear-gradient(150deg, #f2fbf6, #ffffff 65%);
+  border-color: #cbe6da;
+}
+.new-ride-card.is-need {
+  background: linear-gradient(150deg, #fff9e7, #ffffff 65%);
+  border-color: #efdfa9;
+  box-shadow: 0 8px 24px rgba(140, 105, 30, 0.08);
+}
+.new-ride-card.is-need .new-ride-avatar {
+  background: #fff0bd;
+  color: #795710;
+}
+.new-ride-card.is-need .new-ride-route i {
+  border-color: #c18a13;
+}
+.new-ride-card.is-need .new-ride-route b {
+  background: #ead69b;
 }
 .new-ride-card > header {
   display: flex;
@@ -8981,8 +9007,8 @@ a {
   color: #08745b;
 }
 .new-ride-kind.is-need {
-  background: #e8f0fb;
-  color: #28678a;
+  background: #fff0bd;
+  color: #795710;
 }
 .new-ride-route {
   display: grid;
@@ -9067,6 +9093,16 @@ a {
   border-radius: 99px;
   font-size: 0.73rem;
   font-weight: 800;
+}
+.new-ride-card.is-need > footer a {
+  background: #e9bd52;
+  color: #ffffff;
+}
+.new-ride-card > footer a:hover {
+  background: #096b53;
+}
+.new-ride-card.is-need > footer a:hover {
+  background: #dcae42;
 }
 .new-feed-state {
   padding: 54px 24px;
@@ -9189,12 +9225,13 @@ a {
     max-height: none;
     border: 0;
     border-radius: 0;
+    animation: none;
   }
   .notification-panel > header {
     padding-top: max(22px, env(safe-area-inset-top));
   }
-  .new-app-content {
-    padding-top: 70px;
+  :root {
+    --app-header-clearance: 70px;
   }
   .new-app-header {
     height: 70px;
@@ -9230,18 +9267,8 @@ a {
     margin-bottom: -62px;
   }
   .home-feature-card {
-    height: 125px;
-    padding: 12px 12px 12px 20px;
-  }
-  .home-feature-card--car .feature-card-content span,
-  .home-feature-card--car .feature-card-content strong,
-  .home-feature-card--scooter .feature-card-content strong {
-    font-size: 1.22rem;
-  }
-  .home-feature-card--car .feature-card-graphic,
-  .home-feature-card--scooter .feature-card-graphic {
-    width: 140px;
-    height: 102px;
+    padding: 20px;
+    border-radius: 22px;
   }
   .new-feed-section {
     min-height: auto;
@@ -9285,12 +9312,15 @@ a {
   padding-bottom: 70px;
 }
 
-/* Keep the original role-selection hero above the redesigned planner. */
+/* Illustrated role-selection banner above the planner. */
 .unified-ride-intro {
-  padding: 54px 20px 105px;
+  margin-top: calc(-1 * var(--app-header-clearance));
+  padding: calc(54px + var(--app-header-clearance)) 20px 105px;
   text-align: center;
-  background: linear-gradient(145deg, #0a5948, #13876a);
-  color: #fff;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0)),
+    #c7edf4 url("/images/banner%20ride.png") center bottom / cover no-repeat;
+  color: #073e32;
 }
 .unified-ride-intro > p {
   margin: 0;
@@ -9298,7 +9328,7 @@ a {
   letter-spacing: 0.14em;
   font-size: 0.72rem;
   font-weight: 850;
-  color: #bdebd9;
+  color: #12634f;
 }
 .unified-ride-intro h1 {
   margin: 0;
@@ -9309,7 +9339,7 @@ a {
   display: block;
   margin: 10px auto 26px;
   max-width: 620px;
-  color: #d4eee5;
+  color: #174e40;
 }
 .unified-mode-switch {
   display: grid;
@@ -9319,14 +9349,16 @@ a {
   margin: auto;
   padding: 7px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
 }
 .unified-mode-switch button {
   border: 0;
   border-radius: 15px;
   padding: 14px 18px;
   background: transparent;
-  color: #d6eee6;
+  color: #285b4d;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
@@ -10124,7 +10156,7 @@ a {
 }
 @media (max-width: 700px) {
   .unified-ride-intro {
-    padding: 38px 14px 94px;
+    padding: calc(38px + var(--app-header-clearance)) 14px 94px;
   }
   .unified-left-panel {
     padding: 20px 18px;
