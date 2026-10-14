@@ -1,25 +1,28 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { SocialSessionMonitor } from "../src/social/invalidation";
-import { JourneyRealtimeMonitor } from "../src/journey/realtime";
+import { handleAuthenticationError } from "../src/auth/session-expiry";
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: false, staleTime: 30_000 },
-          mutations: { retry: false },
-        },
-      }),
-  );
-  return (
-    <QueryClientProvider client={client}>
-      <SocialSessionMonitor />
-      <JourneyRealtimeMonitor />
-      {children}
-    </QueryClientProvider>
-  );
+  const [client] = useState(() => {
+    const onError = (error: unknown): void => {
+      handleAuthenticationError(queryClient, error);
+    };
+    const queryClient = new QueryClient({
+      queryCache: new QueryCache({ onError }),
+      mutationCache: new MutationCache({ onError }),
+      defaultOptions: {
+        queries: { retry: false, staleTime: 30_000 },
+        mutations: { retry: false },
+      },
+    });
+    return queryClient;
+  });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

@@ -1,6 +1,18 @@
 ﻿import { expect, test } from "@playwright/test";
 import type { JourneyMessage } from "@dike/api-client-ts";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/realtime/tickets", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "REALTIME_UNAVAILABLE" } },
+    }),
+  );
+});
+
 test("messages open inline, send, switch and preserve safety cards on other tabs", async ({
   page,
   context,

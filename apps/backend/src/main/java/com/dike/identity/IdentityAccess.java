@@ -2,6 +2,7 @@ package com.dike.identity;
 
 import com.dike.identity.application.AccountAccessService;
 import com.dike.identity.application.AccountAuthority;
+import com.dike.identity.application.IdentityStore;
 import com.dike.identity.application.ProfileDataStore;
 import com.dike.identity.domain.AccountStatus;
 import org.springframework.stereotype.Service;
@@ -12,10 +13,13 @@ public class IdentityAccess {
 
   private final AccountAccessService accounts;
   private final ProfileDataStore profiles;
+  private final IdentityStore identities;
 
-  public IdentityAccess(AccountAccessService accounts, ProfileDataStore profiles) {
+  public IdentityAccess(
+      AccountAccessService accounts, ProfileDataStore profiles, IdentityStore identities) {
     this.accounts = accounts;
     this.profiles = profiles;
+    this.identities = identities;
   }
 
   public boolean allowsMessageRequests(String userId) {
@@ -27,7 +31,27 @@ public class IdentityAccess {
         .findProfile(userId)
         .map(profile -> profile.displayName())
         .filter(name -> !name.isBlank())
-        .orElse("Thành viên Diké");
+        .orElseGet(
+            () ->
+                identities
+                    .findUserById(userId)
+                    .map(account -> account.displayName())
+                    .filter(name -> !name.isBlank())
+                    .orElse("Thành viên Diké"));
+  }
+
+  public String avatarUrl(String userId) {
+    return profiles
+        .findProfile(userId)
+        .map(profile -> profile.avatarPublicUrl())
+        .filter(url -> !url.isBlank())
+        .orElseGet(
+            () ->
+                identities
+                    .findUserById(userId)
+                    .map(account -> account.avatarUrl())
+                    .filter(url -> !url.isBlank())
+                    .orElse(null));
   }
 
   public Access require(String userId) {

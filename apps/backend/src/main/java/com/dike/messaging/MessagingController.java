@@ -23,9 +23,11 @@ class MessagingController {
 
   record DirectRequest(String recipientUserId) {}
 
+  record DiscussPostRequest(String postId) {}
+
   record RequestDecision(long version) {}
 
-  record SendMessage(String clientMessageId, String text) {}
+  record SendMessage(String clientMessageId, String text, String postId) {}
 
   record ReadMarker(long sequence) {}
 
@@ -34,12 +36,23 @@ class MessagingController {
     return service.direct(principal.getName(), body.recipientUserId());
   }
 
+  @PostMapping("/conversations/ride-post")
+  MessagingService.ConversationView discussPost(
+      Principal principal, @RequestBody DiscussPostRequest body) {
+    return service.discussPost(principal.getName(), body.postId());
+  }
+
   @GetMapping("/conversations")
   List<MessagingService.ConversationView> conversations(
       Principal principal,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int limit) {
     return service.conversations(principal.getName(), cursor, limit);
+  }
+
+  @GetMapping("/conversations/{id}")
+  MessagingService.ConversationView conversation(Principal principal, @PathVariable String id) {
+    return service.conversation(principal.getName(), id);
   }
 
   @PostMapping("/message-requests/{id}/accept")
@@ -57,7 +70,8 @@ class MessagingController {
   @PostMapping("/conversations/{id}/messages")
   MessagingService.MessageView send(
       Principal principal, @PathVariable String id, @RequestBody SendMessage body) {
-    return service.send(principal.getName(), id, body.clientMessageId(), body.text());
+    return service.send(
+        principal.getName(), id, body.clientMessageId(), body.text(), body.postId());
   }
 
   @GetMapping("/conversations/{id}/messages")

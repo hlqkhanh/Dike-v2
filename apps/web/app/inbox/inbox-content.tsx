@@ -1,4 +1,6 @@
 "use client";
+import { useSearchParams } from "next/navigation";
+import { MemberAvatar } from "../components/member-avatar";
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -16,7 +18,28 @@ const filters: Array<[Filter, string]> = [
 ];
 
 export function InboxContent() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const params = useSearchParams();
+  const conversationId = params.get("conversation");
+  const postId = params.get("post");
+  return (
+    <InboxWorkspace
+      key={conversationId ?? "inbox"}
+      initialConversationId={conversationId}
+      initialPostId={postId}
+    />
+  );
+}
+
+function InboxWorkspace({
+  initialConversationId,
+  initialPostId,
+}: {
+  initialConversationId: string | null;
+  initialPostId: string | null;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialConversationId,
+  );
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const conversations = useQuery({
@@ -35,7 +58,7 @@ export function InboxContent() {
       .filter(
         (item) =>
           !needle ||
-          `${item.id} ${item.bookingId ?? ""} ${item.type === "BOOKING" ? "Hội thoại chuyến đi" : "Hội thoại trực tiếp"}`
+          `${item.recipientDisplayName ?? ""} ${item.id} ${item.bookingId ?? ""} ${item.type === "BOOKING" ? "Hội thoại chuyến đi" : "Hội thoại trực tiếp"}`
             .toLowerCase()
             .includes(needle),
       )
@@ -129,21 +152,31 @@ export function InboxContent() {
                   className={`inbox-conversation${conversation.unreadCount ? " is-unread" : ""}`}
                   key={conversation.id}
                 >
-                  <span
-                    className={`inbox-avatar${conversation.type === "BOOKING" ? " is-trip" : ""}`}
-                    aria-hidden="true"
-                  >
-                    {conversation.type === "BOOKING" ? (
-                      <CarFront size={23} />
-                    ) : (
-                      <MessageCircle size={23} />
-                    )}
-                  </span>
+                  {conversation.recipientDisplayName ? (
+                    <MemberAvatar
+                      name={conversation.recipientDisplayName}
+                      avatarUrl={conversation.recipientAvatarUrl}
+                      className="inbox-avatar"
+                      size={48}
+                    />
+                  ) : (
+                    <span
+                      className={`inbox-avatar${conversation.type === "BOOKING" ? " is-trip" : ""}`}
+                      aria-hidden="true"
+                    >
+                      {conversation.type === "BOOKING" ? (
+                        <CarFront size={23} />
+                      ) : (
+                        <MessageCircle size={23} />
+                      )}
+                    </span>
+                  )}
                   <div className="conversation-card-copy">
                     <h3>
-                      {conversation.type === "BOOKING"
-                        ? "Hội thoại chuyến đi"
-                        : "Hội thoại trực tiếp"}
+                      {conversation.recipientDisplayName ||
+                        (conversation.type === "BOOKING"
+                          ? "Hội thoại chuyến đi"
+                          : "Hội thoại trực tiếp")}
                     </h3>
                     <p>
                       {conversation.type === "BOOKING"
@@ -163,9 +196,11 @@ export function InboxContent() {
                       <small>
                         {conversation.state === "READ_ONLY"
                           ? "Chỉ đọc"
-                          : conversation.state === "CLOSED"
-                            ? "Đã đóng"
-                            : "Hạn chế nhắn tin"}
+                          : conversation.state === "REQUEST_PENDING"
+                            ? "Chờ chấp nhận"
+                            : conversation.state === "CLOSED"
+                              ? "Đã đóng"
+                              : "Hạn chế nhắn tin"}
                       </small>
                     ) : null}
                     {conversation.unreadCount ? (
@@ -203,7 +238,14 @@ export function InboxContent() {
             >
               ← Danh sách hội thoại
             </button>
-            <ConversationContent key={selectedId} id={selectedId} embedded />
+            <ConversationContent
+              key={selectedId}
+              id={selectedId}
+              embedded
+              initialPostId={
+                selectedId === initialConversationId ? initialPostId : null
+              }
+            />
           </>
         ) : (
           <EmptyState

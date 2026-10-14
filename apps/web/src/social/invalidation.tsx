@@ -16,7 +16,7 @@ export function SocialSessionMonitor() {
     queryFn: authApi.session,
     retry: false,
   });
-  return session.data ? (
+  return session.data?.authenticated && session.data.user ? (
     <SocialInvalidation
       key={session.data.user.id}
       userId={session.data.user.id}

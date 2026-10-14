@@ -25,18 +25,21 @@ public class RidePostResponseService {
   private final NotificationPublisher notifications;
   private final ConfirmedConversationPublisher conversations;
   private final Clock clock;
+  private final PickupCompatibilityService pickups;
 
   public RidePostResponseService(
       MongoTemplate mongo,
       PostService posts,
       NotificationPublisher notifications,
       ConfirmedConversationPublisher conversations,
-      Clock clock) {
+      Clock clock,
+      PickupCompatibilityService pickups) {
     this.mongo = mongo;
     this.posts = posts;
     this.notifications = notifications;
     this.conversations = conversations;
     this.clock = clock;
+    this.pickups = pickups;
   }
 
   public record View(
@@ -50,9 +53,10 @@ public class RidePostResponseService {
       String conversationId,
       Instant createdAt,
       Instant updatedAt,
-      long version) {}
+      long version,
+      PickupCompatibilityService.View pickupCheck) {}
 
-  public View create(String actor, String postId, String message) {
+  public View create(String actor, String postId, String message, String pickupCheckId) {
     posts.requireReadable(actor, postId);
     Document post = mongo.findById(postId, Document.class, "ride_posts");
     if (post == null || !"OPEN".equals(post.getString("status"))) throw missing();
@@ -61,6 +65,10 @@ public class RidePostResponseService {
       throw new ApiException(
           HttpStatus.CONFLICT, "SELF_POST_RESPONSE", "Bạn không thể phản hồi bài đăng của mình");
     }
+    var pickupCheck =
+        "OFFER_RIDE".equals(post.getString("type"))
+            ? pickups.require(actor, postId, pickupCheckId)
+            : null;
     Document existing =
         mongo.findOne(
             Query.query(
@@ -72,7 +80,9 @@ public class RidePostResponseService {
                     .is("PENDING")),
             Document.class,
             "ride_post_responses");
-    if (existing != null) return view(existing);
+    if (existing != null
+        && (pickupCheck == null || pickupCheck.id().equals(existing.getString("pickupCheckId"))))
+      return view(existing);
 
     Instant now = clock.instant();
     String safeMessage = message == null ? "" : message.trim();
@@ -81,6 +91,34 @@ public class RidePostResponseService {
           HttpStatus.BAD_REQUEST,
           "POST_RESPONSE_MESSAGE_TOO_LONG",
           "Lời nhắn không được vượt quá 300 ký tự");
+    }
+    Document pickupData = new Document();
+    if (pickupCheck != null) mongo.getConverter().write(pickupCheck, pickupData);
+    if (existing != null) {
+      var replacement =
+          mongo.updateFirst(
+              Query.query(
+                  Criteria.where("_id")
+                      .is(existing.getString("_id"))
+                      .and("status")
+                      .is("PENDING")
+                      .and("version")
+                      .is(existing.get("version"))),
+              new Update()
+                  .set("pickupCheckId", pickupCheckId)
+                  .set("pickupCheck", pickupData)
+                  .set("message", safeMessage)
+                  .set("updatedAt", clock.instant())
+                  .inc("version", 1L),
+              "ride_post_responses");
+      if (replacement.getModifiedCount() != 1) throw changed();
+      notifications.notify(
+          ownerId,
+          "RIDE_POST_RESPONSE_UPDATED",
+          "Điểm đón đã được cập nhật",
+          "Người đi ké vừa kiểm tra lại điểm đón và tuyến đường.",
+          Map.of("postId", postId, "responseId", existing.getString("_id")));
+      return view(mongo.findById(existing.getString("_id"), Document.class, "ride_post_responses"));
     }
     String action = "OFFER_RIDE".equals(post.getString("type")) ? "REQUEST_RIDE" : "OFFER_RIDE";
     Document response =
@@ -91,8 +129,10 @@ public class RidePostResponseService {
             .append("action", action)
             .append("status", "PENDING")
             .append("message", safeMessage)
-            .append("createdAt", now)
-            .append("updatedAt", now)
+            .append("pickupCheckId", pickupCheck == null ? null : pickupCheck.id())
+            .append("pickupCheck", pickupCheck == null ? null : pickupData)
+            .append("createdAt", java.util.Date.from(now))
+            .append("updatedAt", java.util.Date.from(now))
             .append("version", 0L);
     mongo.insert(response, "ride_post_responses");
     notifications.notify(
@@ -130,6 +170,12 @@ public class RidePostResponseService {
     String expectedActor =
         withdraw ? current.getString("requesterId") : current.getString("ownerId");
     if (!actor.equals(expectedActor)) throw missing();
+    if ("ACCEPTED".equals(decision) && "REQUEST_RIDE".equals(current.getString("action"))) {
+      pickups.require(
+          current.getString("requesterId"),
+          current.getString("postId"),
+          current.getString("pickupCheckId"));
+    }
 
     var result =
         mongo.updateFirst(
@@ -191,7 +237,10 @@ public class RidePostResponseService {
         value.getString("conversationId"),
         value.getDate("createdAt").toInstant(),
         value.getDate("updatedAt").toInstant(),
-        ((Number) value.get("version")).longValue());
+        ((Number) value.get("version")).longValue(),
+        value.get("pickupCheck") instanceof Document check
+            ? mongo.getConverter().read(PickupCompatibilityService.View.class, check)
+            : null);
   }
 
   private static ApiException missing() {

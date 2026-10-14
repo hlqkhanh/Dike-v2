@@ -1,34 +1,59 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
+import { ApiError } from "@dike/api-client-ts";
 
 import { authApi } from "../../src/auth/api";
 import { AppHeader } from "./app-header";
 import { DikeLogo } from "./dike-logo";
-
-const bareRoutes = [
-  "/",
-  "/login",
-  "/auth/complete",
-  "/onboarding/phone",
-  "/offline",
-  "/home",
-];
+import { ErrorState } from "./app-ui";
+import {
+  hasStandaloneLayout,
+  requiresAuthentication,
+} from "../../src/auth/route-access";
+import { SocialSessionMonitor } from "../../src/social/invalidation";
+import { JourneyRealtimeMonitor } from "../../src/journey/realtime";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const bare = bareRoutes.includes(pathname);
+  if (!requiresAuthentication(pathname)) return children;
+  return (
+    <AuthenticatedShell key={pathname} pathname={pathname}>
+      {children}
+    </AuthenticatedShell>
+  );
+}
+
+function AuthenticatedShell({
+  children,
+  pathname,
+}: {
+  children: ReactNode;
+  pathname: string;
+}) {
+  const router = useRouter();
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
     retry: false,
-    enabled: !bare,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
   });
+  const authenticated =
+    session.data?.authenticated === true && Boolean(session.data.user?.id);
+  const anonymous =
+    session.isFetchedAfterMount &&
+    ((session.isSuccess && !authenticated) ||
+      (session.error instanceof ApiError && session.error.status === 401));
+  useEffect(() => {
+    if (anonymous) router.replace("/");
+  }, [anonymous, router]);
 
-  if (bare) return children;
-  if (session.isPending) {
+  if (anonymous) return null;
+  if (session.isPending || !session.isFetchedAfterMount) {
     return (
       <div className="app-route-skeleton" aria-label="Đang chuẩn bị trang">
         <header>
@@ -43,11 +68,30 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     );
   }
+  if (session.isError)
+    return (
+      <main className="settings-page">
+        <ErrorState
+          title="Không thể kiểm tra phiên đăng nhập"
+          message="Vui lòng thử lại để tiếp tục."
+          onRetry={() => void session.refetch()}
+        />
+      </main>
+    );
+  if (!authenticated || !session.data) return null;
 
   return (
-    <div className="new-app-shell">
-      {session.data ? <AppHeader session={session.data} /> : null}
-      <div className="new-app-content">{children}</div>
-    </div>
+    <>
+      <SocialSessionMonitor />
+      <JourneyRealtimeMonitor />
+      {hasStandaloneLayout(pathname) ? (
+        children
+      ) : (
+        <div className="new-app-shell">
+          <AppHeader session={session.data} />
+          <div className="new-app-content">{children}</div>
+        </div>
+      )}
+    </>
   );
 }

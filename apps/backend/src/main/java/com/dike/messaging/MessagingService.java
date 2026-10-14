@@ -30,18 +30,21 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
   private final IdentityAccess identities;
   private final RealtimePublisher realtime;
   private final Clock clock;
+  private final RidePostAttachmentSource ridePosts;
 
   public MessagingService(
       MongoTemplate mongo,
       SocialAccessPolicy social,
       IdentityAccess identities,
       RealtimePublisher realtime,
-      Clock clock) {
+      Clock clock,
+      RidePostAttachmentSource ridePosts) {
     this.mongo = mongo;
     this.social = social;
     this.identities = identities;
     this.realtime = realtime;
     this.clock = clock;
+    this.ridePosts = ridePosts;
   }
 
   public record ConversationView(
@@ -52,7 +55,10 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
       String bookingId,
       Instant lastMessageAt,
       long unreadCount,
-      long version) {}
+      long version,
+      String recipientDisplayName,
+      String recipientAvatarUrl,
+      boolean canSend) {}
 
   public record MessageView(
       String id,
@@ -62,7 +68,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
       long sequence,
       String text,
       Instant createdAt,
-      boolean hidden) {}
+      boolean hidden,
+      RidePostAttachment ridePost) {}
 
   public record NotificationView(
       String id,
@@ -112,6 +119,17 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
           mongo.findOne(Query.query(Criteria.where("pairKey").is(pairKey)), Conversation.class),
           actor);
     }
+  }
+
+  @Transactional
+  public ConversationView discussPost(String actor, String postId) {
+    if (postId == null || postId.isBlank()) throw invalid("MESSAGE_INVALID");
+    var context = ridePosts.load(actor, postId);
+    return direct(actor, context.ownerId());
+  }
+
+  public ConversationView conversation(String actor, String id) {
+    return view(requireConversation(actor, id), actor);
   }
 
   @Override
@@ -215,6 +233,25 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
 
   @Transactional
   public MessageView send(String actor, String id, String clientMessageId, String text) {
+    return send(actor, id, clientMessageId, text, (String) null);
+  }
+
+  @Transactional
+  public MessageView send(
+      String actor, String id, String clientMessageId, String text, String postId) {
+    RidePostAttachment attachment = null;
+    if (postId != null) {
+      var conversation = requireConversation(actor, id);
+      var context = ridePosts.load(actor, postId);
+      if (!context.ownerId().equals(conversation.other(actor)))
+        throw forbidden("MESSAGE_ATTACHMENT_INVALID");
+      attachment = context.attachment();
+    }
+    return persistMessage(actor, id, clientMessageId, text, attachment);
+  }
+
+  private MessageView persistMessage(
+      String actor, String id, String clientMessageId, String text, RidePostAttachment ridePost) {
     Conversation conversation = requireConversation(actor, id);
     if (identities.require(actor).locked() && conversation.type() != Conversation.Type.BOOKING) {
       throw forbidden("ACCOUNT_LOCKED");
@@ -228,7 +265,7 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
     if (clientMessageId == null
         || !clientMessageId.matches("[A-Za-z0-9_-]{8,100}")
         || text == null
-        || text.isBlank()
+        || (text.isBlank() && ridePost == null)
         || text.length() > 2000) throw invalid("MESSAGE_INVALID");
     ChatMessage duplicate =
         mongo.findOne(
@@ -253,7 +290,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
             sequenced.nextSequence(),
             text.trim(),
             now,
-            false);
+            false,
+            ridePost);
     try {
       mongo.insert(message);
     } catch (DuplicateKeyException race) {
@@ -398,7 +436,14 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
         value.bookingId(),
         value.lastMessageAt(),
         unread,
-        value.version());
+        value.version(),
+        identities.displayName(value.other(actor)),
+        identities.avatarUrl(value.other(actor)),
+        value.state() != Conversation.State.REJECTED
+            && (value.state() != Conversation.State.REQUEST_PENDING
+                || actor.equals(value.requesterId()))
+            && !social.blocked(actor, value.other(actor))
+            && (!identities.require(actor).locked() || value.type() == Conversation.Type.BOOKING));
   }
 
   private MessageView view(ChatMessage value) {
@@ -410,7 +455,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
         value.sequence(),
         value.hidden() ? null : value.text(),
         value.createdAt(),
-        value.hidden());
+        value.hidden(),
+        value.hidden() ? null : value.ridePost());
   }
 
   private NotificationView view(Notification value) {

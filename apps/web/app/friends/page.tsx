@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import { useAuthFailure } from "../../src/auth/use-auth-failure";
 import {
@@ -270,7 +270,11 @@ export default function FriendsPage() {
           <div className="friends-list-column">
             {tab === "messages" ? (
               <section className="friends-messages" aria-label="Tin nhắn">
-                <InboxContent />
+                <Suspense
+                  fallback={<LoadingState label="Đang tải hội thoại" />}
+                >
+                  <InboxContent />
+                </Suspense>
               </section>
             ) : (
               <section

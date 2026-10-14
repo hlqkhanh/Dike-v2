@@ -1,5 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/realtime/tickets", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "REALTIME_UNAVAILABLE" } },
+    }),
+  );
+});
+
 const relation = {
   userId: "other",
   displayName: "Bạn thử nghiệm",

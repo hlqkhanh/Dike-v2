@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Laptop, LogOut, ShieldCheck } from "lucide-react";
 import { authApi } from "../../../src/auth/api";
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
+import { expireSession } from "../../../src/auth/session-expiry";
 import {
   EmptyState,
   ErrorState,
@@ -27,8 +28,8 @@ export default function SessionsPage() {
   const logoutAll = useMutation({
     mutationFn: authApi.logoutAll,
     onSuccess: () => {
-      client.clear();
-      router.replace("/login");
+      expireSession(client);
+      router.replace("/");
     },
   });
   useAuthFailure(sessions.error ?? revoke.error ?? logoutAll.error);

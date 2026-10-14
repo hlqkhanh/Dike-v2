@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
+import { expireSession } from "../../../src/auth/session-expiry";
 import { profileApi } from "../../../src/profile/api";
 import { LoadingState, PageHeader } from "../../components/app-ui";
 
@@ -22,8 +23,8 @@ export default function AccountSettingsPage() {
   const request = useMutation({
     mutationFn: () => profileApi.requestDeletion(crypto.randomUUID()),
     onSuccess: () => {
-      client.clear();
-      router.replace("/login?notice=ACCOUNT_DELETION_REQUESTED");
+      expireSession(client);
+      router.replace("/");
     },
   });
   useAuthFailure(deletion.error);

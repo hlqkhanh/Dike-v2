@@ -37,7 +37,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    if (session.data) {
+    if (session.data?.authenticated && session.data.user) {
       router.replace("/home");
     }
   }, [session.data, router]);

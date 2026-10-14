@@ -1,6 +1,8 @@
 package com.dike.planning.api;
 
+import com.dike.planning.application.PickupCompatibilityService;
 import com.dike.planning.application.RidePostResponseService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.security.Principal;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
@@ -9,21 +11,37 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1")
 public class RidePostResponseController {
   private final RidePostResponseService service;
+  private final PickupCompatibilityService pickups;
 
-  public RidePostResponseController(RidePostResponseService service) {
+  public RidePostResponseController(
+      RidePostResponseService service, PickupCompatibilityService pickups) {
     this.service = service;
+    this.pickups = pickups;
   }
 
   public record Decision(long version, String decision) {}
 
-  public record Create(String message) {}
+  public record Create(String message, String pickupCheckId) {}
+
+  @PostMapping("/ride-posts/{postId}/pickup-checks")
+  @Operation(operationId = "checkRidePostPickup")
+  public PickupCompatibilityService.View check(
+      Principal principal,
+      @PathVariable String postId,
+      @RequestBody PickupCompatibilityService.Input body) {
+    return pickups.check(principal.getName(), postId, body);
+  }
 
   @PostMapping("/ride-posts/{postId}/responses")
   RidePostResponseService.View create(
       Principal principal,
       @PathVariable String postId,
       @RequestBody(required = false) Create body) {
-    return service.create(principal.getName(), postId, body == null ? null : body.message());
+    return service.create(
+        principal.getName(),
+        postId,
+        body == null ? null : body.message(),
+        body == null ? null : body.pickupCheckId());
   }
 
   @GetMapping("/ride-posts/{postId}/responses")

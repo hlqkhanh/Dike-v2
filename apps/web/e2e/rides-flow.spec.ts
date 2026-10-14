@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test.beforeEach(async ({ page, context }) => {
+test.beforeEach(async ({ page, context, baseURL }) => {
   await context.addCookies([
-    { name: "XSRF-TOKEN", value: "csrf-rides", url: "http://127.0.0.1:3100" },
+    { name: "XSRF-TOKEN", value: "csrf-rides", url: baseURL! },
   ]);
   await page.route("**/api/v1/auth/session", (route) =>
     route.fulfill({
@@ -16,6 +16,20 @@ test.beforeEach(async ({ page, context }) => {
   await page.route("**/api/v1/social/revision", (route) =>
     route.fulfill({ json: { revision: 1 } }),
   );
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/friendships**", (route) =>
+    route.fulfill({ json: { items: [], nextCursor: null } }),
+  );
+  await page.route("**/api/v1/ride-posts/*/route", (route) =>
+    route.fulfill({ status: 404, json: {} }),
+  );
+  await page.route("**/api/v1/ride-posts/*/responses", (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: [] })
+      : route.fallback(),
+  );
   await page.route("**/api/v1/realtime/tickets", (route) =>
     route.fulfill({
       json: {
@@ -24,6 +38,133 @@ test.beforeEach(async ({ page, context }) => {
         expiresAt: "2099-01-01T00:00:00Z",
       },
     }),
+  );
+});
+
+test("opening a demo post encodes its identifier once for detail and responses", async ({
+  page,
+}) => {
+  const postId = "demo:member-id:post-offer";
+  const post = {
+    id: postId,
+    ownerId: "passenger",
+    ownerDisplayName: "Khách thử nghiệm",
+    type: "OFFER_RIDE",
+    status: "OPEN",
+    visibility: "PUBLIC",
+    originLabel: "Khu A",
+    destinationLabel: "Khu B",
+    vehicleType: "CAR",
+    departureAt: "2026-10-14T01:00:00Z",
+    expiresAt: "2026-10-15T01:00:00Z",
+    note: "Đi cùng",
+    version: 1,
+    termsVersion: 1,
+    remainingSeats: 2,
+    contributionPerKm: 1000,
+    pendingResponseCount: 0,
+  };
+  const requestedPaths: string[] = [];
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/api/v1/ride-posts?**", (route) =>
+    route.fulfill({ json: { items: [post] } }),
+  );
+  await page.route("**/api/v1/ride-posts/*", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    requestedPaths.push(path);
+    return route.fulfill(
+      path === `/api/v1/ride-posts/${encodeURIComponent(postId)}`
+        ? { json: post }
+        : {
+            status: 400,
+            json: { error: { message: "Incorrectly encoded post identifier" } },
+          },
+    );
+  });
+  await page.route("**/api/v1/ride-posts/*/responses", (route) => {
+    requestedPaths.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ json: [] });
+  });
+  await page.goto("/home");
+  await page.locator(".new-ride-card-link").click();
+  await expect(
+    page.getByRole("heading", { name: "Chi tiết bài đăng", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() => requestedPaths)
+    .toContain(`/api/v1/ride-posts/${encodeURIComponent(postId)}/responses`);
+  expect(requestedPaths).toContain(
+    `/api/v1/ride-posts/${encodeURIComponent(postId)}`,
+  );
+  expect(requestedPaths.some((path) => path.includes("%253A"))).toBe(false);
+});
+
+test("feed shows real author names and photos, preserving sample placeholders", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route("**/avatar-e2e.svg", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="green"/></svg>',
+    }),
+  );
+  const base = {
+    type: "OFFER_RIDE",
+    status: "OPEN",
+    originLabel: "Khu A",
+    destinationLabel: "Khu B",
+    vehicleType: "CAR",
+    departureAt: "2026-10-14T01:00:00Z",
+    remainingSeats: 2,
+  };
+  await page.route("**/api/v1/ride-posts?**", (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            ...base,
+            id: "real-photo",
+            ownerId: "member-1",
+            ownerDisplayName: "Linh Nguyễn",
+            ownerAvatarUrl: "/avatar-e2e.svg",
+          },
+          {
+            ...base,
+            id: "real-initials",
+            ownerId: "member-2",
+            ownerDisplayName: "Mai Anh",
+            ownerAvatarUrl: null,
+          },
+          { ...base, id: "demo-post", ownerId: "demo-user-missing" },
+        ],
+      },
+    }),
+  );
+  await page.goto("/home");
+  const cards = page.locator(".new-ride-card");
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0).locator("header strong")).toHaveText("Linh Nguyễn");
+  await expect(cards.nth(0).locator(".member-avatar-image")).toHaveAttribute(
+    "src",
+    /\/avatar-e2e\.svg$/,
+  );
+  await expect
+    .poll(() =>
+      cards
+        .nth(0)
+        .locator(".member-avatar-image")
+        .evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(cards.nth(1).locator("header strong")).toHaveText("Mai Anh");
+  await expect(cards.nth(1).locator(".new-ride-avatar")).toHaveText("MA");
+  await expect(cards.nth(2).locator("header strong")).toHaveText(
+    "Thành viên Diké",
   );
 });
 
@@ -90,13 +231,13 @@ test("home feed scrolls over the stationary banner without scrolling the documen
   await expect(roleCards).not.toHaveAttribute("inert", "");
 });
 
-test("confirms a response before sending it to the post owner", async ({
+test("confirms an offer to carry before sending it to the post owner", async ({
   page,
 }) => {
   const post = {
     id: "post-response",
     ownerId: "driver-other",
-    type: "OFFER_RIDE",
+    type: "NEED_RIDE",
     status: "OPEN",
     visibility: "PUBLIC",
     communityId: null,
@@ -125,7 +266,7 @@ test("confirms a response before sending it to the post owner", async ({
             postId: post.id,
             requesterId: "passenger",
             ownerId: post.ownerId,
-            action: "REQUEST_RIDE",
+            action: "OFFER_RIDE",
             status: "PENDING",
             createdAt: "2026-10-14T03:00:00Z",
             updatedAt: "2026-10-14T03:00:00Z",
@@ -141,9 +282,11 @@ test("confirms a response before sending it to the post owner", async ({
 
   await page.goto("/feed/post-response?action=respond");
   await expect(
-    page.getByRole("heading", { name: "Xác nhận muốn đi ké?" }),
+    page.getByRole("heading", { name: "Xác nhận muốn chở thành viên này?" }),
   ).toBeVisible();
-  await expect(page.getByText(post.originLabel)).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByText(post.originLabel),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Gửi yêu cầu" }).click();
   await expect(page.getByText("Đang chờ người đăng xác nhận")).toBeVisible();
 });

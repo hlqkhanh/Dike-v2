@@ -4,11 +4,13 @@ import type {
   Assignment,
   BookingAction,
   ConsentDecisionRequest,
+  ConversationView,
   CreateEstimate,
   CreateReport,
   CreateRoute,
   CreateUpload,
   DirectRequest,
+  DiscussPostRequest,
   EnableAvailability,
   Enforcement,
   ExceptionRequest,
@@ -18,6 +20,8 @@ import type {
   ManualIntentRequest,
   MatchRequest,
   PhoneRequest,
+  PickupCheck,
+  PickupCheckInput,
   PostSourceBind,
   PostSourceCreate,
   Priority,
@@ -27,6 +31,7 @@ import type {
   ResolvePlace,
   RidePostCreate,
   RidePostEdit,
+  RidePostRoute,
   RideVersion,
   RuleRequest,
   SendMessage,
@@ -41,6 +46,13 @@ import type {
   Verify,
   Version,
 } from "./schema";
+
+export const checkRidePostPickupOperation = {
+  method: "POST",
+  path: "/ride-posts/{postId}/pickup-checks",
+} as const;
+export type CheckRidePostPickupOperationRequest = PickupCheckInput;
+export type CheckRidePostPickupOperationResponse = PickupCheck;
 
 export const getTravelIntentOperation = {
   method: "GET",
@@ -781,6 +793,13 @@ export const getRouteOperation = {
 export type GetRouteOperationRequest = never;
 export type GetRouteOperationResponse = void;
 
+export const getRidePostRouteOperation = {
+  method: "GET",
+  path: "/ride-posts/{id}/route",
+} as const;
+export type GetRidePostRouteOperationRequest = never;
+export type GetRidePostRouteOperationResponse = RidePostRoute;
+
 export const autocompletePlacesOperation = {
   method: "GET",
   path: "/routing/places",
@@ -978,3 +997,17 @@ export const revoke_1Operation = {
 } as const;
 export type Revoke_1OperationRequest = never;
 export type Revoke_1OperationResponse = void;
+
+export const conversationOperation = {
+  method: "GET",
+  path: "/conversations/{id}",
+} as const;
+export type ConversationOperationRequest = never;
+export type ConversationOperationResponse = ConversationView;
+
+export const discussPostOperation = {
+  method: "POST",
+  path: "/conversations/ride-post",
+} as const;
+export type DiscussPostOperationRequest = DiscussPostRequest;
+export type DiscussPostOperationResponse = ConversationView;

@@ -1,4 +1,5 @@
-import { PageHeader } from "../components/app-ui";
+import { Suspense } from "react";
+import { LoadingState, PageHeader } from "../components/app-ui";
 import { InboxContent } from "./inbox-content";
 
 export default function InboxPage() {
@@ -9,7 +10,9 @@ export default function InboxPage() {
         title="Tin nhắn"
         description="Trao đổi điểm đón, thời gian và chi tiết chuyến đi với người đồng hành."
       />
-      <InboxContent />
+      <Suspense fallback={<LoadingState label="Đang tải hội thoại" />}>
+        <InboxContent />
+      </Suspense>
     </main>
   );
 }

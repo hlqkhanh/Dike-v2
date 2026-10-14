@@ -1,4 +1,5 @@
 "use client";
+import { MemberAvatar } from "../../app/components/member-avatar";
 
 import Link from "next/link";
 import {
@@ -307,11 +308,13 @@ export function PostCard({
   return (
     <article className="settings-card ride-post-card">
       <header className="ride-post-author">
-        <span className="app-avatar" aria-hidden="true">
-          DK
-        </span>
+        <MemberAvatar
+          name={post.ownerDisplayName || "Thành viên Diké"}
+          avatarUrl={post.ownerAvatarUrl}
+          className="app-avatar"
+        />
         <div>
-          <strong>Thành viên Diké</strong>
+          <strong>{post.ownerDisplayName || "Thành viên Diké"}</strong>
           <span>
             <Clock3 aria-hidden="true" size={13} /> {dateTime(post.departureAt)}
           </span>

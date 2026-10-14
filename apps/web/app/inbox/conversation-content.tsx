@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Route, Send } from "lucide-react";
+import { ArrowRight, CarFront, Route, Send, X } from "lucide-react";
 import { authApi } from "../../src/auth/api";
 import { journeyApi } from "../../src/journey/api";
+import { rideApi } from "../../src/rides/api";
 import {
   EmptyState,
   ErrorState,
@@ -74,14 +75,36 @@ function timeLabel(date: Date, detailed = false) {
 export function ConversationContent({
   id,
   embedded = false,
+  initialPostId = null,
 }: {
   id: string;
   embedded?: boolean;
+  initialPostId?: string | null;
 }) {
   const client = useQueryClient();
   const thread = useRef<HTMLElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
+  const [attachmentDraft, setAttachmentDraft] = useState({
+    sourceId: initialPostId,
+    postId: initialPostId,
+  });
+  if (attachmentDraft.sourceId !== initialPostId) {
+    setAttachmentDraft({ sourceId: initialPostId, postId: initialPostId });
+  }
+  const draftPostId = attachmentDraft.postId;
+  const draftPost = useQuery({
+    queryKey: ["feed", "detail", draftPostId],
+    queryFn: () => rideApi.post(draftPostId!),
+    enabled: Boolean(draftPostId),
+    retry: false,
+  });
+  const clearAttachment = () => {
+    setAttachmentDraft({ sourceId: initialPostId, postId: null });
+    const url = new URL(window.location.href);
+    url.searchParams.delete("post");
+    window.history.replaceState(null, "", url);
+  };
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;
@@ -96,7 +119,14 @@ export function ConversationContent({
     queryKey: ["conversations"],
     queryFn: journeyApi.conversations,
   });
-  const conversation = conversations.data?.find((item) => item.id === id);
+  const listedConversation = conversations.data?.find((item) => item.id === id);
+  const info = useQuery({
+    queryKey: ["conversation-info", id],
+    queryFn: () => journeyApi.conversationInfo(id),
+    enabled: conversations.isSuccess && !listedConversation,
+  });
+  const conversation = listedConversation ?? info.data;
+  const canSend = conversation?.canSend ?? conversation?.state === "OPEN";
   const messages = useQuery({
     queryKey: ["conversation", id],
     queryFn: () => journeyApi.messages(id),
@@ -117,9 +147,16 @@ export function ConversationContent({
     if (container) container.scrollTop = container.scrollHeight;
   }, [messages.data?.length]);
   const send = useMutation({
-    mutationFn: () => journeyApi.sendMessage(id, text.trim()),
+    mutationFn: () =>
+      journeyApi.sendMessage(
+        id,
+        text.trim(),
+        crypto.randomUUID(),
+        draftPostId ?? undefined,
+      ),
     onSuccess: async () => {
       setText("");
+      if (draftPostId) clearAttachment();
       await Promise.all([
         client.invalidateQueries({ queryKey: ["conversation", id] }),
         client.invalidateQueries({ queryKey: ["conversations"] }),
@@ -137,11 +174,18 @@ export function ConversationContent({
       <PageHeader
         backHref={embedded ? undefined : "/friends"}
         backLabel="Tất cả tin nhắn"
-        eyebrow={conversation?.state ?? "Đang hoạt động"}
+        eyebrow={
+          conversation?.state === "REQUEST_PENDING"
+            ? "Lời mời nhắn tin"
+            : conversation?.state === "OPEN"
+              ? "Đang trò chuyện"
+              : "Hội thoại"
+        }
         title={
-          conversation?.type === "DIRECT"
+          conversation?.recipientDisplayName ||
+          (conversation?.type === "DIRECT"
             ? "Hội thoại trực tiếp"
-            : "Hội thoại chuyến đi"
+            : "Hội thoại chuyến đi")
         }
         description="Chỉ chia sẻ thông tin cần thiết cho hành trình và không gửi dữ liệu nhạy cảm."
         actions={
@@ -223,9 +267,50 @@ export function ConversationContent({
                       {!continued ? (
                         <strong>{own ? "Bạn" : message.senderId}</strong>
                       ) : null}
-                      <p className={message.hidden ? "is-hidden" : undefined}>
-                        {message.hidden ? "Tin nhắn đã bị ẩn" : message.text}
-                      </p>
+                      {message.hidden || message.text ? (
+                        <p className={message.hidden ? "is-hidden" : undefined}>
+                          {message.hidden ? "Tin nhắn đã bị ẩn" : message.text}
+                        </p>
+                      ) : null}
+                      {!message.hidden && message.ridePost ? (
+                        <Link
+                          className="message-ride-card"
+                          href={`/feed/${encodeURIComponent(message.ridePost.postId)}`}
+                        >
+                          <span className="message-ride-kind">
+                            <CarFront aria-hidden="true" size={16} />
+                            {message.ridePost.type === "OFFER_RIDE"
+                              ? "Chuyến đi chia sẻ"
+                              : "Tìm bạn đồng hành"}
+                          </span>
+                          <strong>{message.ridePost.originLabel}</strong>
+                          <span className="message-ride-destination">
+                            <ArrowRight aria-hidden="true" size={14} />
+                            {message.ridePost.destinationLabel}
+                          </span>
+                          <span className="message-ride-meta">
+                            {new Date(
+                              message.ridePost.departureAt,
+                            ).toLocaleDateString("vi-VN", {
+                              timeZone: messageTimeZone,
+                              day: "2-digit",
+                              month: "2-digit",
+                            })}
+                            {" · "}
+                            {clockFormatter.format(
+                              new Date(message.ridePost.departureAt),
+                            )}
+                            {" · "}
+                            {message.ridePost.vehicleType === "MOTORCYCLE"
+                              ? "Xe máy"
+                              : "Ô tô"}
+                          </span>
+                          <span className="message-ride-open">
+                            Xem chuyến đi{" "}
+                            <ArrowRight aria-hidden="true" size={14} />
+                          </span>
+                        </Link>
+                      ) : null}
                       <span
                         id={`message-time-${message.id}`}
                         className="message-time-tooltip"
@@ -244,17 +329,65 @@ export function ConversationContent({
         className="settings-card message-composer message-composer--compact"
         onSubmit={(event) => {
           event.preventDefault();
-          if (send.isPending || !text.trim() || conversation?.state !== "OPEN")
+          if (
+            send.isPending ||
+            (!text.trim() && !draftPostId) ||
+            !canSend ||
+            (draftPostId && !draftPost.data)
+          )
             return;
           send.mutate();
         }}
       >
+        {draftPostId ? (
+          <div
+            className="message-attachment-draft"
+            aria-label="Bài đăng đính kèm chưa gửi"
+          >
+            <div className="message-attachment-heading">
+              <span>
+                <CarFront aria-hidden="true" size={17} /> Bài đăng đính kèm
+              </span>
+              <button
+                type="button"
+                aria-label="Bỏ đính kèm bài đăng"
+                disabled={send.isPending}
+                onClick={clearAttachment}
+              >
+                <X aria-hidden="true" size={17} />
+              </button>
+            </div>
+            {draftPost.isError ? (
+              <p role="alert">{draftPost.error.message}</p>
+            ) : draftPost.data ? (
+              <Link href={`/feed/${encodeURIComponent(draftPostId)}`}>
+                <strong>{draftPost.data.originLabel}</strong>
+                <ArrowRight aria-hidden="true" size={14} />
+                <strong>{draftPost.data.destinationLabel}</strong>
+                <small>
+                  {new Date(draftPost.data.departureAt).toLocaleDateString(
+                    "vi-VN",
+                    {
+                      timeZone: messageTimeZone,
+                      day: "2-digit",
+                      month: "2-digit",
+                    },
+                  )}
+                  {" · "}
+                  {clockFormatter.format(new Date(draftPost.data.departureAt))}
+                </small>
+              </Link>
+            ) : (
+              <span>Đang tải bài đăng…</span>
+            )}
+          </div>
+        ) : null}
         <label className="message-input">
           <span className="sr-only">Tin nhắn</span>
           <textarea
             ref={input}
             aria-label="Tin nhắn"
-            disabled={conversation?.state !== "OPEN"}
+            disabled={!canSend}
             readOnly={send.isPending}
             maxLength={2000}
             value={text}
@@ -285,12 +418,15 @@ export function ConversationContent({
           title={send.isPending ? "Đang gửi…" : "Gửi tin nhắn (Enter)"}
           type="submit"
           disabled={
-            send.isPending || !text.trim() || conversation?.state !== "OPEN"
+            send.isPending ||
+            (!text.trim() && !draftPostId) ||
+            !canSend ||
+            Boolean(draftPostId && !draftPost.data)
           }
         >
           <Send aria-hidden="true" size={18} />
         </button>
-        {conversation && conversation.state !== "OPEN" ? (
+        {conversation && !canSend ? (
           <p className="message-status" role="status">
             Hội thoại này hiện không cho phép gửi tin nhắn.
           </p>

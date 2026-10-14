@@ -30,6 +30,10 @@ class IdentityPostAccounts implements PostAccounts {
     return accounts.displayName(id);
   }
 
+  public String avatarUrl(String id) {
+    return accounts.avatarUrl(id);
+  }
+
   public void fence(String id) {
     guard.fence(id);
   }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { authApi } from "../src/auth/api";
+import { expireSession } from "../src/auth/session-expiry";
 
 export function AuthNavigation() {
   const router = useRouter();
@@ -17,12 +18,12 @@ export function AuthNavigation() {
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      queryClient.clear();
-      router.push("/login");
+      expireSession(queryClient);
+      router.replace("/");
     },
   });
 
-  if (!session.data) {
+  if (!session.data?.authenticated || !session.data.user) {
     return (
       <Link className="stage-badge stage-badge--cta" href="/login">
         Bắt đầu ngay <span aria-hidden="true">→</span>

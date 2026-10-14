@@ -7,6 +7,39 @@
   },
   "servers": [{ "url": "/api/v1" }],
   "paths": {
+    "/ride-posts/{postId}/pickup-checks": {
+      "post": {
+        "tags": ["ride-post-response-controller"],
+        "operationId": "checkRidePostPickup",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PickupCheckInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-calculated pickup compatibility, valid for five minutes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PickupCheck" }
+              }
+            }
+          }
+        },
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }]
+      }
+    },
     "/travel-intents/{id}": {
       "get": {
         "tags": ["travel-intent-controller"],
@@ -2981,6 +3014,31 @@
         "security": [{ "sessionCookie": [] }]
       }
     },
+    "/ride-posts/{id}/route": {
+      "get": {
+        "tags": ["post-controller"],
+        "operationId": "getRidePostRoute",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns saved geometry; calculates and persists a preview when no saved route exists",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RidePostRoute" }
+              }
+            }
+          }
+        },
+        "security": [{ "sessionCookie": [] }]
+      }
+    },
     "/routing/places": {
       "get": {
         "tags": ["routing-controller"],
@@ -3736,10 +3794,111 @@
         "responses": { "200": { "description": "OK" } },
         "security": [{ "sessionCookie": [] }]
       }
+    },
+    "/conversations/{id}": {
+      "get": {
+        "tags": ["messaging-controller"],
+        "operationId": "conversation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Conversation details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConversationView" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/ride-post": {
+      "post": {
+        "tags": ["messaging-controller"],
+        "operationId": "discussPost",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscussPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Open a conversation without sending a message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationView"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "DiscussPostRequest": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "string"
+          }
+        },
+        "required": ["postId"]
+      },
+      "RidePostAttachment": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "originLabel": {
+            "type": "string"
+          },
+          "destinationLabel": {
+            "type": "string"
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vehicleType": {
+            "type": "string"
+          },
+          "remainingSeats": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "contributionPerKm": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
       "ManualIntentRequest": {
         "type": "object",
         "properties": {
@@ -4437,7 +4596,8 @@
           "termsVersion": { "type": "integer", "format": "int64" },
           "remainingSeats": { "type": "integer", "format": "int32" },
           "contributionPerKm": { "type": "integer", "format": "int64" },
-          "pendingResponseCount": { "type": "integer", "format": "int64" }
+          "pendingResponseCount": { "type": "integer", "format": "int64" },
+          "ownerAvatarUrl": { "type": "string", "nullable": true }
         }
       },
       "PostSourceCreate": {
@@ -4565,7 +4725,10 @@
           "bookingId": { "type": "string" },
           "lastMessageAt": { "type": "string", "format": "date-time" },
           "unreadCount": { "type": "integer", "format": "int64" },
-          "version": { "type": "integer", "format": "int64" }
+          "version": { "type": "integer", "format": "int64" },
+          "recipientDisplayName": { "type": "string", "nullable": true },
+          "recipientAvatarUrl": { "type": "string", "nullable": true },
+          "canSend": { "type": "boolean" }
         }
       },
       "DeletionResponse": {
@@ -4680,7 +4843,8 @@
         "type": "object",
         "properties": {
           "clientMessageId": { "type": "string" },
-          "text": { "type": "string" }
+          "text": { "type": "string" },
+          "postId": { "type": "string", "nullable": true }
         }
       },
       "MessageView": {
@@ -4693,7 +4857,11 @@
           "sequence": { "type": "integer", "format": "int64" },
           "text": { "type": "string" },
           "createdAt": { "type": "string", "format": "date-time" },
-          "hidden": { "type": "boolean" }
+          "hidden": { "type": "boolean" },
+          "ridePost": {
+            "$ref": "#/components/schemas/RidePostAttachment",
+            "nullable": true
+          }
         }
       },
       "DirectRequest": {
@@ -4926,6 +5094,79 @@
       "RevisionView": {
         "type": "object",
         "properties": { "revision": { "type": "integer", "format": "int64" } }
+      },
+      "PickupCheckInput": {
+        "type": "object",
+        "required": ["pickupPlaceRef"],
+        "properties": {
+          "pickupPlaceRef": { "type": "string" },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional; defaults to trip departure"
+          },
+          "latestPickupAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional; defaults to four hours after trip departure"
+          }
+        }
+      },
+      "PlaceSnapshot": {
+        "type": "object",
+        "properties": {
+          "provider": { "type": "string" },
+          "providerPlaceId": { "type": "string" },
+          "displayLabel": { "type": "string" },
+          "publicAreaLabel": { "type": "string" },
+          "longitude": { "type": "number", "format": "double" },
+          "latitude": { "type": "number", "format": "double" },
+          "resolvedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PickupCheck": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "postId": { "type": "string" },
+          "passengerId": { "type": "string" },
+          "tripId": { "type": "string" },
+          "postVersion": { "type": "integer", "format": "int64" },
+          "tripVersion": { "type": "integer", "format": "int64" },
+          "tripRouteVersion": { "type": "integer", "format": "int64" },
+          "routeId": { "type": "string" },
+          "pickup": { "$ref": "#/components/schemas/PlaceSnapshot" },
+          "destinationLabel": { "type": "string" },
+          "readyAt": { "type": "string", "format": "date-time" },
+          "latestPickupAt": { "type": "string", "format": "date-time" },
+          "pickupAt": { "type": "string", "format": "date-time" },
+          "arrivalAt": { "type": "string", "format": "date-time" },
+          "extraMeters": { "type": "integer", "format": "int64" },
+          "extraSeconds": { "type": "integer", "format": "int64" },
+          "maxExtraMeters": { "type": "integer", "format": "int64" },
+          "maxExtraSeconds": { "type": "integer", "format": "int64" },
+          "compatible": { "type": "boolean" },
+          "pickupIndex": { "type": "integer", "format": "int32" },
+          "reason": { "type": "string" },
+          "geometry": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RoutePoint" }
+          },
+          "provider": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RidePostRoute": {
+        "type": "object",
+        "properties": {
+          "geometry": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RoutePoint" }
+          },
+          "distanceMeters": { "type": "integer", "format": "int64" },
+          "durationSeconds": { "type": "integer", "format": "int64" },
+          "provider": { "type": "string" }
+        }
       },
       "RidePostPage": {
         "type": "object",

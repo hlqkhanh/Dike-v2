@@ -1,5 +1,6 @@
 package com.dike.planning.api;
 
+import com.dike.planning.application.PostRouteService;
 import com.dike.planning.application.PostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "sessionCookie")
 public class PostController {
   private final PostService service;
+  private final PostRouteService routes;
 
-  public PostController(PostService service) {
+  public PostController(PostService service, PostRouteService routes) {
     this.service = service;
+    this.routes = routes;
   }
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "RideVersion")
@@ -63,6 +66,12 @@ public class PostController {
   @Operation(operationId = "getRidePost")
   public PostService.View detail(Principal p, @PathVariable String id) {
     return service.detail(p.getName(), id);
+  }
+
+  @GetMapping("/ride-posts/{id}/route")
+  @Operation(operationId = "getRidePostRoute")
+  public PostRouteService.View route(Principal p, @PathVariable String id) {
+    return routes.get(p.getName(), id);
   }
 
   @GetMapping("/ride-posts")

@@ -1,5 +1,8 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { MemberAvatar } from "../../app/components/member-avatar";
+import { PostRoute } from "./post-route";
+import { PassengerRequest, PickupSummary } from "./passenger-request";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -16,7 +19,6 @@ import {
   Flag,
   Handshake,
   Map,
-  MapPin,
   MessageCircle,
   MoreVertical,
   Play,
@@ -27,6 +29,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { rideApi } from "./api";
+import { journeyApi } from "../journey/api";
 import { authApi } from "../auth/api";
 import { useAuthFailure } from "../auth/use-auth-failure";
 import { BookingTools } from "../journey/booking-tools";
@@ -40,6 +43,13 @@ import {
 import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 10000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const router = useRouter();
+  const client = useQueryClient();
   const searchParams = useSearchParams();
   const post = useQuery({
     queryKey: ["feed", "detail", id],
@@ -60,6 +70,7 @@ export function PostDetail({ id }: { id: string }) {
   const actionCommand = useRideCommand();
   const responseCommand = useRideCommand();
   const reportCommand = useRideCommand();
+  const chatCommand = useRideCommand();
   useAuthFailure(post.error);
   const owner = post.data?.ownerId === session.data?.user.id;
   const responses = useQuery({
@@ -125,11 +136,16 @@ export function PostDetail({ id }: { id: string }) {
                   <Link
                     href={`/users/${encodeURIComponent(post.data.ownerId)}`}
                   >
-                    <span className="feed-detail-avatar" aria-hidden="true">
-                      DK
-                    </span>
+                    <MemberAvatar
+                      name={post.data.ownerDisplayName || "Thành viên Diké"}
+                      avatarUrl={post.data.ownerAvatarUrl}
+                      className="feed-detail-avatar"
+                      size={44}
+                    />
                     <span>
-                      <strong>Thành viên Diké</strong>
+                      <strong>
+                        {post.data.ownerDisplayName || "Thành viên Diké"}
+                      </strong>
                       <small>{dateTime(post.data.departureAt)}</small>
                     </span>
                   </Link>
@@ -212,19 +228,56 @@ export function PostDetail({ id }: { id: string }) {
                     />
                     {saved ? "Đã lưu" : "Lưu bài"}
                   </button>
-                  <Link href="/inbox">
-                    <MessageCircle aria-hidden="true" size={19} /> Trao đổi
-                  </Link>
-                  {!owner && post.data.status === "OPEN" && !myResponse ? (
+                  {!owner ? (
+                    <button
+                      type="button"
+                      disabled={chatCommand.isPending}
+                      onClick={() =>
+                        chatCommand.mutate({
+                          signature: `discuss-post:${id}`,
+                          run: async () => {
+                            const conversation =
+                              await journeyApi.discussPost(id);
+                            client.setQueryData(
+                              ["conversation-info", conversation.id],
+                              conversation,
+                            );
+                            await Promise.all([
+                              client.invalidateQueries({
+                                queryKey: ["conversations"],
+                              }),
+                              client.invalidateQueries({
+                                queryKey: ["conversation", conversation.id],
+                              }),
+                            ]);
+                            router.push(
+                              `/friends?conversation=${encodeURIComponent(conversation.id)}&post=${encodeURIComponent(id)}`,
+                            );
+                          },
+                        })
+                      }
+                    >
+                      <MessageCircle aria-hidden="true" size={19} />
+                      {chatCommand.isPending ? "Đang mở chat…" : "Trao đổi"}
+                    </button>
+                  ) : null}
+                  {!owner &&
+                  post.data.status === "OPEN" &&
+                  (!myResponse ||
+                    (post.data.type === "OFFER_RIDE" &&
+                      myResponse.status !== "ACCEPTED")) ? (
                     <button
                       className="is-primary feed-detail-connect-action"
                       type="button"
                       onClick={() => setConfirmResponse(true)}
                     >
                       <Handshake aria-hidden="true" size={19} />
-                      {post.data.type === "OFFER_RIDE"
-                        ? "Đi ké ngay"
-                        : "Chở ngay"}
+                      {post.data.type === "OFFER_RIDE" &&
+                      myResponse?.status === "PENDING"
+                        ? "Kiểm tra lại điểm đón"
+                        : post.data.type === "OFFER_RIDE"
+                          ? "Đi ké ngay"
+                          : "Chở ngay"}
                     </button>
                   ) : null}
                   {owner && post.data.status === "DRAFT" ? (
@@ -246,6 +299,11 @@ export function PostDetail({ id }: { id: string }) {
                     </button>
                   ) : null}
                 </footer>
+                {chatCommand.isError ? (
+                  <p className="auth-error" role="alert">
+                    {chatCommand.error.message}
+                  </p>
+                ) : null}
                 {actionCommand.isError ? (
                   <p className="feed-detail-feedback" role="alert">
                     {actionCommand.error.message}
@@ -319,7 +377,7 @@ export function PostDetail({ id }: { id: string }) {
                     </div>
                     {responses.data.map((item) => (
                       <article key={item.id}>
-                        <span>
+                        <div className="feed-response-owner-info">
                           <strong>
                             {item.action === "REQUEST_RIDE"
                               ? "Một thành viên muốn đi ké"
@@ -339,7 +397,19 @@ export function PostDetail({ id }: { id: string }) {
                               “{item.message}”
                             </small>
                           ) : null}
-                        </span>
+                          {item.pickupCheck ? (
+                            <PickupSummary check={item.pickupCheck} />
+                          ) : null}
+                          {item.status === "PENDING" &&
+                          item.pickupCheck &&
+                          new Date(item.pickupCheck.expiresAt).getTime() <=
+                            now ? (
+                            <small>
+                              Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm
+                              tra lại để bạn xác nhận.
+                            </small>
+                          ) : null}
+                        </div>
                         {item.status === "PENDING" ? (
                           <div>
                             <button
@@ -362,7 +432,15 @@ export function PostDetail({ id }: { id: string }) {
                             <button
                               className="is-accept"
                               type="button"
-                              disabled={responseCommand.isPending}
+                              disabled={
+                                responseCommand.isPending ||
+                                Boolean(
+                                  item.pickupCheck &&
+                                    new Date(
+                                      item.pickupCheck.expiresAt,
+                                    ).getTime() <= now,
+                                )
+                              }
                               onClick={() =>
                                 responseCommand.mutate({
                                   signature: `post-response:${item.id}:${item.version}:accept`,
@@ -390,7 +468,17 @@ export function PostDetail({ id }: { id: string }) {
                 ) : null}
               </article>
 
-              {confirmResponse && !owner && post.data.status === "OPEN" ? (
+              {confirmResponse &&
+              !owner &&
+              post.data.status === "OPEN" &&
+              post.data.type === "OFFER_RIDE" ? (
+                <PassengerRequest
+                  key={id}
+                  post={post.data}
+                  onClose={() => setConfirmResponse(false)}
+                  onSent={() => void responses.refetch()}
+                />
+              ) : confirmResponse && !owner && post.data.status === "OPEN" ? (
                 <div className="feed-response-modal" role="presentation">
                   <section
                     role="dialog"
@@ -523,19 +611,11 @@ export function PostDetail({ id }: { id: string }) {
                   </span>
                   Tuyến đường
                 </h2>
-                <div className="feed-detail-map" aria-label="Sơ đồ tuyến đường">
-                  <i className="map-road map-road--one" />
-                  <i className="map-road map-road--two" />
-                  <span className="map-place map-place--origin">
-                    <MapPin aria-hidden="true" size={19} fill="currentColor" />
-                    <strong>{post.data.originLabel}</strong>
-                  </span>
-                  <b aria-hidden="true" />
-                  <span className="map-place map-place--destination">
-                    <MapPin aria-hidden="true" size={19} fill="currentColor" />
-                    <strong>{post.data.destinationLabel}</strong>
-                  </span>
-                </div>
+                <PostRoute
+                  id={id}
+                  origin={post.data.originLabel}
+                  destination={post.data.destinationLabel}
+                />
                 <dl>
                   <div>
                     <dt>

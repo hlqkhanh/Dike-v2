@@ -27,6 +27,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { journeyApi } from "../../src/journey/api";
 import { authApi } from "../../src/auth/api";
+import { expireSession } from "../../src/auth/session-expiry";
 import { DikeLogo } from "./dike-logo";
 
 function notificationTarget(item: JourneyNotification) {
@@ -132,8 +133,8 @@ export function AppHeader({
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      client.clear();
-      router.push("/login");
+      expireSession(client);
+      router.replace("/");
     },
   });
   useEffect(() => {

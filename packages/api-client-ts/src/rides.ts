@@ -6,6 +6,9 @@ import { ApiError } from "./auth";
 import type {
   PostSource,
   PostSourceCreate,
+  RidePostRoute,
+  PickupCheck,
+  PickupCheckInput,
   DraftAgain,
   TripStops,
 } from "./generated/schema";
@@ -46,6 +49,7 @@ export type RidePostResponse = {
   createdAt: string;
   updatedAt: string;
   version: number;
+  pickupCheck?: PickupCheck | null;
 };
 
 export type CreateRidePostInput = Omit<RidePostCreate, "communityId"> & {
@@ -111,11 +115,24 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       ),
     post: (postId: string) =>
       request<RidePostView>(`/ride-posts/${id(postId)}`),
+    postRoute: (postId: string) =>
+      request<RidePostRoute>(`/ride-posts/${id(postId)}/route`),
     postResponses: (postId: string) =>
       request<RidePostResponse[]>(`/ride-posts/${id(postId)}/responses`),
-    createPostResponse: (postId: string, message = "") =>
+    checkPickup: (postId: string, body: PickupCheckInput) =>
+      request<PickupCheck>(
+        `/ride-posts/${id(postId)}/pickup-checks`,
+        "POST",
+        body,
+      ),
+    createPostResponse: (
+      postId: string,
+      message = "",
+      pickupCheckId?: string,
+    ) =>
       request<RidePostResponse>(`/ride-posts/${id(postId)}/responses`, "POST", {
         message,
+        pickupCheckId,
       }),
     decidePostResponse: (
       responseId: string,

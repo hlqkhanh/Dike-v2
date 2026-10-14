@@ -83,6 +83,19 @@ class PostServiceTest {
   }
 
   @Test
+  void visiblePostIncludesAuthorNameAndAvatar() {
+    when(store.find("p")).thenReturn(Optional.of(post(RidePost.Status.OPEN, null)));
+    when(social.canRead(anyString(), anyString(), any(), anyBoolean())).thenReturn(true);
+    when(accounts.displayName("owner")).thenReturn("Named author");
+    when(accounts.avatarUrl("owner")).thenReturn("https://images.example/avatar.png");
+
+    var view = service.detail("viewer", "p");
+
+    assertThat(view.ownerDisplayName()).isEqualTo("Named author");
+    assertThat(view.ownerAvatarUrl()).isEqualTo("https://images.example/avatar.png");
+  }
+
+  @Test
   void feedFiltersBeforeReturningAndContinuesPastHiddenRows() {
     when(store.scan(null, 1, null)).thenReturn(List.of(post(RidePost.Status.OPEN, null)));
     var page = service.feed("viewer", "latest", null, 1, null, null, null);

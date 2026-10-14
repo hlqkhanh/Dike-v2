@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { ApiError } from "@dike/api-client-ts";
 import { authApi } from "../auth/api";
+import { handleAuthenticationError } from "../auth/session-expiry";
 import { journeyApi } from "./api";
 
 type RealtimeEnvelope = {
@@ -19,7 +20,7 @@ export function JourneyRealtimeMonitor() {
     queryFn: authApi.session,
     retry: false,
   });
-  return session.data ? (
+  return session.data?.authenticated && session.data.user ? (
     <JourneyRealtimeConnection key={session.data.user.id} />
   ) : null;
 }
@@ -69,6 +70,7 @@ function JourneyRealtimeConnection() {
           client.brokerURL = issued.websocketUrl;
           client.connectHeaders = { ticket: issued.ticket };
         } catch (err) {
+          handleAuthenticationError(queryClient, err);
           // STOMP does not handle rejected beforeConnect promises. Stop this
           // attempt explicitly so a temporary ticket failure cannot become an
           // unhandled browser rejection, then retry while the session remains.

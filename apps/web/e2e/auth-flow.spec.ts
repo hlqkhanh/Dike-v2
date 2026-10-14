@@ -60,9 +60,10 @@ test("login entry uses the same-origin backend route", async ({ page }) => {
 test("auth completion routes a new user through phone onboarding", async ({
   context,
   page,
+  baseURL,
 }) => {
   await context.addCookies([
-    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: baseURL! },
   ]);
   await page.route("**/api/v1/auth/session", (route) =>
     route.fulfill({
@@ -126,17 +127,18 @@ test("auth completion routes a new user through phone onboarding", async ({
   );
   await page.getByLabel("Số điện thoại Việt Nam").fill("0901 234 567");
   await page.getByRole("button", { name: "Tiếp tục" }).click();
-  await expect(page).toHaveURL("http://127.0.0.1:3100/feed");
+  await expect(page).toHaveURL(/\/feed$/);
   expect(otpRequested).toBe(false);
 });
 
 test("consent gate records current receipts before onboarding", async ({
   context,
   page,
+  baseURL,
 }) => {
   let accepted = false;
   await context.addCookies([
-    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: baseURL! },
   ]);
   await page.route("**/api/v1/auth/session", (route) =>
     route.fulfill({
@@ -207,9 +209,10 @@ test("consent gate records current receipts before onboarding", async ({
 test("member edits profile and privacy through generated-client adapters", async ({
   context,
   page,
+  baseURL,
 }) => {
   await context.addCookies([
-    { name: "XSRF-TOKEN", value: "csrf-e2e", url: "http://127.0.0.1:3100" },
+    { name: "XSRF-TOKEN", value: "csrf-e2e", url: baseURL! },
   ]);
   let profile = {
     userId: "user-1",

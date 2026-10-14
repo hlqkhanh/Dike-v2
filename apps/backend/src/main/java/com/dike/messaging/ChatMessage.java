@@ -13,4 +13,5 @@ record ChatMessage(
     long sequence,
     String text,
     Instant createdAt,
-    boolean hidden) {}
+    boolean hidden,
+    RidePostAttachment ridePost) {}

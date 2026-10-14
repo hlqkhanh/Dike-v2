@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 /** Idempotent, local-only sample data used by the web and mobile demo builds. */
@@ -40,13 +41,26 @@ public class DemoDataService implements ApplicationRunner {
 
   @Override
   public void run(ApplicationArguments arguments) {
-    mongo.findAll(Document.class, "users").stream()
-        .map(row -> row.getString("_id"))
-        .filter(id -> id != null && !id.startsWith("demo-user-"))
-        .forEach(this::seedFor);
+    // Starting the application must not fabricate or refresh posts for real accounts.
+    retireLegacyActorPosts();
+  }
+
+  private void retireLegacyActorPosts() {
+    mongo.updateMulti(
+        Query.query(
+            Criteria.where("_id")
+                .regex("^demo:[^:]+:post-offer$")
+                .and("status")
+                .in("OPEN", "DRAFT", "MATCHED")),
+        new Update()
+            .set("status", "CLOSED")
+            .set("closureReason", "DEMO_SEED_RETIRED")
+            .inc("version", 1L),
+        "ride_posts");
   }
 
   public DemoSummary seedFor(String actor) {
+    retireLegacyActorPosts();
     Instant now = clock.instant();
     seedPeople(now);
     seedSocial(actor, now);
@@ -54,7 +68,7 @@ public class DemoDataService implements ApplicationRunner {
     seedRides(actor, now);
     seedMessaging(actor, now);
     seedTrust(actor, now);
-    return new DemoSummary(actor, 3, 5, 2, 3, 2, 2, 3);
+    return new DemoSummary(actor, 3, 4, 2, 3, 2, 2, 3);
   }
 
   private void seedPeople(Instant now) {
@@ -301,17 +315,6 @@ public class DemoDataService implements ApplicationRunner {
                 "Tan làm mình về Hà Đông, có thể lệch tuyến khoảng 10 phút.",
                 now.minusSeconds(5200)),
             post(
-                id(actor, "post-offer"),
-                actor,
-                "OFFER_RIDE",
-                id(actor, "trip-open"),
-                home,
-                office,
-                "CAR",
-                now.plus(Duration.ofHours(18)),
-                "Đi làm tuyến Hà Đông – Keangnam, xe còn hai chỗ.",
-                now.minusSeconds(300)),
-            post(
                 "demo-post-completed",
                 MAI,
                 "NEED_RIDE",
@@ -322,7 +325,7 @@ public class DemoDataService implements ApplicationRunner {
                 now.minus(Duration.ofDays(2)),
                 "Chuyến đi đã ghép thành công.",
                 now.minus(Duration.ofDays(3))));
-    posts.forEach(value -> mongo.save(value, "ride_posts"));
+    posts.forEach(value -> saveFeedSampleOnce(value, "ride_posts"));
     mongo.save(
         new Document("_id", actor.length() + ":" + actor + "demo-post-minh")
             .append("viewer", actor)
@@ -421,6 +424,8 @@ public class DemoDataService implements ApplicationRunner {
         .append("communityId", null)
         .append("originLabel", origin.getString("displayLabel"))
         .append("destinationLabel", destination.getString("displayLabel"))
+        .append("origin", origin)
+        .append("destination", destination)
         .append("vehicleType", vehicle)
         .append("routeId", null)
         .append("departureAt", date(departure))
@@ -470,7 +475,7 @@ public class DemoDataService implements ApplicationRunner {
             "Nhà riêng · Hà Đông, Hà Nội"),
         "trips");
 
-    mongo.save(
+    saveFeedSampleOnce(
         trip(
             "demo-source-minh",
             MINH,
@@ -481,7 +486,7 @@ public class DemoDataService implements ApplicationRunner {
             "Đại học Bách Khoa Hà Nội, Hai Bà Trưng, Hà Nội",
             "Nhà riêng · Hà Đông, Hà Nội"),
         "trips");
-    mongo.save(
+    saveFeedSampleOnce(
         trip(
             "demo-source-mai",
             MAI,
@@ -885,6 +890,16 @@ public class DemoDataService implements ApplicationRunner {
 
   private String id(String actor, String suffix) {
     return "demo:" + actor + ":" + suffix;
+  }
+
+  private void saveFeedSampleOnce(Document sample, String collection) {
+    Update insert = new Update();
+    sample.forEach(
+        (field, value) -> {
+          if (!field.equals("_id")) insert.setOnInsert(field, value);
+        });
+    mongo.upsert(
+        Query.query(Criteria.where("_id").is(sample.getString("_id"))), insert, collection);
   }
 
   private Date date(Instant instant) {

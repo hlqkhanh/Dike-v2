@@ -54,6 +54,8 @@ function NewTripForm() {
   );
   const [departureAt, setDepartureAt] = useState("");
   const [visibility, setVisibility] = useState("PUBLIC");
+  const [detourMeters, setDetourMeters] = useState(1000);
+  const [detourMinutes, setDetourMinutes] = useState(5);
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
@@ -132,8 +134,8 @@ function NewTripForm() {
       destinationLabel: destinationLabel.trim(),
       offeredSeats: validOfferedSeats,
       contributionPerKm,
-      detourMeters: 0,
-      detourSeconds: 0,
+      detourMeters,
+      detourSeconds: detourMinutes * 60,
       visibility,
       communityId: "",
     });
@@ -321,6 +323,29 @@ function NewTripForm() {
                       }
                     />
                   </span>
+                </label>
+                <label className="trip-create-field">
+                  <span>Quãng đường ghé đón tối đa (m)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10000}
+                    step={100}
+                    required
+                    value={detourMeters}
+                    onChange={(e) => setDetourMeters(Number(e.target.value))}
+                  />
+                </label>
+                <label className="trip-create-field">
+                  <span>Thời gian phát sinh tối đa (phút)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={60}
+                    required
+                    value={detourMinutes}
+                    onChange={(e) => setDetourMinutes(Number(e.target.value))}
+                  />
                 </label>
                 <label className="trip-create-field">
                   <span>Đóng góp mỗi km</span>

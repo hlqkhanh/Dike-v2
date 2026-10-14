@@ -13,6 +13,19 @@ export type JourneyConversation = {
   lastMessageAt?: string;
   unreadCount: number;
   version: number;
+  recipientDisplayName?: string;
+  recipientAvatarUrl?: string;
+  canSend?: boolean;
+};
+export type JourneyRidePostAttachment = {
+  postId: string;
+  type: "OFFER_RIDE" | "NEED_RIDE";
+  originLabel: string;
+  destinationLabel: string;
+  departureAt: string;
+  vehicleType: string;
+  remainingSeats?: number | null;
+  contributionPerKm?: number | null;
 };
 export type JourneyMessage = {
   id: string;
@@ -23,6 +36,7 @@ export type JourneyMessage = {
   text?: string;
   createdAt: string;
   hidden: boolean;
+  ridePost?: JourneyRidePostAttachment | null;
 };
 export type JourneyNotification = {
   id: string;
@@ -165,9 +179,15 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
     realtimeTicket: () =>
       request<JourneyRealtimeTicket>("/realtime/tickets", "POST"),
     conversations: () => request<JourneyConversation[]>("/conversations"),
+    conversationInfo: (conversationId: string) =>
+      request<JourneyConversation>(`/conversations/${id(conversationId)}`),
     direct: (recipientUserId: string) =>
       request<JourneyConversation>("/conversations/direct", "POST", {
         recipientUserId,
+      }),
+    discussPost: (postId: string) =>
+      request<JourneyConversation>("/conversations/ride-post", "POST", {
+        postId,
       }),
     decideRequest: (conversationId: string, accept: boolean, version: number) =>
       request<JourneyConversation>(
@@ -182,12 +202,13 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
     sendMessage: (
       conversationId: string,
       text: string,
-      clientMessageId = crypto.randomUUID(),
+      clientMessageId: string = crypto.randomUUID(),
+      postId?: string,
     ) =>
       request<JourneyMessage>(
         `/conversations/${id(conversationId)}/messages`,
         "POST",
-        { clientMessageId, text },
+        { clientMessageId, text, ...(postId ? { postId } : {}) },
       ),
     read: (conversationId: string, sequence: number) =>
       request<void>(`/conversations/${id(conversationId)}/read`, "POST", {

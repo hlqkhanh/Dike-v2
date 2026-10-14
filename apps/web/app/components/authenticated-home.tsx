@@ -20,6 +20,8 @@ import { useEffect, useMemo, useState } from "react";
 import { rideApi } from "../../src/rides/api";
 import { AppHeader } from "./app-header";
 import { DikeLogo } from "./dike-logo";
+import { MemberAvatar } from "./member-avatar";
+import { PassengerRequest } from "../../src/rides/passenger-request";
 
 type FeedFilter = "ALL" | "OFFER_RIDE" | "NEED_RIDE";
 type FeedSort = "latest" | "departure";
@@ -271,7 +273,14 @@ export function AuthenticatedHome({
           <p>Chia sẻ một chỗ trống, thêm một hành trình xanh.</p>
         </footer>
       </main>
-      {responsePost ? (
+      {responsePost?.type === "OFFER_RIDE" ? (
+        <PassengerRequest
+          key={responsePost.id}
+          post={responsePost}
+          onClose={() => setResponsePost(null)}
+          onSent={() => void list.refetch()}
+        />
+      ) : responsePost ? (
         <div
           className="home-response-modal"
           role="presentation"
@@ -395,13 +404,6 @@ function HomeRideCard({
   const isOffer = post.type === "OFFER_RIDE";
   const owner = post.ownerId === currentUserId;
   const ownerName = post.ownerDisplayName || "Thành viên Diké";
-  const initials = ownerName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((part) => part[0])
-    .join("")
-    .toLocaleUpperCase("vi-VN");
   return (
     <article className={`new-ride-card ${isOffer ? "is-offer" : "is-need"}`}>
       <Link
@@ -410,14 +412,20 @@ function HomeRideCard({
         aria-label={`Xem chi tiết hành trình của ${ownerName}`}
       />
       <header>
-        <span className="new-ride-avatar" aria-hidden="true">
-          {initials || "DK"}
-        </span>
+        <MemberAvatar
+          name={ownerName}
+          avatarUrl={post.ownerAvatarUrl}
+          className="new-ride-avatar"
+          size={38}
+        />
         <div>
           <strong>{ownerName}</strong>
-          <small>Hành trình công khai</small>
         </div>
-        {owner ? <span className="new-ride-owned">Bài của bạn</span> : null}
+        {post.id.startsWith("demo-") || post.id.startsWith("demo:") ? (
+          <span className="new-ride-owned">Bài mẫu</span>
+        ) : owner ? (
+          <span className="new-ride-owned">Bài của bạn</span>
+        ) : null}
       </header>
       <div className="new-ride-route">
         <span aria-hidden="true">
