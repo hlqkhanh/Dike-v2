@@ -384,7 +384,7 @@ export function PostDetail({ id }: { id: string }) {
                         <Link
                           className="feed-response-requester"
                           href={`/profile/${encodeURIComponent(item.requesterId)}`}
-                          aria-label={`Xem hồ sơ của ${item.requesterDisplayName}`}
+                          aria-label={`Xem hồ sơ của ${item.requesterDisplayName || "Thành viên Diké"}`}
                         >
                           <span
                             className="feed-response-avatar"
@@ -398,11 +398,16 @@ export function PostDetail({ id }: { id: string }) {
                             }
                           >
                             {!item.requesterAvatarUrl
-                              ? initials(item.requesterDisplayName)
+                              ? initials(
+                                  item.requesterDisplayName ||
+                                    "Thành viên Diké",
+                                )
                               : null}
                           </span>
                           <span>
-                            <strong>{item.requesterDisplayName}</strong>
+                            <strong>
+                              {item.requesterDisplayName || "Thành viên Diké"}
+                            </strong>
                             <small>
                               <UserRound aria-hidden="true" size={15} />
                               {item.action === "REQUEST_RIDE"

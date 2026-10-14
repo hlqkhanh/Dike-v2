@@ -278,13 +278,19 @@ test("driver sees pickup evidence and cannot confirm an expired result", async (
   );
   await page.goto("/feed/pickup-post");
   const requests = page.locator(".feed-response-owner-panel");
+  const pickupSummary = requests.getByRole("button", {
+    name: /Tiện đường/,
+  });
+  await expect(pickupSummary).toBeVisible();
   await expect(
-    requests.getByText(`Điểm đón: ${pickup.displayLabel}`),
+    pickupSummary.getByText("+0,7 km · 3 phút", { exact: true }),
   ).toBeVisible();
-  await expect(requests.getByText(/Phát sinh 0,7 km · 3 phút/)).toBeVisible();
-  await expect(
-    requests.getByText(/Kiểm tra điểm đón đã hết hạn/),
-  ).toBeVisible();
+  await pickupSummary.click();
+
+  const detail = page.getByRole("dialog", { name: "Chi tiết tiện đường" });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText(pickup.displayLabel)).toBeVisible();
+  await expect(detail.getByText(/Kiểm tra điểm đón đã hết hạn/)).toBeVisible();
   await expect(
     requests.getByRole("button", { name: "Xác nhận", exact: true }),
   ).toBeDisabled();
