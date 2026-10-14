@@ -65,6 +65,8 @@ export function AppHeader({
   scrollState?: boolean;
 }) {
   const pathname = usePathname();
+  const isFriendsSection =
+    pathname.startsWith("/friends") || pathname.startsWith("/inbox");
   const client = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -173,8 +175,8 @@ export function AppHeader({
           </Link>
           <Link
             href="/friends"
-            className={pathname.startsWith("/friends") ? "nav-link-active" : ""}
-            aria-current={pathname.startsWith("/friends") ? "page" : undefined}
+            className={isFriendsSection ? "nav-link-active" : ""}
+            aria-current={isFriendsSection ? "page" : undefined}
             onClick={() => setMenuOpen(false)}
           >
             Bạn bè
