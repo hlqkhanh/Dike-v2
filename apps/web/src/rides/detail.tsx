@@ -386,41 +386,41 @@ export function PostDetail({ id }: { id: string }) {
                           </strong>
                           {item.status === "PENDING" ? (
                             <div className="feed-response-buttons">
-                            <button
-                              type="button"
-                              disabled={responseCommand.isPending}
-                              onClick={() =>
-                                responseCommand.mutate({
-                                  signature: `post-response:${item.id}:${item.version}:reject`,
-                                  run: () =>
-                                    rideApi.decidePostResponse(
-                                      item.id,
-                                      item.version,
-                                      "REJECTED",
-                                    ),
-                                })
-                              }
-                            >
-                              Từ chối
-                            </button>
-                            <button
-                              className="is-accept"
-                              type="button"
-                              disabled={responseCommand.isPending}
-                              onClick={() =>
-                                responseCommand.mutate({
-                                  signature: `post-response:${item.id}:${item.version}:accept`,
-                                  run: () =>
-                                    rideApi.decidePostResponse(
-                                      item.id,
-                                      item.version,
-                                      "ACCEPTED",
-                                    ),
-                                })
-                              }
-                            >
-                              Xác nhận
-                            </button>
+                              <button
+                                type="button"
+                                disabled={responseCommand.isPending}
+                                onClick={() =>
+                                  responseCommand.mutate({
+                                    signature: `post-response:${item.id}:${item.version}:reject`,
+                                    run: () =>
+                                      rideApi.decidePostResponse(
+                                        item.id,
+                                        item.version,
+                                        "REJECTED",
+                                      ),
+                                  })
+                                }
+                              >
+                                Từ chối
+                              </button>
+                              <button
+                                className="is-accept"
+                                type="button"
+                                disabled={responseCommand.isPending}
+                                onClick={() =>
+                                  responseCommand.mutate({
+                                    signature: `post-response:${item.id}:${item.version}:accept`,
+                                    run: () =>
+                                      rideApi.decidePostResponse(
+                                        item.id,
+                                        item.version,
+                                        "ACCEPTED",
+                                      ),
+                                  })
+                                }
+                              >
+                                Xác nhận
+                              </button>
                             </div>
                           ) : item.status === "ACCEPTED" ? (
                             <small>Đã trở thành người đồng hành của bạn.</small>
