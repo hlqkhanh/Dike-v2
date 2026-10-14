@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuthFailure } from "../../src/auth/use-auth-failure";
 import {
@@ -23,8 +23,10 @@ import {
 } from "../../src/social/actions";
 import { socialApi } from "../../src/social/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/app-ui";
+import { InboxContent } from "../inbox/inbox-content";
 
 const tabs = {
+  messages: "Tin nhắn",
   friends: "Bạn bè",
   incoming: "Lời mời đến",
   outgoing: "Đã gửi",
@@ -34,13 +36,27 @@ const tabs = {
 type SocialTab = keyof typeof tabs;
 
 export default function FriendsPage() {
-  const [tab, setTab] = useState<SocialTab>("friends");
+  const [tab, setTab] = useState<SocialTab>("messages");
+  const relationTab = tab === "messages" ? "friends" : tab;
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const searchToggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (searchOpen) searchInput.current?.focus();
+  }, [searchOpen]);
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearch("");
+    setText("");
+    searchToggle.current?.focus();
+  };
   const list = useInfiniteQuery({
-    queryKey: ["social", "list", tab],
+    queryKey: ["social", "list", relationTab],
+    enabled: tab !== "messages",
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) => socialApi.list(tab, pageParam),
+    queryFn: ({ pageParam }) => socialApi.list(relationTab, pageParam),
     getNextPageParam: (last) => last.nextCursor || undefined,
   });
   const friendSummary = useQuery({
@@ -124,51 +140,89 @@ export default function FriendsPage() {
       </section>
 
       <section className="friends-content">
-        <form
-          className="friends-search-card"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSearch(text.trim());
-          }}
-        >
-          <div>
-            <h2>Tìm người quen</h2>
-            <p>Tìm kiếm thành viên theo tên để gửi lời mời kết bạn.</p>
-          </div>
-          <label className="friends-search-input" htmlFor="social-search">
-            <Search aria-hidden="true" size={20} />
-            <span className="sr-only">Tìm thành viên theo tên</span>
-            <input
-              id="social-search"
-              value={text}
-              minLength={2}
-              maxLength={80}
-              onChange={(event) => setText(event.target.value)}
-              placeholder="Ví dụ: Minh Anh"
-            />
-          </label>
+        <div className="friends-toolbar">
+          <nav className="friends-tabs" aria-label="Quan hệ">
+            {Object.entries(tabs).map(([key, label]) => {
+              const count =
+                key === "incoming"
+                  ? counts.incoming
+                  : key === "outgoing"
+                    ? counts.outgoing
+                    : undefined;
+              return (
+                <button
+                  type="button"
+                  key={key}
+                  aria-pressed={tab === key}
+                  onClick={() => setTab(key as SocialTab)}
+                >
+                  {label}
+                  {count ? <b aria-hidden="true">{count}</b> : null}
+                </button>
+              );
+            })}
+          </nav>
           <button
-            className="friends-search-button"
-            type="submit"
-            disabled={text.trim().length < 2}
+            ref={searchToggle}
+            className="friends-search-toggle"
+            type="button"
+            aria-label={searchOpen ? "Đóng tìm kiếm bạn bè" : "Tìm bạn bè"}
+            title="Tìm bạn bè"
+            aria-expanded={searchOpen}
+            aria-controls="friends-member-search"
+            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
           >
-            <Search aria-hidden="true" size={18} />
-            Tìm người
+            <Search aria-hidden="true" size={20} />
+            <span>Tìm bạn bè</span>
           </button>
-          {search ? (
+        </div>
+        {searchOpen ? (
+          <form
+            id="friends-member-search"
+            className="friends-search-card"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") closeSearch();
+            }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSearch(text.trim());
+            }}
+          >
+            <div>
+              <h2>Tìm người quen</h2>
+              <p>Tìm kiếm thành viên theo tên để gửi lời mời kết bạn.</p>
+            </div>
+            <label className="friends-search-input" htmlFor="social-search">
+              <Search aria-hidden="true" size={20} />
+              <span className="sr-only">Tìm thành viên theo tên</span>
+              <input
+                ref={searchInput}
+                id="social-search"
+                value={text}
+                minLength={2}
+                maxLength={80}
+                onChange={(event) => setText(event.target.value)}
+                placeholder="Ví dụ: Minh Anh"
+              />
+            </label>
+            <button
+              className="friends-search-button"
+              type="submit"
+              disabled={text.trim().length < 2}
+            >
+              <Search aria-hidden="true" size={18} />
+              Tìm người
+            </button>
             <button
               className="friends-search-close"
               type="button"
-              aria-label="Đóng kết quả tìm kiếm"
-              onClick={() => {
-                setSearch("");
-                setText("");
-              }}
+              aria-label="Đóng tìm kiếm thành viên"
+              onClick={closeSearch}
             >
               <X aria-hidden="true" size={18} />
             </button>
-          ) : null}
-        </form>
+          </form>
+        ) : null}
 
         {search ? (
           <section
@@ -210,141 +264,133 @@ export default function FriendsPage() {
           </section>
         ) : null}
 
-        <div className="friends-workspace">
+        <div
+          className={`friends-workspace${tab === "messages" || tab === "friends" ? " friends-workspace--wide" : ""}`}
+        >
           <div className="friends-list-column">
-            <nav className="friends-tabs" aria-label="Quan hệ">
-              {Object.entries(tabs).map(([key, label]) => {
-                const count =
-                  key === "incoming"
-                    ? counts.incoming
-                    : key === "outgoing"
-                      ? counts.outgoing
-                      : undefined;
-                return (
-                  <button
-                    type="button"
-                    key={key}
-                    aria-pressed={tab === key}
-                    onClick={() => setTab(key as SocialTab)}
-                  >
-                    {label}
-                    {count ? <b aria-hidden="true">{count}</b> : null}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <section
-              className="friends-list-section"
-              aria-label={tabs[tab]}
-              aria-live="polite"
-            >
-              {list.isPending ? (
-                <LoadingState />
-              ) : list.isError ? (
-                <ErrorState
-                  message={list.error.message}
-                  onRetry={() => void list.refetch()}
-                />
-              ) : items.length === 0 ? (
-                <EmptyState
-                  icon={tab === "friends" ? Users : UserPlus}
-                  title={`Chưa có mục nào trong ${tabs[tab].toLowerCase()}.`}
-                  description={
-                    tab === "friends"
-                      ? "Tìm người bạn quen biết để xây dựng mạng lưới đi chung đáng tin cậy."
-                      : "Các lời mời và thay đổi quan hệ sẽ được hiển thị tại đây."
-                  }
-                  action={
-                    tab === "friends" ? (
-                      <button
-                        className="app-button app-button--primary"
-                        type="button"
-                        onClick={() =>
-                          document.getElementById("social-search")?.focus()
-                        }
+            {tab === "messages" ? (
+              <section className="friends-messages" aria-label="Tin nhắn">
+                <InboxContent />
+              </section>
+            ) : (
+              <section
+                className="friends-list-section"
+                aria-label={tabs[tab]}
+                aria-live="polite"
+              >
+                {list.isPending ? (
+                  <LoadingState />
+                ) : list.isError ? (
+                  <ErrorState
+                    message={list.error.message}
+                    onRetry={() => void list.refetch()}
+                  />
+                ) : items.length === 0 ? (
+                  <EmptyState
+                    icon={tab === "friends" ? Users : UserPlus}
+                    title={`Chưa có mục nào trong ${tabs[tab].toLowerCase()}.`}
+                    description={
+                      tab === "friends"
+                        ? "Tìm người bạn quen biết để xây dựng mạng lưới đi chung đáng tin cậy."
+                        : "Các lời mời và thay đổi quan hệ sẽ được hiển thị tại đây."
+                    }
+                    action={
+                      tab === "friends" ? (
+                        <button
+                          className="app-button app-button--primary"
+                          type="button"
+                          onClick={() => {
+                            setSearchOpen(true);
+                            searchInput.current?.focus();
+                          }}
+                        >
+                          <Search aria-hidden="true" size={17} /> Tìm bạn bè
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                ) : (
+                  <div className="friends-person-list">
+                    {items.map((item) => (
+                      <article
+                        className="friends-person-card"
+                        key={item.userId}
                       >
-                        <Search aria-hidden="true" size={17} /> Tìm bạn bè
-                      </button>
-                    ) : undefined
-                  }
-                />
-              ) : (
-                <div className="friends-person-list">
-                  {items.map((item) => (
-                    <article className="friends-person-card" key={item.userId}>
-                      <span className="friends-avatar" aria-hidden="true">
-                        {initials(item.displayName)}
-                      </span>
-                      <div className="friends-person-copy">
-                        {item.blockedByMe ? (
-                          <p>{item.displayName}</p>
-                        ) : (
-                          <Link
-                            href={`/users/${encodeURIComponent(item.userId)}`}
-                          >
-                            {item.displayName}
-                          </Link>
-                        )}
-                        <small>
-                          {item.blockedByMe
-                            ? "Đã chặn"
-                            : relationDescription(item.status)}
-                        </small>
-                      </div>
-                      <RelationActions relation={item} />
-                    </article>
-                  ))}
-                </div>
-              )}
-              {list.hasNextPage ? (
-                <button
-                  className="friends-load-more"
-                  disabled={list.isFetchingNextPage}
-                  onClick={() => void list.fetchNextPage()}
-                >
-                  {list.isFetchingNextPage ? "Đang tải…" : "Xem thêm"}
-                </button>
-              ) : null}
-            </section>
+                        <span className="friends-avatar" aria-hidden="true">
+                          {initials(item.displayName)}
+                        </span>
+                        <div className="friends-person-copy">
+                          {item.blockedByMe ? (
+                            <p>{item.displayName}</p>
+                          ) : (
+                            <Link
+                              href={`/users/${encodeURIComponent(item.userId)}`}
+                            >
+                              {item.displayName}
+                            </Link>
+                          )}
+                          <small>
+                            {item.blockedByMe
+                              ? "Đã chặn"
+                              : relationDescription(item.status)}
+                          </small>
+                        </div>
+                        <RelationActions relation={item} />
+                      </article>
+                    ))}
+                  </div>
+                )}
+                {list.hasNextPage ? (
+                  <button
+                    className="friends-load-more"
+                    disabled={list.isFetchingNextPage}
+                    onClick={() => void list.fetchNextPage()}
+                  >
+                    {list.isFetchingNextPage ? "Đang tải…" : "Xem thêm"}
+                  </button>
+                ) : null}
+              </section>
+            )}
           </div>
 
-          <aside className="friends-safety-column">
-            <section className="friends-trust-card">
-              <ShieldCheck aria-hidden="true" size={30} />
-              <div>
-                <h2>Cùng xây dựng hành trình an toàn hơn</h2>
-                <p>
-                  Kết nối với những người bạn tin tưởng để chia sẻ lịch trình,
-                  dễ dàng rủ nhau đi chung và luôn an tâm trên mọi hành trình.
-                </p>
-              </div>
-              <span aria-hidden="true">
-                <Users size={26} />
-                <CarFront size={34} />
-              </span>
-            </section>
-            <section className="friends-tips-card">
-              <h2>
-                <Lightbulb aria-hidden="true" size={21} /> Mẹo kết nối an toàn
-              </h2>
-              <SafetyTip
-                icon={Search}
-                title="Tìm kiếm bằng tên thật"
-                description="Dễ kết nối đúng người quen của bạn."
-              />
-              <SafetyTip
-                icon={Users}
-                title="Chỉ kết bạn với người bạn tin tưởng"
-                description="Giữ hành trình của bạn an toàn hơn."
-              />
-              <SafetyTip
-                icon={Ban}
-                title="Dễ dàng quản lý danh sách bạn bè"
-                description="Bạn có thể chặn hoặc hủy kết bạn bất cứ lúc nào."
-              />
-            </section>
-          </aside>
+          {tab !== "messages" && tab !== "friends" ? (
+            <aside className="friends-safety-column">
+              <section className="friends-trust-card">
+                <ShieldCheck aria-hidden="true" size={30} />
+                <div>
+                  <h2>Cùng xây dựng hành trình an toàn hơn</h2>
+                  <p>
+                    Kết nối với những người bạn tin tưởng để chia sẻ lịch trình,
+                    dễ dàng rủ nhau đi chung và luôn an tâm trên mọi hành trình.
+                  </p>
+                </div>
+                <span aria-hidden="true">
+                  <Users size={26} />
+                  <CarFront size={34} />
+                </span>
+              </section>
+              <section className="friends-tips-card">
+                <h2>
+                  <Lightbulb aria-hidden="true" size={21} /> Mẹo kết nối an toàn
+                </h2>
+                <SafetyTip
+                  icon={Search}
+                  title="Tìm kiếm bằng tên thật"
+                  description="Dễ kết nối đúng người quen của bạn."
+                />
+                <SafetyTip
+                  icon={Users}
+                  title="Chỉ kết bạn với người bạn tin tưởng"
+                  description="Giữ hành trình của bạn an toàn hơn."
+                />
+                <SafetyTip
+                  icon={Ban}
+                  title="Dễ dàng quản lý danh sách bạn bè"
+                  description="Bạn có thể chặn hoặc hủy kết bạn bất cứ lúc nào."
+                />
+              </section>
+            </aside>
+          ) : null}
         </div>
       </section>
     </main>

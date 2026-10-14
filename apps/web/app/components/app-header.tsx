@@ -71,6 +71,8 @@ export function AppHeader({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isFriendsSection =
+    pathname.startsWith("/friends") || pathname.startsWith("/inbox");
   const client = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -204,8 +206,8 @@ export function AppHeader({
           </Link>
           <Link
             href="/friends"
-            className={pathname.startsWith("/friends") ? "nav-link-active" : ""}
-            aria-current={pathname.startsWith("/friends") ? "page" : undefined}
+            className={isFriendsSection ? "nav-link-active" : ""}
+            aria-current={isFriendsSection ? "page" : undefined}
             onClick={() => setMenuOpen(false)}
           >
             Bạn bè

@@ -31,6 +31,9 @@ test("accept invitation, revoke friendship, and manage own block", async ({
   await page.route("**/api/v1/social/revision", (route) =>
     route.fulfill({ json: { revision: current.version } }),
   );
+  await page.route("**/api/v1/conversations", (route) =>
+    route.fulfill({ json: [] }),
+  );
   await page.route("**/api/v1/friendships**", async (route) => {
     const request = route.request();
     if (request.method() !== "GET") {
@@ -79,6 +82,20 @@ test("accept invitation, revoke friendship, and manage own block", async ({
     });
   });
   await page.goto("/friends");
+  await expect(
+    page.getByRole("heading", { name: "Bạn bè", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Tin nhắn", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByText("Chưa có cuộc trò chuyện", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation", { name: "Điều hướng chính" })
+      .getByRole("link", { name: "Bạn bè", exact: true }),
+  ).toHaveAttribute("href", "/friends");
   await page.getByRole("button", { name: "Lời mời đến", exact: true }).click();
   await expect(page.getByText("Bạn thử nghiệm", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Chấp nhận", exact: true }).click();
@@ -102,6 +119,11 @@ test("accept invitation, revoke friendship, and manage own block", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Bỏ chặn", exact: true }).click();
   await expect(page.getByText("Chưa có mục nào trong đã chặn.")).toBeVisible();
+  await page.getByRole("button", { name: "Tin nhắn", exact: true }).click();
+  await expect(
+    page.getByText("Chưa có cuộc trò chuyện", { exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/friends$/);
 });
 
 test("remote revision removes a profile already on screen", async ({
