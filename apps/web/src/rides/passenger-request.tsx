@@ -8,7 +8,19 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock3, MapPin, Search, Send, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  Check,
+  ChevronRight,
+  Clock3,
+  Flag,
+  Info,
+  MapPin,
+  Route,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
 import { MemberAvatar } from "../../app/components/member-avatar";
 import { authApi } from "../auth/api";
 import { rideApi } from "./api";
@@ -26,36 +38,138 @@ const formatTime = (value: string) =>
   }).format(new Date(value));
 
 export function PickupSummary({ check }: { check: PickupCheck }) {
+  const [open, setOpen] = useState(false);
+  const [renderedAt] = useState(() => Date.now());
+  const extraDistance = new Intl.NumberFormat("vi-VN", {
+    maximumFractionDigits: 1,
+  }).format(check.extraMeters / 1000);
+  const extraMinutes = Math.ceil(check.extraSeconds / 60);
+  const title = check.compatible
+    ? "Tiện đường"
+    : check.reason === "PICKUP_TOO_LATE"
+      ? "Không phù hợp giờ đón"
+      : "Vượt mức ghé đón";
+  const expired = new Date(check.expiresAt).getTime() <= renderedAt;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [open]);
+
   return (
-    <div
-      className={`pickup-summary ${check.compatible ? "is-compatible" : "is-incompatible"}`}
-      role="status"
-    >
-      <strong>
-        {check.compatible
-          ? "Tiện đường"
-          : check.reason === "PICKUP_TOO_LATE"
-            ? "Không phù hợp giờ đón"
-            : "Vượt mức ghé đón"}
-      </strong>
-      <span>Điểm đón: {check.pickup.displayLabel}</span>
-      <span>Điểm đến chung: {check.destinationLabel}</span>
-      <span>
-        Phát sinh{" "}
-        {new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(
-          check.extraMeters / 1000,
-        )}{" "}
-        km · {Math.ceil(check.extraSeconds / 60)} phút
-      </span>
-      <span>
-        Giới hạn người chở: {check.maxExtraMeters / 1000} km ·{" "}
-        {check.maxExtraSeconds / 60} phút
-      </span>
-      <span>
-        Dự kiến đón {formatTime(check.pickupAt)} · đến nơi{" "}
-        {formatTime(check.arrivalAt)}
-      </span>
-    </div>
+    <>
+      <button
+        className={`pickup-summary ${check.compatible ? "is-compatible" : "is-incompatible"}`}
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        <MapPin size={25} aria-hidden="true" />
+        <span className="pickup-summary-copy">
+          <span className="pickup-summary-title">
+            <strong>{title}</strong>
+            <small>
+              +{extraDistance} km · {extraMinutes} phút
+            </small>
+          </span>
+          <span className="pickup-summary-address">
+            <Flag size={15} aria-hidden="true" />
+            Đón: {check.pickup.displayLabel}
+          </span>
+          <span className="pickup-summary-address">
+            <Flag size={15} aria-hidden="true" />
+            Đến: {check.destinationLabel}
+          </span>
+        </span>
+        <ChevronRight
+          className="pickup-summary-chevron"
+          size={20}
+          aria-hidden="true"
+        />
+      </button>
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="pickup-detail-modal"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setOpen(false);
+              }}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pickup-detail-title"
+              >
+                <button
+                  className="pickup-detail-close"
+                  type="button"
+                  aria-label="Đóng chi tiết tiện đường"
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={24} aria-hidden="true" />
+                </button>
+                <h2 id="pickup-detail-title">Chi tiết tiện đường</h2>
+                <p>
+                  Thông tin chi tiết về lộ trình và điểm đón/trả của người đi
+                  ké.
+                </p>
+                <div className="pickup-detail-list">
+                  <div>
+                    <MapPin aria-hidden="true" />
+                    <span>
+                      <strong>Điểm đón</strong>
+                      {check.pickup.displayLabel}
+                    </span>
+                  </div>
+                  <div>
+                    <Flag aria-hidden="true" />
+                    <span>
+                      <strong>Điểm đến chung</strong>
+                      {check.destinationLabel}
+                    </span>
+                  </div>
+                  <div>
+                    <Route aria-hidden="true" />
+                    <span>
+                      <strong>Giới hạn người chở</strong>
+                      {check.maxExtraMeters / 1000} km ·{" "}
+                      {check.maxExtraSeconds / 60} phút
+                    </span>
+                  </div>
+                  <div>
+                    <Clock3 aria-hidden="true" />
+                    <span>
+                      <strong>Dự kiến đón</strong>
+                      {formatTime(check.pickupAt)}
+                    </span>
+                  </div>
+                  <div>
+                    <Flag aria-hidden="true" />
+                    <span>
+                      <strong>Dự kiến tới nơi</strong>
+                      {formatTime(check.arrivalAt)}
+                    </span>
+                  </div>
+                </div>
+                <div className="pickup-detail-note">
+                  <Info size={20} aria-hidden="true" />
+                  <span>
+                    {expired
+                      ? "Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm tra lại để bạn xác nhận."
+                      : `Kiểm tra điểm đón có hiệu lực đến ${formatTime(check.expiresAt)}.`}
+                  </span>
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 

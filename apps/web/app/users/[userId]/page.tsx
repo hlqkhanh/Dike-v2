@@ -28,7 +28,9 @@ export default function UserProfilePage({
     mutationFn: () => journeyApi.direct(userId),
     onMutate: () => setMessageError(""),
     onSuccess: (conversation) =>
-      router.push(`/inbox/${encodeURIComponent(conversation.id)}`),
+      router.push(
+        `/friends?conversation=${encodeURIComponent(conversation.id)}`,
+      ),
     onError: (error) => setMessageError(error.message),
   });
   return (

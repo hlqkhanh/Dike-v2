@@ -383,7 +383,7 @@ export function PostDetail({ id }: { id: string }) {
                       >
                         <Link
                           className="feed-response-requester"
-                          href={`/users/${encodeURIComponent(item.requesterId)}`}
+                          href={`/profile/${encodeURIComponent(item.requesterId)}`}
                           aria-label={`Xem hồ sơ của ${item.requesterDisplayName}`}
                         >
                           <span
@@ -414,6 +414,10 @@ export function PostDetail({ id }: { id: string }) {
                             </time>
                           </span>
                         </Link>
+
+                        {item.pickupCheck ? (
+                          <PickupSummary check={item.pickupCheck} />
+                        ) : null}
 
                         <div className="feed-response-request-message">
                           <span>
@@ -490,18 +494,6 @@ export function PostDetail({ id }: { id: string }) {
                             </div>
                           ) : item.status === "ACCEPTED" ? (
                             <small>Đã trở thành người đồng hành của bạn.</small>
-                          ) : null}
-                          {item.pickupCheck ? (
-                            <PickupSummary check={item.pickupCheck} />
-                          ) : null}
-                          {item.status === "PENDING" &&
-                          item.pickupCheck &&
-                          new Date(item.pickupCheck.expiresAt).getTime() <=
-                            now ? (
-                            <small>
-                              Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm
-                              tra lại để bạn xác nhận.
-                            </small>
                           ) : null}
                         </div>
                       </article>
