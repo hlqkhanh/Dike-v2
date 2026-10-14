@@ -131,15 +131,25 @@ public class ProfileService {
     String provinceName = safeProvinceCode.isEmpty() ? "" : VIETNAM_PROVINCES.get(safeProvinceCode);
     if (!safeProvinceCode.isEmpty() && provinceName == null) throw new InvalidProfileException();
     String safeLocalityCode = optional(localityCode, 80);
-    if (safeProvinceCode.isEmpty() && !safeLocalityCode.isEmpty()) throw new InvalidProfileException();
+    if (safeProvinceCode.isEmpty() && !safeLocalityCode.isEmpty())
+      throw new InvalidProfileException();
     String safeLocalityName = safeLocalityCode.isEmpty() ? "" : optional(localityName, 160);
-    if (!safeLocalityCode.isEmpty() && safeLocalityName.isEmpty()) throw new InvalidProfileException();
+    if (!safeLocalityCode.isEmpty() && safeLocalityName.isEmpty())
+      throw new InvalidProfileException();
     String safeFacebookUrl = validateFacebookUrl(facebookUrl);
     requireProfile(userId);
     return store
         .updateProfile(
-            userId, expectedVersion, safeName, normalizeName(safeName), safeBio,
-            safeBirthDate, safeProvinceCode, provinceName, safeLocalityCode, safeLocalityName,
+            userId,
+            expectedVersion,
+            safeName,
+            normalizeName(safeName),
+            safeBio,
+            safeBirthDate,
+            safeProvinceCode,
+            provinceName,
+            safeLocalityCode,
+            safeLocalityName,
             safeFacebookUrl,
             clock.instant())
         .orElseThrow(VersionConflictException::new);
@@ -176,8 +186,21 @@ public class ProfileService {
     String name = validateDisplayName(account.displayName());
     return store.saveInitialProfile(
         new UserProfile(
-            userId, name, normalizeName(name), "", null, "", "", "", "", "", null,
-            account.avatarUrl(), now, now, 0));
+            userId,
+            name,
+            normalizeName(name),
+            "",
+            null,
+            "",
+            "",
+            "",
+            "",
+            "",
+            null,
+            account.avatarUrl(),
+            now,
+            now,
+            0));
   }
 
   private UserPrivacySettings initializePrivacy(String userId) {
@@ -232,7 +255,8 @@ public class ProfileService {
 
   private static String optional(String value, int maxLength) {
     String clean = value == null ? "" : value.strip();
-    if (clean.length() > maxLength || containsUnsafeControl(clean)) throw new InvalidProfileException();
+    if (clean.length() > maxLength || containsUnsafeControl(clean))
+      throw new InvalidProfileException();
     return clean;
   }
 
@@ -244,7 +268,8 @@ public class ProfileService {
       String host = uri.getHost();
       if (!"https".equalsIgnoreCase(uri.getScheme())
           || host == null
-          || !(host.equalsIgnoreCase("facebook.com") || host.toLowerCase(Locale.ROOT).endsWith(".facebook.com"))) {
+          || !(host.equalsIgnoreCase("facebook.com")
+              || host.toLowerCase(Locale.ROOT).endsWith(".facebook.com"))) {
         throw new InvalidProfileException();
       }
       return uri.toString();
@@ -252,7 +277,6 @@ public class ProfileService {
       throw new InvalidProfileException();
     }
   }
-
 
   private static boolean containsUnsafeControl(String value) {
     return value

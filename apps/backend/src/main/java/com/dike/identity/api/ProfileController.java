@@ -74,8 +74,14 @@ public class ProfileController {
     try {
       var updated =
           profiles.updateProfile(
-              principal.userId(), body.displayName(), body.bio(), body.dateOfBirth(),
-              body.provinceCode(), body.localityCode(), body.localityName(), body.facebookUrl(),
+              principal.userId(),
+              body.displayName(),
+              body.bio(),
+              body.dateOfBirth(),
+              body.provinceCode(),
+              body.localityCode(),
+              body.localityName(),
+              body.facebookUrl(),
               body.expectedVersion());
       return MyProfileResponse.from(updated, profiles.me(principal.userId()).account());
     } catch (ProfileService.VersionConflictException exception) {
