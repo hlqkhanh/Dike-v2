@@ -4422,6 +4422,7 @@
         "properties": {
           "id": { "type": "string" },
           "ownerId": { "type": "string" },
+          "ownerDisplayName": { "type": "string" },
           "type": { "type": "string" },
           "status": { "type": "string" },
           "visibility": { "type": "string" },
@@ -4435,7 +4436,8 @@
           "version": { "type": "integer", "format": "int64" },
           "termsVersion": { "type": "integer", "format": "int64" },
           "remainingSeats": { "type": "integer", "format": "int32" },
-          "contributionPerKm": { "type": "integer", "format": "int64" }
+          "contributionPerKm": { "type": "integer", "format": "int64" },
+          "pendingResponseCount": { "type": "integer", "format": "int64" }
         }
       },
       "PostSourceCreate": {
