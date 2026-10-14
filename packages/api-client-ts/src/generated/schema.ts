@@ -668,6 +668,11 @@ export type RidePostEdit = {
 export type UpdateProfile = {
   displayName: string;
   bio?: string;
+  dateOfBirth?: string;
+  provinceCode?: string;
+  localityCode?: string;
+  localityName?: string;
+  facebookUrl?: string;
   expectedVersion?: number;
 };
 
@@ -675,6 +680,14 @@ export type MyProfileResponse = {
   userId: string;
   displayName: string;
   bio: string;
+  dateOfBirth: string;
+  provinceCode: string;
+  provinceName: string;
+  localityCode: string;
+  localityName: string;
+  facebookUrl: string;
+  contactPhone: string;
+  contactEmail: string;
   avatarUrl: string;
   version: number;
   updatedAt: string;

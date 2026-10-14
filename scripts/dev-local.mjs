@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { createServer } from "node:net";
+import { createConnection, createServer } from "node:net";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
@@ -12,13 +12,35 @@ const windows = process.platform === "win32";
 const wrapper = windows ? ".\\mvnw.cmd" : "./mvnw";
 const children = [];
 
-const run = (command, args) => {
+const run = (label, command, args, timeout = 10 * 60_000) => {
+  process.stdout.write(`[setup] ${label}...\n`);
   const result = spawnSync(command, args, {
     shell: windows,
     stdio: "inherit",
+    timeout,
   });
+  if (result.error?.code === "ETIMEDOUT") {
+    throw new Error(
+      `${label} không phản hồi sau ${Math.round(timeout / 1000)} giây.`,
+    );
+  }
+  if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+  process.stdout.write(`[setup] ${label} hoàn tất.\n`);
 };
+
+const isPortOpen = (port) =>
+  new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const finish = (value) => {
+      socket.destroy();
+      resolve(value);
+    };
+    socket.setTimeout(1_000);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
 
 const assertPortFree = async (port) => {
   await new Promise((resolve, reject) => {
@@ -77,19 +99,40 @@ process.once("SIGTERM", () => {
 });
 process.once("exit", stop);
 
-run("docker", ["version"]);
+const infrastructurePorts = [27017, 6379, 9000];
+const infrastructureReady = (
+  await Promise.all(infrastructurePorts.map(isPortOpen))
+).every(Boolean);
+if (infrastructureReady) {
+  process.stdout.write(
+    "[setup] MongoDB, Redis và MinIO đã chạy; tái sử dụng hạ tầng hiện có.\n",
+  );
+} else {
+  run("Kiểm tra Docker", "docker", ["version"], 15_000);
+}
+process.stdout.write("[setup] Kiểm tra cổng 3000 và 8080...\n");
 await Promise.all([3000, 8080].map(assertPortFree));
-run("docker", [
-  "compose",
-  "-p",
-  "dike",
-  "-f",
-  "infra/docker-compose.yml",
-  "up",
-  "-d",
-  "--wait",
-]);
-run(wrapper, [
+process.stdout.write("[setup] Các cổng ứng dụng đang trống.\n");
+if (!infrastructureReady) {
+  run(
+    "Khởi động MongoDB, Redis và MinIO",
+    "docker",
+    [
+      "compose",
+      "-p",
+      "dike",
+      "-f",
+      "infra/docker-compose.yml",
+      "up",
+      "-d",
+      "--wait",
+      "--wait-timeout",
+      "120",
+    ],
+    150_000,
+  );
+}
+run("Build backend", wrapper, [
   "-B",
   "-ntp",
   "-pl",
@@ -100,6 +143,7 @@ run(wrapper, [
 ]);
 
 const jar = "apps/backend/target/dike-backend-0.0.1-SNAPSHOT.jar";
+process.stdout.write("[setup] Khởi động backend và web...\n");
 start("backend", "java", ["-jar", jar], {
   SPRING_PROFILES_ACTIVE: "local,combined",
   DIKE_ROUTING_ALLOW_UNVERIFIED_MEMBERS: "true",

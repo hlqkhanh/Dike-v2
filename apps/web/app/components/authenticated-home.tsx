@@ -110,12 +110,21 @@ export function AuthenticatedHome({
         aria-label="Trang chủ Diké"
         onScroll={(event) => {
           const scrollArea = event.currentTarget;
-          const progress = Math.min(1, Math.max(0, scrollArea.scrollTop / 180));
+          const y = scrollArea.scrollTop;
+          const progress = Math.min(1, Math.max(0, y / 180));
+          const fly = Math.min(1, Math.max(0, (y - 35) / 145));
+          const fadeProgress = Math.min(1, Math.max(0, (y - 100) / 80));
+          const fade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
           scrollArea.style.setProperty(
             "--home-cards-progress",
             String(progress),
           );
-          setFeedScrolled(scrollArea.scrollTop > 30);
+          scrollArea.style.setProperty("--home-cards-fly", String(fly));
+          scrollArea.style.setProperty(
+            "--home-cards-opacity",
+            String(1 - fade),
+          );
+          setFeedScrolled(y > 30);
           setCardsHidden(progress === 1);
         }}
       >

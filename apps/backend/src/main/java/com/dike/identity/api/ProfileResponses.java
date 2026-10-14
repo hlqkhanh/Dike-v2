@@ -6,7 +6,9 @@ import com.dike.identity.domain.AccountDeletionRequest;
 import com.dike.identity.domain.ConsentReceipt;
 import com.dike.identity.domain.UserPrivacySettings;
 import com.dike.identity.domain.UserProfile;
+import com.dike.identity.domain.UserAccount;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class ProfileResponses {
@@ -16,14 +18,30 @@ public final class ProfileResponses {
       String userId,
       String displayName,
       String bio,
+      LocalDate dateOfBirth,
+      String provinceCode,
+      String provinceName,
+      String localityCode,
+      String localityName,
+      String facebookUrl,
+      String contactPhone,
+      String contactEmail,
       String avatarUrl,
       long version,
       Instant updatedAt) {
-    static MyProfileResponse from(UserProfile profile) {
+    static MyProfileResponse from(UserProfile profile, UserAccount account) {
       return new MyProfileResponse(
           profile.userId(),
           profile.displayName(),
           profile.bio(),
+          profile.dateOfBirth(),
+          profile.provinceCode(),
+          profile.provinceName(),
+          profile.localityCode(),
+          profile.localityName(),
+          profile.facebookUrl(),
+          account.phoneE164(),
+          account.canonicalEmail(),
           profile.avatarPublicUrl(),
           profile.version(),
           profile.updatedAt());

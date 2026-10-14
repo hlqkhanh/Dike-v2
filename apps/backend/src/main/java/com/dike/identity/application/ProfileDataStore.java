@@ -9,6 +9,7 @@ import com.dike.identity.domain.FileState;
 import com.dike.identity.domain.UserPrivacySettings;
 import com.dike.identity.domain.UserProfile;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,12 @@ public interface ProfileDataStore {
       String displayName,
       String normalizedName,
       String bio,
+      LocalDate dateOfBirth,
+      String provinceCode,
+      String provinceName,
+      String localityCode,
+      String localityName,
+      String facebookUrl,
       Instant now);
 
   Optional<UserPrivacySettings> updatePrivacy(

@@ -64,16 +64,20 @@ public class ProfileController {
   @GetMapping("/me/profile")
   @Operation(operationId = "getMyProfile")
   MyProfileResponse me(@AuthenticationPrincipal DikePrincipal principal) {
-    return MyProfileResponse.from(profiles.me(principal.userId()).profile());
+    var bundle = profiles.me(principal.userId());
+    return MyProfileResponse.from(bundle.profile(), bundle.account());
   }
 
   @PatchMapping("/me/profile")
   MyProfileResponse updateProfile(
       @AuthenticationPrincipal DikePrincipal principal, @Valid @RequestBody UpdateProfile body) {
     try {
-      return MyProfileResponse.from(
+      var updated =
           profiles.updateProfile(
-              principal.userId(), body.displayName(), body.bio(), body.expectedVersion()));
+              principal.userId(), body.displayName(), body.bio(), body.dateOfBirth(),
+              body.provinceCode(), body.localityCode(), body.localityName(), body.facebookUrl(),
+              body.expectedVersion());
+      return MyProfileResponse.from(updated, profiles.me(principal.userId()).account());
     } catch (ProfileService.VersionConflictException exception) {
       throw new ApiException(
           HttpStatus.CONFLICT, "PROFILE_VERSION_CONFLICT", "Hồ sơ đã thay đổi, vui lòng tải lại");

@@ -23,6 +23,7 @@ export default function PhoneOnboardingPage() {
   const [challenge, setChallenge] = useState<OtpChallenge>();
   const [code, setCode] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [returnTo, setReturnTo] = useState("/home");
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
@@ -49,7 +50,8 @@ export default function PhoneOnboardingPage() {
     },
     onSuccess: async (result) => {
       if ("session" in result) {
-        await router.replace("/feed");
+        await queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+        await router.replace(returnTo);
         return;
       }
       setChallenge(result.challenge);
@@ -87,7 +89,8 @@ export default function PhoneOnboardingPage() {
       authApi.verifyOtp(challenge!.challengeId, code, crypto.randomUUID()),
     onSuccess: async (updated) => {
       queryClient.setQueryData(["auth", "session"], updated);
-      await router.replace("/home");
+      await queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+      await router.replace(returnTo);
     },
   });
   useAuthFailure(submit.error);
@@ -96,10 +99,16 @@ export default function PhoneOnboardingPage() {
   useAuthFailure(cancel.error);
 
   useEffect(() => {
-    const challengeId = new URLSearchParams(window.location.search).get(
-      "challenge",
-    );
+    const params = new URLSearchParams(window.location.search);
+    const challengeId = params.get("challenge");
+    const requestedReturnTo = params.get("returnTo");
     const restore = window.setTimeout(() => {
+      if (
+        requestedReturnTo?.startsWith("/") &&
+        !requestedReturnTo.startsWith("//")
+      ) {
+        setReturnTo(requestedReturnTo);
+      }
       if (!challengeId) return;
       const current = new Date().toISOString();
       setChallenge({

@@ -97,7 +97,11 @@ describe("profile and file API", () => {
     vi.stubGlobal("fetch", fetchMock);
     const api = createProfileApi({ baseUrl: "/api/v1" });
 
-    await api.updateProfile("Nguyễn An", "", 1);
+    await api.updateProfile({
+      displayName: "Nguyễn An",
+      bio: "",
+      expectedVersion: 1,
+    });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/me/profile");
