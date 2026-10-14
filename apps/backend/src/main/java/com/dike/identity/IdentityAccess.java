@@ -30,6 +30,10 @@ public class IdentityAccess {
         .orElse("Thành viên Diké");
   }
 
+  public String avatarUrl(String userId) {
+    return profiles.findProfile(userId).map(profile -> profile.avatarPublicUrl()).orElse(null);
+  }
+
   public Access require(String userId) {
     var account = accounts.require(userId);
     return new Access(

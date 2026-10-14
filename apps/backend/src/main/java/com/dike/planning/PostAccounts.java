@@ -7,5 +7,7 @@ public interface PostAccounts {
 
   String displayName(String userId);
 
+  String avatarUrl(String userId);
+
   void fence(String userId);
 }

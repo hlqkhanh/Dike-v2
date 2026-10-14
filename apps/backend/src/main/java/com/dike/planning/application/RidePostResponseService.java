@@ -2,6 +2,7 @@ package com.dike.planning.application;
 
 import com.dike.messaging.ConfirmedConversationPublisher;
 import com.dike.messaging.NotificationPublisher;
+import com.dike.planning.PostAccounts;
 import com.dike.shared.api.ApiException;
 import java.time.Clock;
 import java.time.Instant;
@@ -24,6 +25,7 @@ public class RidePostResponseService {
   private final PostService posts;
   private final NotificationPublisher notifications;
   private final ConfirmedConversationPublisher conversations;
+  private final PostAccounts accounts;
   private final Clock clock;
 
   public RidePostResponseService(
@@ -31,11 +33,13 @@ public class RidePostResponseService {
       PostService posts,
       NotificationPublisher notifications,
       ConfirmedConversationPublisher conversations,
+      PostAccounts accounts,
       Clock clock) {
     this.mongo = mongo;
     this.posts = posts;
     this.notifications = notifications;
     this.conversations = conversations;
+    this.accounts = accounts;
     this.clock = clock;
   }
 
@@ -43,6 +47,8 @@ public class RidePostResponseService {
       String id,
       String postId,
       String requesterId,
+      String requesterDisplayName,
+      String requesterAvatarUrl,
       String ownerId,
       String action,
       String status,
@@ -184,6 +190,8 @@ public class RidePostResponseService {
         value.getString("_id"),
         value.getString("postId"),
         value.getString("requesterId"),
+        accounts.displayName(value.getString("requesterId")),
+        accounts.avatarUrl(value.getString("requesterId")),
         value.getString("ownerId"),
         value.getString("action"),
         value.getString("status"),
