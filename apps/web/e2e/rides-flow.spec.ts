@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page, context, baseURL }) => {
+  // These browser tests use mocked APIs; never fall through to a local backend.
+  await page.route("**/api/v1/**", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "E2E_API_NOT_MOCKED" } },
+    }),
+  );
+  await page.route("**/api/v1/notifications", (route) =>
+    route.fulfill({ json: [] }),
+  );
   await context.addCookies([
     { name: "XSRF-TOKEN", value: "csrf-rides", url: baseURL! },
   ]);
@@ -287,6 +297,7 @@ test("confirms an offer to carry before sending it to the post owner", async ({
   await expect(
     page.getByRole("dialog").getByText(post.originLabel),
   ).toBeVisible();
+
   await page.getByRole("button", { name: "Gửi yêu cầu" }).click();
   await expect(page.getByText("Đang chờ người đăng xác nhận")).toBeVisible();
 });
