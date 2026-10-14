@@ -162,8 +162,7 @@ public class DemoDataService implements ApplicationRunner {
 
   private void seedPlanning(String actor, Instant now) {
     LocalDate today = LocalDate.now(clock.withZone(VIETNAM));
-    Document home =
-        place("Nhà riêng · Hà Đông, Hà Nội", "Hà Đông, Hà Nội", 105.7765, 20.9806, now);
+    Document home = place("Nhà riêng · Hà Đông, Hà Nội", "Hà Đông, Hà Nội", 105.7765, 20.9806, now);
     Document office =
         place(
             "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội",

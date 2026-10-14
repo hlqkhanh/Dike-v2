@@ -195,7 +195,8 @@ public class RidePostResponseService {
   }
 
   private static ApiException missing() {
-    return new ApiException(HttpStatus.NOT_FOUND, "POST_RESPONSE_NOT_FOUND", "Không tìm thấy yêu cầu");
+    return new ApiException(
+        HttpStatus.NOT_FOUND, "POST_RESPONSE_NOT_FOUND", "Không tìm thấy yêu cầu");
   }
 
   private static ApiException changed() {

@@ -19,7 +19,8 @@ public class RidePostResponseMigration implements MongoMigration {
   }
 
   public void apply(MongoTemplate mongo) {
-    if (!mongo.collectionExists("ride_post_responses")) mongo.createCollection("ride_post_responses");
+    if (!mongo.collectionExists("ride_post_responses"))
+      mongo.createCollection("ride_post_responses");
     mongo
         .indexOps("ride_post_responses")
         .ensureIndex(new Index().on("ownerId", Direction.ASC).on("createdAt", Direction.DESC));
