@@ -9,6 +9,7 @@ if (apiOrigin.pathname !== "/" || apiOrigin.search || apiOrigin.hash) {
 }
 
 const nextConfig: NextConfig = {
+  distDir: process.env.DIKE_WEB_DIST_DIR ?? ".next",
   reactStrictMode: true,
   transpilePackages: [
     "@dike/api-client-ts",

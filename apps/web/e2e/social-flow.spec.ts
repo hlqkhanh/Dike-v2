@@ -91,11 +91,17 @@ test("accept invitation, revoke friendship, and manage own block", async ({
   await expect(
     page.getByText("Chưa có cuộc trò chuyện", { exact: true }),
   ).toBeVisible();
+  const mobileNavigation = page.getByRole("button", {
+    name: "Mở điều hướng",
+    exact: true,
+  });
+  if (await mobileNavigation.isVisible()) await mobileNavigation.click();
   await expect(
     page
       .getByRole("navigation", { name: "Điều hướng chính" })
       .getByRole("link", { name: "Bạn bè", exact: true }),
   ).toHaveAttribute("href", "/friends");
+  if (await mobileNavigation.isVisible()) await mobileNavigation.click();
   await page.getByRole("button", { name: "Lời mời đến", exact: true }).click();
   await expect(page.getByText("Bạn thử nghiệm", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Chấp nhận", exact: true }).click();

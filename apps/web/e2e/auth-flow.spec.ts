@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/**", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "E2E_API_NOT_MOCKED" } },
+    }),
+  );
   await page.route("**/api/v1/auth/session", (route) =>
     route.fulfill({ json: session }),
   );
@@ -126,7 +132,7 @@ test("auth completion routes a new user through phone onboarding", async ({
   );
   await page.getByLabel("Số điện thoại Việt Nam").fill("0901 234 567");
   await page.getByRole("button", { name: "Tiếp tục" }).click();
-  await expect(page).toHaveURL("http://127.0.0.1:3100/feed");
+  await expect(page).toHaveURL("http://127.0.0.1:3100/home");
   expect(otpRequested).toBe(false);
 });
 
@@ -247,10 +253,10 @@ test("member edits profile and privacy through generated-client adapters", async
     });
   });
 
-  await page.goto("/profile?tab=settings");
+  await page.goto("/me/profile");
   await page.getByLabel("Tên hiển thị").fill("Nguyễn An");
   await page.getByLabel("Giới thiệu").fill("Đi cùng tuyến mỗi ngày.");
-  await page.getByRole("button", { name: "Lưu hồ sơ" }).click();
+  await page.getByRole("button", { name: "Lưu thay đổi" }).click();
   await expect(page.getByLabel("Tên hiển thị")).toHaveValue("Nguyễn An");
 
   await page.goto("/settings/privacy");

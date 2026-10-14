@@ -16,6 +16,7 @@ google-oauth-local.json
 node_modules/
 .pnpm-store/
 .next/
+.next-e2e/
 out/
 dist/
 .turbo/
