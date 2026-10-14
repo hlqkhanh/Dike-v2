@@ -10,7 +10,7 @@ import { PageHeader } from "../components/app-ui";
 
 const sections = [
   {
-    href: "/me/profile",
+    href: "/profile",
     title: "Hồ sơ cá nhân",
     description: "Tên hiển thị, ảnh đại diện và giới thiệu.",
     icon: UserRound,

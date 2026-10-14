@@ -43,7 +43,7 @@ export function AuthNavigation() {
       <Link href="/availability">Tìm chuyến</Link>
       <Link href="/inbox">Tin nhắn</Link>
       <Link href="/notifications">Thông báo</Link>
-      <Link href="/me/profile">{session.data.user.displayName}</Link>
+      <Link href="/profile">{session.data.user.displayName}</Link>
       <Link href="/settings/privacy">Riêng tư</Link>
       <Link href="/account/sessions">Thiết bị</Link>
       <button

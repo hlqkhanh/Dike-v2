@@ -18,4 +18,6 @@ public interface PostStore {
   void saveFor(String viewer, String post, boolean saved);
 
   List<String> saved(String viewer, String after, int limit);
+
+  long pendingResponseCount(String postId);
 }

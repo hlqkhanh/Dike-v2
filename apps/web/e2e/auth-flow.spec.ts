@@ -247,7 +247,7 @@ test("member edits profile and privacy through generated-client adapters", async
     });
   });
 
-  await page.goto("/me/profile");
+  await page.goto("/profile?tab=settings");
   await page.getByLabel("Tên hiển thị").fill("Nguyễn An");
   await page.getByLabel("Giới thiệu").fill("Đi cùng tuyến mỗi ngày.");
   await page.getByRole("button", { name: "Lưu hồ sơ" }).click();

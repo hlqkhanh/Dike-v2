@@ -162,10 +162,22 @@ public class DemoDataService implements ApplicationRunner {
 
   private void seedPlanning(String actor, Instant now) {
     LocalDate today = LocalDate.now(clock.withZone(VIETNAM));
-    Document home = place("Nhà riêng · Hà Đông", "Hà Đông, Hà Nội", 105.7765, 20.9806, now);
-    Document office = place("Keangnam Landmark 72", "Nam Từ Liêm, Hà Nội", 105.783, 21.0167, now);
+    Document home =
+        place("Nhà riêng · Hà Đông, Hà Nội", "Hà Đông, Hà Nội", 105.7765, 20.9806, now);
+    Document office =
+        place(
+            "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội",
+            "Nam Từ Liêm, Hà Nội",
+            105.783,
+            21.0167,
+            now);
     Document university =
-        place("Đại học Bách Khoa Hà Nội", "Hai Bà Trưng, Hà Nội", 105.8431, 21.0055, now);
+        place(
+            "Đại học Bách Khoa Hà Nội, Hai Bà Trưng, Hà Nội",
+            "Hai Bà Trưng, Hà Nội",
+            105.8431,
+            21.0055,
+            now);
 
     String scheduleId = id(actor, "schedule-work");
     mongo.save(
@@ -408,8 +420,8 @@ public class DemoDataService implements ApplicationRunner {
         .append("status", "OPEN")
         .append("visibility", "PUBLIC")
         .append("communityId", null)
-        .append("originLabel", origin.getString("publicAreaLabel"))
-        .append("destinationLabel", destination.getString("publicAreaLabel"))
+        .append("originLabel", origin.getString("displayLabel"))
+        .append("destinationLabel", destination.getString("displayLabel"))
         .append("vehicleType", vehicle)
         .append("routeId", null)
         .append("departureAt", date(departure))
@@ -433,8 +445,8 @@ public class DemoDataService implements ApplicationRunner {
             3,
             2,
             now.plus(Duration.ofHours(18)),
-            "Hà Đông, Hà Nội",
-            "Nam Từ Liêm, Hà Nội"),
+            "Nhà riêng · Hà Đông, Hà Nội",
+            "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội"),
         "trips");
     mongo.save(
         trip(
@@ -444,7 +456,7 @@ public class DemoDataService implements ApplicationRunner {
             1,
             0,
             now.plus(Duration.ofHours(4)),
-            "Hai Bà Trưng, Hà Nội",
+            "Đại học Bách Khoa Hà Nội, Hai Bà Trưng, Hà Nội",
             "Cầu Giấy, Hà Nội"),
         "trips");
     mongo.save(
@@ -455,8 +467,8 @@ public class DemoDataService implements ApplicationRunner {
             3,
             2,
             now.minus(Duration.ofDays(2)),
-            "Nam Từ Liêm, Hà Nội",
-            "Hà Đông, Hà Nội"),
+            "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội",
+            "Nhà riêng · Hà Đông, Hà Nội"),
         "trips");
 
     mongo.save(
@@ -467,8 +479,8 @@ public class DemoDataService implements ApplicationRunner {
             3,
             2,
             now.plus(Duration.ofDays(1)),
-            "Hai Ba Trung, Ha Noi",
-            "Ha Dong, Ha Noi"),
+            "Đại học Bách Khoa Hà Nội, Hai Bà Trưng, Hà Nội",
+            "Nhà riêng · Hà Đông, Hà Nội"),
         "trips");
     mongo.save(
         trip(
@@ -478,8 +490,8 @@ public class DemoDataService implements ApplicationRunner {
             2,
             1,
             now.plus(Duration.ofHours(4)),
-            "Ha Dong, Ha Noi",
-            "Nam Tu Liem, Ha Noi"),
+            "Nhà riêng · Hà Đông, Hà Nội",
+            "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội"),
         "trips");
 
     String incomingIntent = id(actor, "proposal-intent-incoming");

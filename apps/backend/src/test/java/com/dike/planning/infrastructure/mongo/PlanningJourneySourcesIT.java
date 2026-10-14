@@ -70,12 +70,12 @@ class PlanningJourneySourcesIT {
   }
 
   @Test
-  void sourceUsesServerRouteMetricsAndPublicLabels() {
+  void sourceUsesServerRouteMetricsAndDetailedLabels() {
     String id =
         commands.transaction(
             () -> sources.create("owner", "r", NOW.plusSeconds(3600), NOW.plusSeconds(6000)));
     var intent = sources.intent("owner", id).orElseThrow();
-    assertThat(intent.originLabel()).isEqualTo("Area A");
+    assertThat(intent.originLabel()).isEqualTo("Private A");
     assertThat(intent.latestDepartureAt()).isEqualTo(NOW.plusSeconds(4200));
     assertThat(sources.intent("other", id)).isEmpty();
   }

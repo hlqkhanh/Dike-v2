@@ -42,6 +42,7 @@ function notificationTarget(item: JourneyNotification) {
   if (item.data.proposalId)
     return `/proposals/${encodeURIComponent(item.data.proposalId)}`;
   if (item.data.tripId) return `/trips/${encodeURIComponent(item.data.tripId)}`;
+  if (item.data.postId) return `/feed/${encodeURIComponent(item.data.postId)}`;
   if (item.data.userId) return `/users/${encodeURIComponent(item.data.userId)}`;
   return undefined;
 }

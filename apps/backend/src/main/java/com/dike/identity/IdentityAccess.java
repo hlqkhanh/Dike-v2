@@ -22,6 +22,14 @@ public class IdentityAccess {
     return profiles.findPrivacy(userId).map(v -> v.allowMessageRequests()).orElse(true);
   }
 
+  public String displayName(String userId) {
+    return profiles
+        .findProfile(userId)
+        .map(profile -> profile.displayName())
+        .filter(name -> !name.isBlank())
+        .orElse("Thành viên Diké");
+  }
+
   public Access require(String userId) {
     var account = accounts.require(userId);
     return new Access(

@@ -1,7 +1,7 @@
 "use client";
 
 import type { AuthSessionResponse, RidePostView } from "@dike/api-client-ts";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
   CalendarDays,
@@ -10,6 +10,9 @@ import {
   Clock3,
   MapPin,
   Search,
+  Send,
+  Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -32,12 +35,23 @@ export function AuthenticatedHome({
   const [urlReady, setUrlReady] = useState(false);
   const [feedScrolled, setFeedScrolled] = useState(false);
   const [cardsHidden, setCardsHidden] = useState(false);
+  const [responsePost, setResponsePost] = useState<RidePostView | null>(null);
+  const [responseMessage, setResponseMessage] = useState("");
   const list = useInfiniteQuery({
     queryKey: ["feed", "latest"],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) => rideApi.feed("latest", pageParam),
     getNextPageParam: (last) => last.nextCursor || undefined,
     refetchInterval: 15_000,
+  });
+  const responseMutation = useMutation({
+    mutationFn: ({ postId, message }: { postId: string; message: string }) =>
+      rideApi.createPostResponse(postId, message),
+    onSuccess: () => {
+      setResponsePost(null);
+      setResponseMessage("");
+      void list.refetch();
+    },
   });
 
   useEffect(() => {
@@ -227,7 +241,16 @@ export function AuthenticatedHome({
             ) : (
               <div className="new-feed-grid">
                 {posts.map((post) => (
-                  <HomeRideCard key={post.id} post={post} />
+                  <HomeRideCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={session.user.id}
+                    onRespond={(selected) => {
+                      responseMutation.reset();
+                      setResponseMessage("");
+                      setResponsePost(selected);
+                    }}
+                  />
                 ))}
               </div>
             )}
@@ -248,25 +271,153 @@ export function AuthenticatedHome({
           <p>Chia sẻ một chỗ trống, thêm một hành trình xanh.</p>
         </footer>
       </main>
+      {responsePost ? (
+        <div
+          className="home-response-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !responseMutation.isPending
+            )
+              setResponsePost(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-response-title"
+          >
+            <button
+              className="home-response-close"
+              type="button"
+              aria-label="Đóng"
+              disabled={responseMutation.isPending}
+              onClick={() => setResponsePost(null)}
+            >
+              <X aria-hidden="true" size={24} />
+            </button>
+            <div className="home-response-heading">
+              <span aria-hidden="true">
+                <Send size={28} />
+              </span>
+              <div>
+                <h2 id="home-response-title">
+                  {responsePost.type === "OFFER_RIDE"
+                    ? "Gửi yêu cầu đi ké?"
+                    : "Gửi đề nghị chở?"}
+                </h2>
+              </div>
+            </div>
+            <p className="home-response-description">
+              Yêu cầu sẽ được gửi tới người đăng. Chỉ sau khi họ xác nhận, hai
+              bên mới tiếp tục trao đổi thông tin chuyến đi.
+            </p>
+            <div className="home-response-route">
+              <span className="home-response-route-line" aria-hidden="true">
+                <i />
+                <b />
+                <i />
+              </span>
+              <div>
+                <strong>{responsePost.originLabel}</strong>
+                <strong>{responsePost.destinationLabel}</strong>
+                <div className="home-response-departure">
+                  <CalendarDays aria-hidden="true" size={22} />
+                  <span>
+                    <small>Khởi hành</small>
+                    <strong>
+                      {new Date(responsePost.departureAt).toLocaleString(
+                        "vi-VN",
+                      )}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <label className="home-response-message">
+              <span>
+                <strong>Lời nhắn cho tác giả</strong> (không bắt buộc)
+                <small>{responseMessage.length}/300</small>
+              </span>
+              <textarea
+                autoFocus
+                maxLength={300}
+                value={responseMessage}
+                onChange={(event) => setResponseMessage(event.target.value)}
+                placeholder="Ví dụ: Mình có thể đi nhé! Bạn cho mình biết thêm thông tin điểm đón cụ thể được không?"
+              />
+            </label>
+            {responseMutation.isError ? (
+              <p className="home-response-error" role="alert">
+                {responseMutation.error.message}
+              </p>
+            ) : null}
+            <div className="home-response-actions">
+              <button
+                type="button"
+                disabled={responseMutation.isPending}
+                onClick={() => setResponsePost(null)}
+              >
+                Quay lại
+              </button>
+              <button
+                type="button"
+                className="is-submit"
+                disabled={responseMutation.isPending}
+                onClick={() =>
+                  responseMutation.mutate({
+                    postId: responsePost.id,
+                    message: responseMessage,
+                  })
+                }
+              >
+                <Send aria-hidden="true" size={19} />
+                {responseMutation.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function HomeRideCard({ post }: { post: RidePostView }) {
+function HomeRideCard({
+  post,
+  currentUserId,
+  onRespond,
+}: {
+  post: RidePostView;
+  currentUserId: string;
+  onRespond: (post: RidePostView) => void;
+}) {
   const isOffer = post.type === "OFFER_RIDE";
+  const owner = post.ownerId === currentUserId;
+  const ownerName = post.ownerDisplayName || "Thành viên Diké";
+  const initials = ownerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toLocaleUpperCase("vi-VN");
   return (
     <article className={`new-ride-card ${isOffer ? "is-offer" : "is-need"}`}>
+      <Link
+        className="new-ride-card-link"
+        href={`/feed/${encodeURIComponent(post.id)}`}
+        aria-label={`Xem chi tiết hành trình của ${ownerName}`}
+      />
       <header>
         <span className="new-ride-avatar" aria-hidden="true">
-          DK
+          {initials || "DK"}
         </span>
         <div>
-          <strong>Thành viên Diké</strong>
+          <strong>{ownerName}</strong>
           <small>Hành trình công khai</small>
         </div>
-        <span className={`new-ride-kind ${isOffer ? "is-offer" : "is-need"}`}>
-          {isOffer ? "Tôi chở" : "Tôi đi ké"}
-        </span>
+        {owner ? <span className="new-ride-owned">Bài của bạn</span> : null}
       </header>
       <div className="new-ride-route">
         <span aria-hidden="true">
@@ -305,10 +456,21 @@ function HomeRideCard({ post }: { post: RidePostView }) {
             ? `Còn ${post.remainingSeats} chỗ`
             : "Đang tìm đồng hành"}
         </span>
-        <Link href={`/feed/${encodeURIComponent(post.id)}`}>
-          {isOffer ? "Đi ké ngay" : "Chở ngay"}
-          <ArrowRight aria-hidden="true" size={15} />
-        </Link>
+        {owner ? (
+          <span className="new-ride-request-count">
+            <Users aria-hidden="true" size={15} />
+            {post.pendingResponseCount} yêu cầu
+          </span>
+        ) : (
+          <button
+            className="new-ride-response-link"
+            type="button"
+            onClick={() => onRespond(post)}
+          >
+            {isOffer ? "Đi ké ngay" : "Chở ngay"}
+            <ArrowRight aria-hidden="true" size={15} />
+          </button>
+        )}
       </footer>
     </article>
   );

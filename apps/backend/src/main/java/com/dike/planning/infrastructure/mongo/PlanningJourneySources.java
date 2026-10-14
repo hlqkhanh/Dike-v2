@@ -100,8 +100,8 @@ public class PlanningJourneySources
             source.id(),
             actor,
             source.version(),
-            route.origin().publicAreaLabel(),
-            route.destination().publicAreaLabel(),
+            route.origin().displayLabel(),
+            route.destination().displayLabel(),
             source.earliestDepartureAt(),
             latest,
             source.arrivalDeadlineAt(),
@@ -130,8 +130,8 @@ public class PlanningJourneySources
                 route.expiresAt(),
                 route.distanceMeters(),
                 route.durationSeconds(),
-                route.origin().publicAreaLabel(),
-                route.destination().publicAreaLabel(),
+                route.origin().displayLabel(),
+                route.destination().displayLabel(),
                 route.vehicleMode() == VehicleMode.CAR ? "CAR" : "MOTORCYCLE"));
   }
 

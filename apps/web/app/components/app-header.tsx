@@ -9,20 +9,24 @@ import {
   Bell,
   CarFront,
   Check,
+  ChevronDown,
   ChevronRight,
   Clock3,
   List,
+  LogOut,
   Menu,
   MessageSquareText,
   Settings,
+  UserRound,
   UserPlus,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { journeyApi } from "../../src/journey/api";
+import { authApi } from "../../src/auth/api";
 import { DikeLogo } from "./dike-logo";
 
 function notificationTarget(item: JourneyNotification) {
@@ -33,6 +37,7 @@ function notificationTarget(item: JourneyNotification) {
   if (item.data.proposalId)
     return `/proposals/${encodeURIComponent(item.data.proposalId)}`;
   if (item.data.tripId) return `/trips/${encodeURIComponent(item.data.tripId)}`;
+  if (item.data.postId) return `/feed/${encodeURIComponent(item.data.postId)}`;
   if (item.data.userId) return `/users/${encodeURIComponent(item.data.userId)}`;
   return "/notifications";
 }
@@ -65,9 +70,12 @@ export function AppHeader({
   scrollState?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const client = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenu = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const notifications = useQuery({
     queryKey: ["notifications"],
@@ -119,6 +127,13 @@ export function AppHeader({
     },
     onSuccess: refresh,
   });
+  const logout = useMutation({
+    mutationFn: authApi.logout,
+    onSuccess: () => {
+      client.clear();
+      router.push("/login");
+    },
+  });
   useEffect(() => {
     if (!notificationsOpen) return;
     closeButton.current?.focus();
@@ -128,6 +143,22 @@ export function AppHeader({
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [notificationsOpen]);
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const closeProfileMenu = (event: PointerEvent) => {
+      if (!profileMenu.current?.contains(event.target as Node))
+        setProfileMenuOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeProfileMenu);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", closeProfileMenu);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [profileMenuOpen]);
 
   const [windowScrolled, setWindowScrolled] = useState(false);
   const scrolled = scrollState ?? windowScrolled;
@@ -195,19 +226,64 @@ export function AppHeader({
             aria-label={`Thông báo${unread ? `, ${unread} chưa đọc` : ""}`}
             aria-expanded={notificationsOpen}
             aria-controls="header-notification-panel"
-            onClick={() => setNotificationsOpen((open) => !open)}
+            onClick={() => {
+              setProfileMenuOpen(false);
+              setNotificationsOpen((open) => !open);
+            }}
           >
             <Bell aria-hidden="true" size={20} />
             {unread ? <span>{unread > 9 ? "9+" : unread}</span> : null}
           </button>
-          <Link
-            className="new-user-chip"
-            href="/profile"
-            aria-label={`Hồ sơ ${session.user.displayName}`}
-          >
-            <span>{initials || "DK"}</span>
-            <strong>{session.user.displayName}</strong>
-          </Link>
+          <div className="new-user-menu" ref={profileMenu}>
+            <button
+              className="new-user-chip"
+              type="button"
+              aria-label={`Mở menu tài khoản ${session.user.displayName}`}
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              onClick={() => {
+                setNotificationsOpen(false);
+                setProfileMenuOpen((open) => !open);
+              }}
+            >
+              <span>{initials || "DK"}</span>
+              <strong>{session.user.displayName}</strong>
+              <ChevronDown
+                className={profileMenuOpen ? "is-open" : ""}
+                aria-hidden="true"
+                size={16}
+              />
+            </button>
+            {profileMenuOpen ? (
+              <div className="new-user-dropdown" role="menu">
+                <Link
+                  href="/profile"
+                  role="menuitem"
+                  onClick={() => setProfileMenuOpen(false)}
+                >
+                  <UserRound aria-hidden="true" size={18} />
+                  <span>
+                    <strong>Thông tin chi tiết</strong>
+                    <small>Xem và chỉnh sửa hồ sơ</small>
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={logout.isPending}
+                  onClick={() => logout.mutate()}
+                >
+                  <LogOut aria-hidden="true" size={18} />
+                  <span>
+                    <strong>
+                      {logout.isPending ? "Đang đăng xuất…" : "Đăng xuất"}
+                    </strong>
+                    <small>Kết thúc phiên hiện tại</small>
+                  </span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           <button
             className="new-mobile-menu-button"
             type="button"

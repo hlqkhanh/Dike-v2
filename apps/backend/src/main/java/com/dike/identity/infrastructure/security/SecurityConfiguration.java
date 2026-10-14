@@ -107,6 +107,7 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/api/v1/demo/**",
                         "/api/v1/ride-posts/**",
+                        "/api/v1/ride-post-responses/**",
                         "/api/v1/ride-post-sources/**",
                         "/api/v1/saved-posts/**",
                         "/api/v1/trips/**",

@@ -83,8 +83,8 @@ public class PostSourceService {
                     new Choice(
                         i.id(),
                         i.version(),
-                        i.origin().publicAreaLabel(),
-                        i.destination().publicAreaLabel(),
+                        i.origin().displayLabel(),
+                        i.destination().displayLabel(),
                         i.earliestDepartureAt(),
                         i.arrivalDeadlineAt()))
             .toList());

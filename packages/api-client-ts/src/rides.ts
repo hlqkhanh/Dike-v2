@@ -34,6 +34,20 @@ export type PostReportInput = {
   note?: string;
 };
 
+export type RidePostResponse = {
+  id: string;
+  postId: string;
+  requesterId: string;
+  ownerId: string;
+  action: "REQUEST_RIDE" | "OFFER_RIDE";
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+  message: string;
+  conversationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+};
+
 export type CreateRidePostInput = Omit<RidePostCreate, "communityId"> & {
   communityId?: string;
 };
@@ -97,6 +111,22 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       ),
     post: (postId: string) =>
       request<RidePostView>(`/ride-posts/${id(postId)}`),
+    postResponses: (postId: string) =>
+      request<RidePostResponse[]>(`/ride-posts/${id(postId)}/responses`),
+    createPostResponse: (postId: string, message = "") =>
+      request<RidePostResponse>(`/ride-posts/${id(postId)}/responses`, "POST", {
+        message,
+      }),
+    decidePostResponse: (
+      responseId: string,
+      version: number,
+      decision: "ACCEPTED" | "REJECTED" | "WITHDRAWN",
+    ) =>
+      request<RidePostResponse>(
+        `/ride-post-responses/${id(responseId)}/decision`,
+        "POST",
+        { version, decision },
+      ),
     createPost: (body: CreateRidePostInput, key: string) =>
       request<RidePostView>("/ride-posts", "POST", body, key),
     postAction: (

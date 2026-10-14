@@ -5,5 +5,7 @@ public interface PostAccounts {
 
   boolean verified(String userId);
 
+  String displayName(String userId);
+
   void fence(String userId);
 }

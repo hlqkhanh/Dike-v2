@@ -389,6 +389,7 @@ export type RidePostCreate = {
 export type RidePostView = {
   id: string;
   ownerId: string;
+  ownerDisplayName: string;
   type: string;
   status: string;
   visibility: string;
@@ -403,6 +404,7 @@ export type RidePostView = {
   termsVersion: number;
   remainingSeats: number;
   contributionPerKm: number;
+  pendingResponseCount: number;
 };
 
 export type PostSourceCreate = {

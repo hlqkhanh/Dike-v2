@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class MessagingService implements NotificationPublisher {
+public class MessagingService implements NotificationPublisher, ConfirmedConversationPublisher {
 
   private final MongoTemplate mongo;
   private final SocialAccessPolicy social;
@@ -111,6 +111,70 @@ public class MessagingService implements NotificationPublisher {
       return view(
           mongo.findOne(Query.query(Criteria.where("pairKey").is(pairKey)), Conversation.class),
           actor);
+    }
+  }
+
+  @Override
+  @Transactional
+  public String open(String firstUserId, String secondUserId) {
+    if (firstUserId == null
+        || secondUserId == null
+        || firstUserId.isBlank()
+        || secondUserId.isBlank()
+        || firstUserId.equals(secondUserId)) {
+      throw invalid("MESSAGE_RECIPIENT_INVALID");
+    }
+    if (identities.require(firstUserId).locked() || identities.require(secondUserId).locked()) {
+      throw forbidden("ACCOUNT_LOCKED");
+    }
+    if (social.blocked(firstUserId, secondUserId)) throw forbidden("MESSAGING_BLOCKED");
+
+    String pairKey = pair(firstUserId, secondUserId);
+    Conversation existing =
+        mongo.findOne(Query.query(Criteria.where("pairKey").is(pairKey)), Conversation.class);
+    if (existing != null) {
+      if (existing.state() != Conversation.State.OPEN) {
+        mongo.updateFirst(
+            Query.query(Criteria.where("_id").is(existing.id())),
+            new Update()
+                .set("state", Conversation.State.OPEN.name())
+                .unset("requesterId")
+                .inc("version", 1L),
+            Conversation.class);
+      }
+      return existing.id();
+    }
+
+    Instant now = clock.instant();
+    Conversation created =
+        new Conversation(
+            UUID.randomUUID().toString(),
+            Conversation.Type.DIRECT,
+            pairKey,
+            null,
+            List.of(firstUserId, secondUserId).stream().sorted().toList(),
+            Conversation.State.OPEN,
+            null,
+            now,
+            null,
+            null,
+            0,
+            0);
+    try {
+      mongo.insert(created);
+      return created.id();
+    } catch (DuplicateKeyException race) {
+      Conversation raced =
+          mongo.findOne(Query.query(Criteria.where("pairKey").is(pairKey)), Conversation.class);
+      if (raced == null) throw race;
+      mongo.updateFirst(
+          Query.query(Criteria.where("_id").is(raced.id())),
+          new Update()
+              .set("state", Conversation.State.OPEN.name())
+              .unset("requesterId")
+              .inc("version", 1L),
+          Conversation.class);
+      return raced.id();
     }
   }
 

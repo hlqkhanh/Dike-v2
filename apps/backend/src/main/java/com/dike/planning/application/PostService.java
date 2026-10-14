@@ -65,6 +65,7 @@ public class PostService implements PostAccess {
   public record View(
       String id,
       String ownerId,
+      String ownerDisplayName,
       String type,
       String status,
       String visibility,
@@ -78,7 +79,8 @@ public class PostService implements PostAccess {
       long version,
       long termsVersion,
       Integer remainingSeats,
-      Long contributionPerKm) {}
+      Long contributionPerKm,
+      long pendingResponseCount) {}
 
   @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostPage")
   public record Page(List<View> items, String nextCursor) {}
@@ -285,7 +287,7 @@ public class PostService implements PostAccess {
     active(actor);
     var p = store.find(id).orElseThrow(PostService::missing);
     if (!readable(actor, p)) throw missing();
-    return view(p);
+    return view(actor, p);
   }
 
   public Page feed(
@@ -316,7 +318,7 @@ public class PostService implements PostAccess {
             .filter(p -> until == null || !p.departureAt().isAfter(until))
             // A stale post must not make the entire feed unavailable. Detail still returns 404.
             .filter(p -> p.type() != Type.OFFER_RIDE || trips.offer(p.sourceId()).isPresent())
-            .map(this::view)
+            .map(p -> view(actor, p))
             .toList();
     return new Page(result, rows.size() == limit ? rows.getLast().id() : null);
   }
@@ -333,7 +335,7 @@ public class PostService implements PostAccess {
     var ids = store.saved(actor, after, limit);
     var views = new ArrayList<View>();
     for (String id : ids)
-      store.find(id).filter(p -> readable(actor, p)).ifPresent(p -> views.add(view(p)));
+      store.find(id).filter(p -> readable(actor, p)).ifPresent(p -> views.add(view(actor, p)));
     return new Page(List.copyOf(views), ids.size() == limit ? ids.getLast() : null);
   }
 
@@ -358,7 +360,7 @@ public class PostService implements PostAccess {
     return true;
   }
 
-  private View view(RidePost p) {
+  private View view(String actor, RidePost p) {
     var trip =
         p.type() == Type.OFFER_RIDE
             ? trips.offer(p.sourceId()).orElseThrow(PostService::missing)
@@ -370,6 +372,7 @@ public class PostService implements PostAccess {
     return new View(
         p.id(),
         p.ownerId(),
+        Optional.ofNullable(accounts.displayName(p.ownerId())).orElse("Thành viên Diké"),
         p.type().name(),
         status,
         trip == null ? p.visibility() : trip.visibility(),
@@ -383,7 +386,8 @@ public class PostService implements PostAccess {
         p.version(),
         p.termsVersion(),
         trip == null ? null : trip.remainingSeats(),
-        trip == null ? null : trip.contributionPerKm());
+        trip == null ? null : trip.contributionPerKm(),
+        actor.equals(p.ownerId()) ? store.pendingResponseCount(p.id()) : 0L);
   }
 
   public Terms requireNeed(String viewer, String id) {

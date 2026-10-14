@@ -26,6 +26,10 @@ class IdentityPostAccounts implements PostAccounts {
     return active(id) && accounts.require(id).verifiedMember();
   }
 
+  public String displayName(String id) {
+    return accounts.displayName(id);
+  }
+
   public void fence(String id) {
     guard.fence(id);
   }

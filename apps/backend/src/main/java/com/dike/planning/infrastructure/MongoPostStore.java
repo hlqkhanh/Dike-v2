@@ -89,4 +89,10 @@ public class MongoPostStore implements PostStore {
         .map(d -> d.getString("post"))
         .toList();
   }
+
+  public long pendingResponseCount(String postId) {
+    return mongo.count(
+        Query.query(Criteria.where("postId").is(postId).and("status").is("PENDING")),
+        "ride_post_responses");
+  }
 }

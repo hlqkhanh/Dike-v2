@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
@@ -19,7 +20,17 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-export default function MyProfilePage() {
+export default function LegacyProfileRedirect() {
+  const router = useRouter();
+  useEffect(() => router.replace("/profile"), [router]);
+  return (
+    <main className="settings-page">
+      <LoadingState label="Đang chuyển đến hồ sơ" />
+    </main>
+  );
+}
+
+export function MyProfilePage() {
   const queryClient = useQueryClient();
   const [fileId, setFileId] = useState<string>();
   const profile = useQuery({

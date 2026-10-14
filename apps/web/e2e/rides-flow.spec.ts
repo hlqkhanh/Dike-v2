@@ -90,6 +90,64 @@ test("home feed scrolls over the stationary banner without scrolling the documen
   await expect(roleCards).not.toHaveAttribute("inert", "");
 });
 
+test("confirms a response before sending it to the post owner", async ({
+  page,
+}) => {
+  const post = {
+    id: "post-response",
+    ownerId: "driver-other",
+    type: "OFFER_RIDE",
+    status: "OPEN",
+    visibility: "PUBLIC",
+    communityId: null,
+    originLabel: "FPT, 101 Láng Hạ, Đống Đa, Hà Nội",
+    destinationLabel: "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội",
+    vehicleType: "CAR",
+    departureAt: "2026-10-15T01:00:00Z",
+    expiresAt: "2026-10-15T02:00:00Z",
+    note: "Đi đúng giờ",
+    version: 0,
+    termsVersion: 0,
+    remainingSeats: 2,
+    contributionPerKm: 500,
+  };
+  let responses: unknown[] = [];
+  await page.route("**/api/v1/ride-posts/post-response", (route) =>
+    route.fulfill({ json: post }),
+  );
+  await page.route(
+    "**/api/v1/ride-posts/post-response/responses",
+    async (route) => {
+      if (route.request().method() === "POST") {
+        responses = [
+          {
+            id: "response-1",
+            postId: post.id,
+            requesterId: "passenger",
+            ownerId: post.ownerId,
+            action: "REQUEST_RIDE",
+            status: "PENDING",
+            createdAt: "2026-10-14T03:00:00Z",
+            updatedAt: "2026-10-14T03:00:00Z",
+            version: 0,
+          },
+        ];
+        await route.fulfill({ json: responses[0] });
+        return;
+      }
+      await route.fulfill({ json: responses });
+    },
+  );
+
+  await page.goto("/feed/post-response?action=respond");
+  await expect(
+    page.getByRole("heading", { name: "Xác nhận muốn đi ké?" }),
+  ).toBeVisible();
+  await expect(page.getByText(post.originLabel)).toBeVisible();
+  await page.getByRole("button", { name: "Gửi yêu cầu" }).click();
+  await expect(page.getByText("Đang chờ người đăng xác nhận")).toBeVisible();
+});
+
 test("creates a draft from an owned route before publishing", async ({
   page,
 }) => {

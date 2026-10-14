@@ -1,7 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   Clock3,
   Eye,
   Flag,
+  Handshake,
   Map,
   MapPin,
   MessageCircle,
@@ -39,6 +40,7 @@ import {
 import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
+  const searchParams = useSearchParams();
   const post = useQuery({
     queryKey: ["feed", "detail", id],
     queryFn: () => rideApi.post(id),
@@ -52,10 +54,29 @@ export function PostDetail({ id }: { id: string }) {
   const [reason, setReason] = useState("UNSAFE");
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
+  const [confirmResponse, setConfirmResponse] = useState(
+    () => searchParams.get("action") === "respond",
+  );
   const actionCommand = useRideCommand();
+  const responseCommand = useRideCommand();
   const reportCommand = useRideCommand();
   useAuthFailure(post.error);
   const owner = post.data?.ownerId === session.data?.user.id;
+  const responses = useQuery({
+    queryKey: ["feed", "responses", id],
+    queryFn: () => rideApi.postResponses(id),
+    enabled: Boolean(post.data && session.data),
+    refetchInterval: 15000,
+  });
+  const myResponse = responses.data?.find(
+    (item) => item.requesterId === session.data?.user.id,
+  );
+  useEffect(() => {
+    if (!post.data || !session.data || owner || post.data.status !== "OPEN")
+      return;
+    if (!confirmResponse) return;
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [confirmResponse, owner, post.data, session.data]);
   const act = (action: "publish" | "close") => {
     if (!post.data) return;
     actionCommand.mutate({
@@ -194,6 +215,18 @@ export function PostDetail({ id }: { id: string }) {
                   <Link href="/inbox">
                     <MessageCircle aria-hidden="true" size={19} /> Trao đổi
                   </Link>
+                  {!owner && post.data.status === "OPEN" && !myResponse ? (
+                    <button
+                      className="is-primary feed-detail-connect-action"
+                      type="button"
+                      onClick={() => setConfirmResponse(true)}
+                    >
+                      <Handshake aria-hidden="true" size={19} />
+                      {post.data.type === "OFFER_RIDE"
+                        ? "Đi ké ngay"
+                        : "Chở ngay"}
+                    </button>
+                  ) : null}
                   {owner && post.data.status === "DRAFT" ? (
                     <button
                       className="is-primary"
@@ -223,7 +256,205 @@ export function PostDetail({ id }: { id: string }) {
                     Đã cập nhật bài đăng.
                   </p>
                 ) : null}
+                {!owner && myResponse ? (
+                  <div
+                    className={`feed-response-summary is-${myResponse.status.toLowerCase()}`}
+                  >
+                    <span>
+                      <strong>
+                        {myResponse.status === "PENDING"
+                          ? "Đang chờ người đăng xác nhận"
+                          : myResponse.status === "ACCEPTED"
+                            ? "Người đăng đã xác nhận"
+                            : myResponse.status === "REJECTED"
+                              ? "Người đăng đã từ chối"
+                              : "Bạn đã rút yêu cầu"}
+                      </strong>
+                      <small>
+                        {myResponse.status === "ACCEPTED"
+                          ? "Hai bên có thể trao đổi điểm đón và hoàn thiện booking."
+                          : "Trạng thái được cập nhật tự động mỗi 15 giây."}
+                      </small>
+                    </span>
+                    {myResponse.status === "PENDING" ? (
+                      <button
+                        type="button"
+                        disabled={responseCommand.isPending}
+                        onClick={() =>
+                          responseCommand.mutate({
+                            signature: `post-response:${myResponse.id}:${myResponse.version}:withdraw`,
+                            run: () =>
+                              rideApi.decidePostResponse(
+                                myResponse.id,
+                                myResponse.version,
+                                "WITHDRAWN",
+                              ),
+                          })
+                        }
+                      >
+                        Rút yêu cầu
+                      </button>
+                    ) : myResponse.status === "ACCEPTED" ? (
+                      <Link
+                        href={
+                          myResponse.conversationId
+                            ? `/inbox/${myResponse.conversationId}`
+                            : "/inbox"
+                        }
+                      >
+                        Bắt đầu trao đổi
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {owner && responses.data?.length ? (
+                  <section
+                    className="feed-response-owner-panel"
+                    aria-labelledby="response-heading"
+                  >
+                    <div>
+                      <p>Yêu cầu kết nối</p>
+                      <h2 id="response-heading">Xác nhận người đồng hành</h2>
+                    </div>
+                    {responses.data.map((item) => (
+                      <article key={item.id}>
+                        <span>
+                          <strong>
+                            {item.action === "REQUEST_RIDE"
+                              ? "Một thành viên muốn đi ké"
+                              : "Một thành viên muốn chở bạn"}
+                          </strong>
+                          <small>
+                            {item.status === "PENDING"
+                              ? "Đang chờ phản hồi"
+                              : item.status === "ACCEPTED"
+                                ? "Đã xác nhận"
+                                : item.status === "REJECTED"
+                                  ? "Đã từ chối"
+                                  : "Người gửi đã rút yêu cầu"}
+                          </small>
+                          {item.message ? (
+                            <small className="feed-response-message">
+                              “{item.message}”
+                            </small>
+                          ) : null}
+                        </span>
+                        {item.status === "PENDING" ? (
+                          <div>
+                            <button
+                              type="button"
+                              disabled={responseCommand.isPending}
+                              onClick={() =>
+                                responseCommand.mutate({
+                                  signature: `post-response:${item.id}:${item.version}:reject`,
+                                  run: () =>
+                                    rideApi.decidePostResponse(
+                                      item.id,
+                                      item.version,
+                                      "REJECTED",
+                                    ),
+                                })
+                              }
+                            >
+                              Từ chối
+                            </button>
+                            <button
+                              className="is-accept"
+                              type="button"
+                              disabled={responseCommand.isPending}
+                              onClick={() =>
+                                responseCommand.mutate({
+                                  signature: `post-response:${item.id}:${item.version}:accept`,
+                                  run: () =>
+                                    rideApi.decidePostResponse(
+                                      item.id,
+                                      item.version,
+                                      "ACCEPTED",
+                                    ),
+                                })
+                              }
+                            >
+                              Xác nhận
+                            </button>
+                          </div>
+                        ) : null}
+                      </article>
+                    ))}
+                  </section>
+                ) : null}
+                {responseCommand.isError ? (
+                  <p className="feed-detail-feedback" role="alert">
+                    {responseCommand.error.message}
+                  </p>
+                ) : null}
               </article>
+
+              {confirmResponse && !owner && post.data.status === "OPEN" ? (
+                <div className="feed-response-modal" role="presentation">
+                  <section
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="response-confirm-title"
+                  >
+                    <span
+                      className="feed-response-modal-icon"
+                      aria-hidden="true"
+                    >
+                      <Handshake size={25} />
+                    </span>
+                    <h2 id="response-confirm-title">
+                      {post.data.type === "OFFER_RIDE"
+                        ? "Xác nhận muốn đi ké?"
+                        : "Xác nhận muốn chở thành viên này?"}
+                    </h2>
+                    <p>
+                      Yêu cầu sẽ được gửi tới người đăng. Chỉ sau khi họ xác
+                      nhận, hai bên mới tiếp tục trao đổi thông tin chuyến đi.
+                    </p>
+                    <dl>
+                      <div>
+                        <dt>Điểm đón</dt>
+                        <dd>{post.data.originLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>Điểm đến</dt>
+                        <dd>{post.data.destinationLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>Khởi hành</dt>
+                        <dd>{dateTime(post.data.departureAt)}</dd>
+                      </div>
+                    </dl>
+                    <div className="feed-response-modal-actions">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmResponse(false)}
+                      >
+                        Quay lại
+                      </button>
+                      <button
+                        className="is-confirm"
+                        type="button"
+                        disabled={responseCommand.isPending}
+                        onClick={() =>
+                          responseCommand.mutate(
+                            {
+                              signature: `post-response:${id}:create`,
+                              run: () => rideApi.createPostResponse(id),
+                            },
+                            { onSuccess: () => setConfirmResponse(false) },
+                          )
+                        }
+                      >
+                        {responseCommand.isPending
+                          ? "Đang gửi…"
+                          : "Gửi yêu cầu"}
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              ) : null}
 
               <details className="feed-detail-report">
                 <summary>

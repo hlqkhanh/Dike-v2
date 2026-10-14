@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { profileApi } from "../../src/profile/api";
+import { MyProfilePage } from "../me/profile/page";
 
 type ProfileTab = "overview" | "rides" | "messages" | "settings";
 const tabs: Array<[ProfileTab, string]> = [
@@ -66,7 +67,7 @@ export default function ProfileHubPage() {
               "Cùng cộng đồng tạo nên những hành trình xanh hơn."}
           </span>
         </div>
-        <Link href="/me/profile">Chỉnh sửa hồ sơ</Link>
+        <Link href="/profile?tab=settings">Cài đặt hồ sơ</Link>
       </section>
       <nav className="profile-hub-tabs" aria-label="Nội dung hồ sơ">
         {tabs.map(([id, label]) => (
@@ -160,28 +161,25 @@ export default function ProfileHubPage() {
           />
         ) : null}
         {tab === "settings" ? (
-          <HubGrid
-            items={[
-              [
-                "/me/profile",
-                "Thông tin hồ sơ",
-                "Tên, giới thiệu và ảnh đại diện",
-                CircleUserRound,
-              ],
-              [
-                "/settings/privacy",
-                "Quyền riêng tư",
-                "Kiểm soát phạm vi chia sẻ",
-                ShieldCheck,
-              ],
-              [
-                "/settings",
-                "Cài đặt tài khoản",
-                "Consent, thiết bị và tài khoản",
-                Settings,
-              ],
-            ]}
-          />
+          <>
+            <MyProfilePage />
+            <HubGrid
+              items={[
+                [
+                  "/settings/privacy",
+                  "Quyền riêng tư",
+                  "Kiểm soát phạm vi chia sẻ",
+                  ShieldCheck,
+                ],
+                [
+                  "/settings",
+                  "Cài đặt tài khoản",
+                  "Consent, thiết bị và tài khoản",
+                  Settings,
+                ],
+              ]}
+            />
+          </>
         ) : null}
       </section>
     </main>
