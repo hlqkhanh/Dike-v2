@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 
 public final class ProfileRequests {
   private ProfileRequests() {}
@@ -14,6 +15,11 @@ public final class ProfileRequests {
   public record UpdateProfile(
       @NotBlank @Size(max = 160) String displayName,
       @Size(max = 1200) String bio,
+      LocalDate dateOfBirth,
+      @Size(max = 40) String provinceCode,
+      @Size(max = 80) String localityCode,
+      @Size(max = 160) String localityName,
+      @Size(max = 300) String facebookUrl,
       @Min(0) long expectedVersion) {}
 
   public record UpdatePrivacy(

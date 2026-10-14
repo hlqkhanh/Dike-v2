@@ -13,6 +13,7 @@ import type {
   PrivacyResponse,
   PublicProfileResponse,
   UploadIntent,
+  UpdateProfile,
 } from "./generated/schema";
 
 export function createProfileApi(configuration: ApiClientConfiguration) {
@@ -50,14 +51,10 @@ export function createProfileApi(configuration: ApiClientConfiguration) {
 
   return {
     myProfile: () => request<MyProfileResponse>("/me/profile"),
-    updateProfile: (
-      displayName: string,
-      bio: string,
-      expectedVersion: number,
-    ) =>
+    updateProfile: (body: UpdateProfile) =>
       request<MyProfileResponse>("/me/profile", {
         method: "PATCH",
-        body: JSON.stringify({ displayName, bio, expectedVersion }),
+        body: JSON.stringify(body),
       }),
     userProfile: (userId: string) =>
       request<PublicProfileResponse>(`/users/${encodeURIComponent(userId)}`),

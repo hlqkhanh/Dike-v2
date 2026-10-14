@@ -25,6 +25,7 @@ import {
   Route,
   Send,
   ShieldCheck,
+  UserRound,
   Users,
   XCircle,
 } from "lucide-react";
@@ -376,26 +377,119 @@ export function PostDetail({ id }: { id: string }) {
                       <h2 id="response-heading">Xác nhận người đồng hành</h2>
                     </div>
                     {responses.data.map((item) => (
-                      <article key={item.id}>
-                        <div className="feed-response-owner-info">
-                          <strong>
-                            {item.action === "REQUEST_RIDE"
-                              ? "Một thành viên muốn đi ké"
-                              : "Một thành viên muốn chở bạn"}
-                          </strong>
-                          <small>
+                      <article
+                        className={`feed-response-request is-${item.status.toLowerCase()}`}
+                        key={item.id}
+                      >
+                        <Link
+                          className="feed-response-requester"
+                          href={`/users/${encodeURIComponent(item.requesterId)}`}
+                          aria-label={`Xem hồ sơ của ${item.requesterDisplayName}`}
+                        >
+                          <span
+                            className="feed-response-avatar"
+                            aria-hidden="true"
+                            style={
+                              item.requesterAvatarUrl
+                                ? {
+                                    backgroundImage: `url(${item.requesterAvatarUrl})`,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {!item.requesterAvatarUrl
+                              ? initials(item.requesterDisplayName)
+                              : null}
+                          </span>
+                          <span>
+                            <strong>{item.requesterDisplayName}</strong>
+                            <small>
+                              <UserRound aria-hidden="true" size={15} />
+                              {item.action === "REQUEST_RIDE"
+                                ? "Muốn đi ké"
+                                : "Muốn chở bạn"}
+                            </small>
+                            <time dateTime={item.createdAt}>
+                              Đã gửi yêu cầu {responseAge(item.createdAt)}
+                            </time>
+                          </span>
+                        </Link>
+
+                        <div className="feed-response-request-message">
+                          <span>
+                            <MessageCircle aria-hidden="true" size={16} />
+                            Tin nhắn
+                          </span>
+                          <p>
+                            {item.message || "Người gửi không để lại lời nhắn."}
+                          </p>
+                        </div>
+
+                        <div className="feed-response-decision">
+                          <strong className="feed-response-status">
+                            {item.status === "PENDING" ? (
+                              <Clock3 aria-hidden="true" size={18} />
+                            ) : item.status === "ACCEPTED" ? (
+                              <Check aria-hidden="true" size={18} />
+                            ) : (
+                              <XCircle aria-hidden="true" size={18} />
+                            )}
                             {item.status === "PENDING"
                               ? "Đang chờ phản hồi"
                               : item.status === "ACCEPTED"
                                 ? "Đã xác nhận"
                                 : item.status === "REJECTED"
                                   ? "Đã từ chối"
-                                  : "Người gửi đã rút yêu cầu"}
-                          </small>
-                          {item.message ? (
-                            <small className="feed-response-message">
-                              “{item.message}”
-                            </small>
+                                  : "Đã rút yêu cầu"}
+                          </strong>
+                          {item.status === "PENDING" ? (
+                            <div className="feed-response-buttons">
+                              <button
+                                type="button"
+                                disabled={responseCommand.isPending}
+                                onClick={() =>
+                                  responseCommand.mutate({
+                                    signature: `post-response:${item.id}:${item.version}:reject`,
+                                    run: () =>
+                                      rideApi.decidePostResponse(
+                                        item.id,
+                                        item.version,
+                                        "REJECTED",
+                                      ),
+                                  })
+                                }
+                              >
+                                Từ chối
+                              </button>
+                              <button
+                                className="is-accept"
+                                type="button"
+                                disabled={
+                                  responseCommand.isPending ||
+                                  Boolean(
+                                    item.pickupCheck &&
+                                      new Date(
+                                        item.pickupCheck.expiresAt,
+                                      ).getTime() <= now,
+                                  )
+                                }
+                                onClick={() =>
+                                  responseCommand.mutate({
+                                    signature: `post-response:${item.id}:${item.version}:accept`,
+                                    run: () =>
+                                      rideApi.decidePostResponse(
+                                        item.id,
+                                        item.version,
+                                        "ACCEPTED",
+                                      ),
+                                  })
+                                }
+                              >
+                                Xác nhận
+                              </button>
+                            </div>
+                          ) : item.status === "ACCEPTED" ? (
+                            <small>Đã trở thành người đồng hành của bạn.</small>
                           ) : null}
                           {item.pickupCheck ? (
                             <PickupSummary check={item.pickupCheck} />
@@ -410,53 +504,6 @@ export function PostDetail({ id }: { id: string }) {
                             </small>
                           ) : null}
                         </div>
-                        {item.status === "PENDING" ? (
-                          <div>
-                            <button
-                              type="button"
-                              disabled={responseCommand.isPending}
-                              onClick={() =>
-                                responseCommand.mutate({
-                                  signature: `post-response:${item.id}:${item.version}:reject`,
-                                  run: () =>
-                                    rideApi.decidePostResponse(
-                                      item.id,
-                                      item.version,
-                                      "REJECTED",
-                                    ),
-                                })
-                              }
-                            >
-                              Từ chối
-                            </button>
-                            <button
-                              className="is-accept"
-                              type="button"
-                              disabled={
-                                responseCommand.isPending ||
-                                Boolean(
-                                  item.pickupCheck &&
-                                    new Date(
-                                      item.pickupCheck.expiresAt,
-                                    ).getTime() <= now,
-                                )
-                              }
-                              onClick={() =>
-                                responseCommand.mutate({
-                                  signature: `post-response:${item.id}:${item.version}:accept`,
-                                  run: () =>
-                                    rideApi.decidePostResponse(
-                                      item.id,
-                                      item.version,
-                                      "ACCEPTED",
-                                    ),
-                                })
-                              }
-                            >
-                              Xác nhận
-                            </button>
-                          </div>
-                        ) : null}
                       </article>
                     ))}
                   </section>
@@ -654,6 +701,26 @@ export function PostDetail({ id }: { id: string }) {
       ) : null}
     </main>
   );
+}
+
+function initials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toLocaleUpperCase("vi-VN");
+}
+
+function responseAge(value: string) {
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return "vừa xong";
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  return `${Math.floor(hours / 24)} ngày trước`;
 }
 
 export function TripDetail({ id }: { id: string }) {

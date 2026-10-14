@@ -214,6 +214,20 @@ export function AppHeader({
             Bạn bè
           </Link>
           <Link
+            href="/journeys"
+            className={
+              ["/journeys", "/schedules", "/proposals", "/bookings"].some(
+                (route) => pathname.startsWith(route),
+              )
+                ? "nav-link-active"
+                : ""
+            }
+            aria-current={pathname === "/journeys" ? "page" : undefined}
+            onClick={() => setMenuOpen(false)}
+          >
+            Chuyến đi
+          </Link>
+          <Link
             href="/profile"
             className={pathname.startsWith("/profile") ? "nav-link-active" : ""}
             aria-current={pathname.startsWith("/profile") ? "page" : undefined}
@@ -404,7 +418,7 @@ export function AppHeader({
                 <ChevronRight aria-hidden="true" size={18} />
               </Link>
               <Link
-                href="/profile?tab=settings"
+                href="/settings"
                 onClick={() => setNotificationsOpen(false)}
               >
                 <Settings aria-hidden="true" size={18} />

@@ -41,6 +41,8 @@ export type RidePostResponse = {
   id: string;
   postId: string;
   requesterId: string;
+  requesterDisplayName: string;
+  requesterAvatarUrl: string | null;
   ownerId: string;
   action: "REQUEST_RIDE" | "OFFER_RIDE";
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";

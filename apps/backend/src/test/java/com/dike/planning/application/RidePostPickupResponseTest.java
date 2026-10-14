@@ -23,7 +23,13 @@ class RidePostPickupResponseTest {
   final Instant now = Instant.parse("2026-10-14T00:00:00Z");
   final RidePostResponseService responses =
       new RidePostResponseService(
-          mongo, posts, notifications, conversations, Clock.fixed(now, ZoneOffset.UTC), pickups);
+          mongo,
+          posts,
+          notifications,
+          conversations,
+          mock(com.dike.planning.PostAccounts.class),
+          Clock.fixed(now, ZoneOffset.UTC),
+          pickups);
 
   @Test
   void offerCannotBeRequestedWithoutServerVerifiedPickupEvidence() {

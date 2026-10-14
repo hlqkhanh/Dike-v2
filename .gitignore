@@ -23,6 +23,7 @@ dist/
 *.tsbuildinfo
 
 # Java / Maven
+apps/backend/bin/
 target/
 .m2/
 .maven-home/

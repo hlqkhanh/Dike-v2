@@ -2,209 +2,302 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowRight,
   CalendarDays,
   CarFront,
   ChevronRight,
-  CircleUserRound,
-  Handshake,
-  MessageCircle,
+  Facebook,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
   Settings,
-  ShieldCheck,
-  TicketCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { profileApi } from "../../src/profile/api";
-import { MyProfilePage } from "../me/profile/page";
+import { authApi } from "../../src/auth/api";
+import { rideApi } from "../../src/rides/api";
+import { socialApi } from "../../src/social/api";
+import { EmptyState, ErrorState, LoadingState } from "../components/app-ui";
 
-type ProfileTab = "overview" | "rides" | "messages" | "settings";
-const tabs: Array<[ProfileTab, string]> = [
-  ["overview", "Tổng quan"],
-  ["rides", "Chuyến đi"],
-  ["messages", "Tin nhắn"],
-  ["settings", "Cài đặt"],
-];
+const statusNames: Record<string, string> = {
+  DRAFT: "Bản nháp",
+  OPEN: "Đang mở",
+  MATCHED: "Đã ghép",
+  FULL: "Đủ chỗ",
+  IN_PROGRESS: "Đang đi",
+  COMPLETED: "Hoàn tất",
+  CLOSED: "Đã đóng",
+  CANCELLED: "Đã hủy",
+  EXPIRED: "Hết hạn",
+};
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/u)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const tripDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa đặt thời gian";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
 
 export default function ProfileHubPage() {
-  const [tab, setTab] = useState<ProfileTab>("overview");
   const profile = useQuery({
     queryKey: ["profile", "me"],
     queryFn: profileApi.myProfile,
   });
-  useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get("tab");
-    // The URL is the source for the initial active tab on direct navigation.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (tabs.some(([id]) => id === value)) setTab(value as ProfileTab);
-  }, []);
-  function choose(next: ProfileTab) {
-    setTab(next);
-    window.history.replaceState(null, "", `/profile?tab=${next}`);
-  }
+  const session = useQuery({
+    queryKey: ["auth", "session"],
+    queryFn: authApi.session,
+  });
+  const trips = useQuery({
+    queryKey: ["rides", "trips", "profile-preview"],
+    queryFn: () => rideApi.trips(),
+  });
+  const friends = useQuery({
+    queryKey: ["social", "profile-preview", "friends"],
+    queryFn: () => socialApi.list("friends"),
+  });
+
+  const displayName = profile.data?.displayName ?? "Thành viên Diké";
+  const recentTrips = trips.data?.items.slice(0, 5) ?? [];
+  const friendPreview = friends.data?.items.slice(0, 6) ?? [];
+
   return (
-    <main className="profile-hub">
-      <section className="profile-hub-banner">
-        <div className="profile-hub-avatar">
+    <main className="profile-dashboard">
+      <section className="profile-dashboard-banner">
+        <div className="profile-dashboard-avatar">
           {profile.data?.avatarUrl ? (
             <Image
               unoptimized
               src={profile.data.avatarUrl}
-              width={92}
-              height={92}
-              alt="Ảnh đại diện"
+              width={104}
+              height={104}
+              alt={`Ảnh đại diện của ${displayName}`}
             />
           ) : (
-            <CircleUserRound aria-hidden="true" />
+            <span>{initials(displayName) || "DK"}</span>
           )}
         </div>
-        <div>
-          <p>Hồ sơ DIKÉ SHARE</p>
-          <h1>{profile.data?.displayName ?? "Thành viên Diké"}</h1>
+        <div className="profile-dashboard-identity">
+          <p>Hồ sơ Diké Share</p>
+          <h1>{displayName}</h1>
           <span>
             {profile.data?.bio ||
               "Cùng cộng đồng tạo nên những hành trình xanh hơn."}
           </span>
+          <Link className="profile-settings-button" href="/settings">
+            <Settings aria-hidden="true" size={16} /> Cài đặt
+          </Link>
         </div>
-        <Link href="/profile?tab=settings">Cài đặt hồ sơ</Link>
       </section>
-      <nav className="profile-hub-tabs" aria-label="Nội dung hồ sơ">
-        {tabs.map(([id, label]) => (
-          <button
-            type="button"
-            key={id}
-            aria-pressed={tab === id}
-            onClick={() => choose(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+
       {profile.isError ? (
         <p className="profile-hub-error" role="alert">
-          Không thể tải thông tin hồ sơ. Các công cụ tài khoản vẫn có thể sử
-          dụng bên dưới.
+          Không thể tải đầy đủ thông tin hồ sơ.
         </p>
       ) : null}
-      <section className="profile-hub-content" aria-live="polite">
-        {tab === "overview" ? (
-          <>
-            <div className="profile-overview-card">
-              <ShieldCheck aria-hidden="true" />
-              <div>
-                <p>Trạng thái tài khoản</p>
-                <h2>Hoàn thiện độ tin cậy của bạn</h2>
-                <span>
-                  Xác minh thông tin để mở đầy đủ quyền tài xế và tạo chuyến.
-                </span>
-              </div>
-              <Link href="/verification">
-                Kiểm tra xác minh <ChevronRight />
-              </Link>
-            </div>
-            <HubGrid
-              items={[
-                [
-                  "/friends",
-                  "Bạn bè",
-                  "Kết nối và quản lý lời mời",
-                  CircleUserRound,
-                ],
-                [
-                  "/profile?tab=rides",
-                  "Hành trình",
-                  "Theo dõi mọi chuyến đi",
-                  CarFront,
-                ],
-                [
-                  "/profile?tab=messages",
-                  "Trao đổi",
-                  "Tiếp tục các cuộc hội thoại",
-                  MessageCircle,
-                ],
-              ]}
-            />
-          </>
-        ) : null}
-        {tab === "rides" ? (
-          <HubGrid
-            items={[
-              [
-                "/trips",
-                "Chuyến đã đăng",
-                "Quản lý chuyến bạn làm tài xế",
-                CarFront,
-              ],
-              ["/proposals", "Đề nghị", "Phản hồi lời mời đi cùng", Handshake],
-              ["/bookings", "Booking", "Chuyến đã được xác nhận", TicketCheck],
-              [
-                "/schedules",
-                "Lịch trình",
-                "Kế hoạch di chuyển định kỳ",
-                CalendarDays,
-              ],
-            ]}
-          />
-        ) : null}
-        {tab === "messages" ? (
-          <HubGrid
-            items={[
-              ["/inbox", "Hộp thư", "Xem danh sách hội thoại", MessageCircle],
-              [
-                "/friends",
-                "Bạn bè",
-                "Bắt đầu trò chuyện từ kết nối",
-                CircleUserRound,
-              ],
-            ]}
-          />
-        ) : null}
-        {tab === "settings" ? (
-          <>
-            <MyProfilePage />
-            <HubGrid
-              items={[
-                [
-                  "/settings/privacy",
-                  "Quyền riêng tư",
-                  "Kiểm soát phạm vi chia sẻ",
-                  ShieldCheck,
-                ],
-                [
-                  "/settings",
-                  "Cài đặt tài khoản",
-                  "Consent, thiết bị và tài khoản",
-                  Settings,
-                ],
-              ]}
-            />
-          </>
-        ) : null}
-      </section>
-    </main>
-  );
-}
 
-function HubGrid({
-  items,
-}: {
-  items: Array<[string, string, string, typeof CarFront]>;
-}) {
-  return (
-    <div className="profile-hub-grid">
-      {items.map(([href, title, text, Icon]) => (
-        <Link href={href} key={href}>
-          <span>
-            <Icon aria-hidden="true" />
-          </span>
-          <div>
-            <h2>{title}</h2>
-            <p>{text}</p>
+      <div className="profile-dashboard-grid">
+        <aside className="profile-dashboard-sidebar">
+          <section className="profile-info-panel">
+            <header>
+              <h2>Thông tin cá nhân</h2>
+              <Link href="/me/profile">Chỉnh sửa thông tin</Link>
+            </header>
+            {profile.data?.dateOfBirth ? (
+              <div className="profile-info-row">
+                <CalendarDays aria-hidden="true" />
+                <div>
+                  <strong>
+                    {new Intl.DateTimeFormat("vi-VN").format(
+                      new Date(`${profile.data.dateOfBirth}T00:00:00`),
+                    )}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+            {profile.data?.provinceName ? (
+              <div className="profile-info-row">
+                <MapPin aria-hidden="true" />
+                <div>
+                  <strong>
+                    {[profile.data.localityName, profile.data.provinceName]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+            {session.data?.user.phoneMasked || profile.data?.contactPhone ? (
+              <div className="profile-info-row">
+                <Phone aria-hidden="true" />
+                <div>
+                  <strong>
+                    {session.data?.user.phoneMasked ||
+                      profile.data?.contactPhone}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+            {session.data?.user.email || profile.data?.contactEmail ? (
+              <div className="profile-info-row">
+                <Mail aria-hidden="true" />
+                <div>
+                  <strong>
+                    {session.data?.user.email || profile.data?.contactEmail}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+            {profile.data?.facebookUrl ? (
+              <a
+                className="profile-info-social"
+                href={profile.data.facebookUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Facebook aria-hidden="true" /> Xem trang Facebook
+              </a>
+            ) : null}
+          </section>
+
+          <section className="profile-friends-panel">
+            <header>
+              <div>
+                <h2>Bạn bè</h2>
+                <span>{friends.data?.items.length ?? 0} người bạn</span>
+              </div>
+              <Link href="/friends">
+                Xem tất cả <ChevronRight aria-hidden="true" size={17} />
+              </Link>
+            </header>
+            {friends.isPending ? (
+              <LoadingState label="Đang tải bạn bè" />
+            ) : null}
+            {friends.isError ? (
+              <p className="profile-inline-error">Chưa thể tải bạn bè.</p>
+            ) : null}
+            {!friends.isPending &&
+            !friends.isError &&
+            friendPreview.length === 0 ? (
+              <p className="profile-inline-empty">
+                Kết nối với bạn bè để cùng chia sẻ hành trình.
+              </p>
+            ) : null}
+            <div className="profile-friend-grid">
+              {friendPreview.map((friend, index) => (
+                <Link
+                  href={`/users/${encodeURIComponent(friend.userId)}`}
+                  key={friend.userId}
+                >
+                  <span
+                    className={`profile-friend-avatar is-tone-${(index % 4) + 1}`}
+                  >
+                    {initials(friend.displayName)}
+                  </span>
+                  <strong>{friend.displayName}</strong>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </aside>
+
+        <section className="profile-trips-panel">
+          <header className="profile-trips-heading">
+            <div>
+              <p>Hành trình của bạn</p>
+              <h2>Chuyến đi đã đăng</h2>
+            </div>
+            <Link href="/trips/new">
+              <Plus aria-hidden="true" size={19} /> Đăng chuyến đi
+            </Link>
+          </header>
+
+          {trips.isPending ? <LoadingState label="Đang tải chuyến đi" /> : null}
+          {trips.isError ? (
+            <ErrorState
+              message="Không thể tải chuyến đi của bạn."
+              onRetry={() => void trips.refetch()}
+            />
+          ) : null}
+          {!trips.isPending && !trips.isError && recentTrips.length === 0 ? (
+            <EmptyState
+              icon={CarFront}
+              title="Bạn chưa đăng chuyến đi nào"
+              description="Tạo chuyến đầu tiên để tìm người đồng hành phù hợp."
+              action={
+                <Link
+                  className="app-button app-button--primary"
+                  href="/trips/new"
+                >
+                  <Plus aria-hidden="true" size={18} /> Đăng chuyến đầu tiên
+                </Link>
+              }
+            />
+          ) : null}
+
+          <div className="profile-trip-list">
+            {recentTrips.map((trip) => (
+              <article className="profile-trip-card" key={trip.id}>
+                <header>
+                  <span
+                    className={`profile-trip-status is-${trip.status.toLowerCase()}`}
+                  >
+                    {statusNames[trip.status] ?? trip.status}
+                  </span>
+                  <span className="profile-trip-departure">
+                    <CalendarDays aria-hidden="true" size={17} />
+                    {tripDate(trip.departureAt)}
+                  </span>
+                </header>
+                <div className="profile-trip-route">
+                  <span>
+                    <MapPin aria-hidden="true" size={19} />
+                    <strong>{trip.originLabel}</strong>
+                  </span>
+                  <i>
+                    <ArrowRight aria-hidden="true" size={20} />
+                  </i>
+                  <span>
+                    <MapPin aria-hidden="true" size={19} />
+                    <strong>{trip.destinationLabel}</strong>
+                  </span>
+                </div>
+                <footer>
+                  <span className="profile-trip-seat">
+                    <CarFront aria-hidden="true" size={17} />
+                    Còn {trip.remainingSeats}/{trip.offeredSeats} chỗ
+                  </span>
+                  <Link href={`/trips/${encodeURIComponent(trip.id)}`}>
+                    Xem chi tiết <ChevronRight aria-hidden="true" size={17} />
+                  </Link>
+                </footer>
+              </article>
+            ))}
           </div>
-          <ChevronRight aria-hidden="true" />
-        </Link>
-      ))}
-    </div>
+
+          {trips.data && trips.data.items.length > recentTrips.length ? (
+            <Link className="profile-view-all-trips" href="/trips">
+              Xem tất cả chuyến đi <ChevronRight aria-hidden="true" size={17} />
+            </Link>
+          ) : null}
+        </section>
+      </div>
+    </main>
   );
 }

@@ -1,6 +1,7 @@
 package com.dike.identity.infrastructure.mongo;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -10,6 +11,12 @@ record UserProfileDocument(
     String displayName,
     String normalizedDisplayName,
     String bio,
+    LocalDate dateOfBirth,
+    String provinceCode,
+    String provinceName,
+    String localityCode,
+    String localityName,
+    String facebookUrl,
     String avatarFileId,
     String avatarPublicUrl,
     Instant createdAt,

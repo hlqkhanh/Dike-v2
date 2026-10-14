@@ -13,6 +13,7 @@ import com.dike.identity.domain.ProfileVisibility;
 import com.dike.identity.domain.UserPrivacySettings;
 import com.dike.identity.domain.UserProfile;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -69,6 +70,12 @@ class MongoProfileDataStore implements ProfileDataStore {
       String displayName,
       String normalizedName,
       String bio,
+      LocalDate dateOfBirth,
+      String provinceCode,
+      String provinceName,
+      String localityCode,
+      String localityName,
+      String facebookUrl,
       Instant now) {
     UserProfileDocument result =
         template.findAndModify(
@@ -77,6 +84,12 @@ class MongoProfileDataStore implements ProfileDataStore {
                 .set("displayName", displayName)
                 .set("normalizedDisplayName", normalizedName)
                 .set("bio", bio)
+                .set("dateOfBirth", dateOfBirth)
+                .set("provinceCode", provinceCode)
+                .set("provinceName", provinceName)
+                .set("localityCode", localityCode)
+                .set("localityName", localityName)
+                .set("facebookUrl", facebookUrl)
                 .set("updatedAt", now)
                 .inc("version", 1),
             FindAndModifyOptions.options().returnNew(true),
@@ -299,6 +312,12 @@ class MongoProfileDataStore implements ProfileDataStore {
         d.displayName(),
         d.normalizedDisplayName(),
         d.bio(),
+        d.dateOfBirth(),
+        d.provinceCode(),
+        d.provinceName(),
+        d.localityCode(),
+        d.localityName(),
+        d.facebookUrl(),
         d.avatarFileId(),
         d.avatarPublicUrl(),
         d.createdAt(),
@@ -312,6 +331,12 @@ class MongoProfileDataStore implements ProfileDataStore {
         d.displayName(),
         d.normalizedDisplayName(),
         d.bio(),
+        d.dateOfBirth(),
+        d.provinceCode(),
+        d.provinceName(),
+        d.localityCode(),
+        d.localityName(),
+        d.facebookUrl(),
         d.avatarFileId(),
         d.avatarPublicUrl(),
         d.createdAt(),
