@@ -8,23 +8,29 @@ import {
   CarFront,
   ChevronDown,
   Clock3,
+  EyeOff,
+  Flag,
+  Globe2,
   MapPin,
+  MoreHorizontal,
   Search,
   Send,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { rideApi } from "../../src/rides/api";
 import { AppHeader } from "./app-header";
 import { DikeLogo } from "./dike-logo";
 import { MemberAvatar } from "./member-avatar";
 import { PassengerRequest } from "../../src/rides/passenger-request";
+import { FeedRoutePreview } from "../../src/rides/feed-route-preview";
 
 type FeedFilter = "ALL" | "OFFER_RIDE" | "NEED_RIDE";
-type FeedSort = "latest" | "departure";
+type FeedSort = "latest" | "oldest";
 
 export function AuthenticatedHome({
   session,
@@ -34,6 +40,13 @@ export function AuthenticatedHome({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FeedFilter>("ALL");
   const [sort, setSort] = useState<FeedSort>("latest");
+  const [departureDate, setDepartureDate] = useState("");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
+  const [reportPost, setReportPost] = useState<RidePostView | null>(null);
+  const [reportReason, setReportReason] = useState("UNSAFE");
+  const [reportNote, setReportNote] = useState("");
+  const sortMenu = useRef<HTMLDivElement>(null);
   const [urlReady, setUrlReady] = useState(false);
   const [feedScrolled, setFeedScrolled] = useState(false);
   const [cardsHidden, setCardsHidden] = useState(false);
@@ -55,6 +68,39 @@ export function AuthenticatedHome({
       void list.refetch();
     },
   });
+  const removeMutation = useMutation({
+    mutationFn: (post: RidePostView) =>
+      rideApi.postAction(post.id, "close", post.version, crypto.randomUUID()),
+    onSuccess: (_result, post) => {
+      hidePost(post.id);
+      void list.refetch();
+    },
+  });
+  const reportMutation = useMutation({
+    mutationFn: (post: RidePostView) =>
+      rideApi.report(
+        {
+          postId: post.id,
+          reason: reportReason,
+          note: reportNote.trim() || undefined,
+        },
+        crypto.randomUUID(),
+      ),
+    onSuccess: () => {
+      setReportNote("");
+    },
+  });
+
+  const hidePost = (postId: string) => {
+    setHiddenPostIds((current) => {
+      const next = current.includes(postId) ? current : [...current, postId];
+      window.localStorage.setItem(
+        "dike-hidden-feed-posts",
+        JSON.stringify(next),
+      );
+      return next;
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -63,9 +109,35 @@ export function AuthenticatedHome({
     setQuery(params.get("q") ?? "");
     const type = params.get("type");
     if (type === "OFFER_RIDE" || type === "NEED_RIDE") setFilter(type);
-    if (params.get("sort") === "departure") setSort("departure");
+    if (params.get("sort") === "oldest") setSort("oldest");
+    setDepartureDate(params.get("departure") ?? "");
+    try {
+      const stored = JSON.parse(
+        window.localStorage.getItem("dike-hidden-feed-posts") ?? "[]",
+      );
+      if (Array.isArray(stored))
+        setHiddenPostIds(stored.filter((item) => typeof item === "string"));
+    } catch {
+      window.localStorage.removeItem("dike-hidden-feed-posts");
+    }
     setUrlReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const close = (event: PointerEvent) => {
+      if (!sortMenu.current?.contains(event.target as Node)) setSortOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSortOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [sortOpen]);
 
   useEffect(() => {
     if (!urlReady) return;
@@ -76,9 +148,11 @@ export function AuthenticatedHome({
     else params.set("type", filter);
     if (sort === "latest") params.delete("sort");
     else params.set("sort", sort);
+    if (departureDate) params.set("departure", departureDate);
+    else params.delete("departure");
     const next = `${window.location.pathname}${params.size ? `?${params}` : ""}`;
     window.history.replaceState(null, "", next);
-  }, [filter, query, sort, urlReady]);
+  }, [departureDate, filter, query, sort, urlReady]);
 
   const posts = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("vi");
@@ -87,20 +161,16 @@ export function AuthenticatedHome({
     ).filter(
       (post) =>
         post.status === "OPEN" &&
+        !hiddenPostIds.includes(post.id) &&
         (filter === "ALL" || post.type === filter) &&
+        (!departureDate || localDateKey(post.departureAt) === departureDate) &&
         (!needle ||
           `${post.originLabel} ${post.destinationLabel} ${post.note}`
             .toLocaleLowerCase("vi")
             .includes(needle)),
     );
-    return sort === "departure"
-      ? [...values].sort(
-          (a: RidePostView, b: RidePostView) =>
-            new Date(a.departureAt).getTime() -
-            new Date(b.departureAt).getTime(),
-        )
-      : values;
-  }, [filter, list.data, query, sort]);
+    return sort === "oldest" ? [...values].reverse() : values;
+  }, [departureDate, filter, hiddenPostIds, list.data, query, sort]);
 
   return (
     <div className="new-home-shell">
@@ -195,40 +265,96 @@ export function AuthenticatedHome({
                   Những chuyến đi đang chờ bạn
                 </p>
               </div>
-              <label className="new-feed-sort">
-                <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as FeedSort)}
-                >
-                  <option value="latest">Mới nhất</option>
-                  <option value="departure">Sắp khởi hành</option>
-                </select>
-                <ChevronDown aria-hidden="true" size={15} />
-              </label>
             </div>
-            <div
-              className="new-feed-filters"
-              role="group"
-              aria-label="Lọc bài đăng"
-            >
-              {(
-                [
-                  ["ALL", "Tất cả"],
-                  ["OFFER_RIDE", "Tôi chở"],
-                  ["NEED_RIDE", "Tôi đi ké"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  data-ride-type={value}
-                  aria-pressed={filter === value}
-                  onClick={() => setFilter(value)}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="new-feed-toolbar">
+              <div
+                className="new-feed-filters"
+                role="group"
+                aria-label="Lọc bài đăng"
+              >
+                {(
+                  [
+                    ["ALL", "Tất cả"],
+                    ["OFFER_RIDE", "Tôi chở"],
+                    ["NEED_RIDE", "Tôi đi ké"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    data-ride-type={value}
+                    aria-pressed={filter === value}
+                    onClick={() => setFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="new-feed-controls">
+                <label className="new-feed-date">
+                  <CalendarDays aria-hidden="true" size={17} />
+                  <span>
+                    <strong>Ngày khởi hành</strong>
+                    <small>
+                      {departureDate
+                        ? new Date(
+                            `${departureDate}T00:00:00`,
+                          ).toLocaleDateString("vi-VN")
+                        : "Chọn ngày"}
+                    </small>
+                  </span>
+                  <input
+                    type="date"
+                    aria-label="Lọc theo ngày khởi hành"
+                    value={departureDate}
+                    onChange={(event) => setDepartureDate(event.target.value)}
+                  />
+                  <ChevronDown aria-hidden="true" size={15} />
+                </label>
+                <div className="new-feed-sort" ref={sortMenu}>
+                  <button
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={sortOpen}
+                    onClick={() => setSortOpen((open) => !open)}
+                  >
+                    <span aria-hidden="true">↕</span>
+                    {sort === "latest" ? "Mới nhất" : "Cũ nhất"}
+                    <ChevronDown aria-hidden="true" size={15} />
+                  </button>
+                  {sortOpen ? (
+                    <div className="new-feed-sort-menu" role="menu">
+                      {(
+                        [
+                          ["latest", "Mới nhất"],
+                          ["oldest", "Cũ nhất"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={sort === value}
+                          key={value}
+                          onClick={() => {
+                            setSort(value);
+                            setSortOpen(false);
+                          }}
+                        >
+                          {label}
+                          {sort === value ? <span>✓</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             </div>
+            {removeMutation.isError ? (
+              <p className="new-feed-action-error" role="alert">
+                Chưa thể xóa bài đăng. Dữ liệu có thể vừa được cập nhật, vui
+                lòng tải lại và thử lại.
+              </p>
+            ) : null}
 
             {list.isPending ? (
               <FeedSkeleton />
@@ -260,6 +386,14 @@ export function AuthenticatedHome({
                       responseMutation.reset();
                       setResponseMessage("");
                       setResponsePost(selected);
+                    }}
+                    onHide={() => hidePost(post.id)}
+                    onDelete={() => removeMutation.mutate(post)}
+                    onReport={() => {
+                      reportMutation.reset();
+                      setReportReason("UNSAFE");
+                      setReportNote("");
+                      setReportPost(post);
                     }}
                   />
                 ))}
@@ -397,6 +531,91 @@ export function AuthenticatedHome({
           </section>
         </div>
       ) : null}
+      {reportPost ? (
+        <div
+          className="home-response-modal home-report-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !reportMutation.isPending
+            )
+              setReportPost(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-report-title"
+          >
+            <button
+              className="home-response-close"
+              type="button"
+              aria-label="Đóng báo cáo"
+              onClick={() => setReportPost(null)}
+            >
+              <X aria-hidden="true" size={22} />
+            </button>
+            <div className="home-response-heading">
+              <span aria-hidden="true">
+                <Flag size={26} />
+              </span>
+              <div>
+                <h2 id="home-report-title">Báo cáo bài đăng</h2>
+              </div>
+            </div>
+            {reportMutation.isSuccess ? (
+              <div className="home-report-success" role="status">
+                <strong>Đã tiếp nhận báo cáo</strong>
+                <p>Đội ngũ Diké sẽ kiểm tra nội dung này.</p>
+              </div>
+            ) : (
+              <div className="home-report-form">
+                <label>
+                  <span>Lý do báo cáo</span>
+                  <select
+                    value={reportReason}
+                    onChange={(event) => setReportReason(event.target.value)}
+                  >
+                    <option value="UNSAFE">Không an toàn</option>
+                    <option value="SPAM">Spam hoặc quảng cáo</option>
+                    <option value="MISLEADING">Thông tin sai lệch</option>
+                    <option value="OTHER">Lý do khác</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Mô tả thêm</span>
+                  <textarea
+                    maxLength={500}
+                    value={reportNote}
+                    onChange={(event) => setReportNote(event.target.value)}
+                    placeholder="Mô tả ngắn vấn đề bạn nhận thấy"
+                  />
+                </label>
+                {reportMutation.isError ? (
+                  <p role="alert">Chưa thể gửi báo cáo.</p>
+                ) : null}
+              </div>
+            )}
+            <div className="home-response-actions">
+              <button type="button" onClick={() => setReportPost(null)}>
+                {reportMutation.isSuccess ? "Đóng" : "Hủy"}
+              </button>
+              {!reportMutation.isSuccess ? (
+                <button
+                  type="button"
+                  className="is-submit"
+                  disabled={reportMutation.isPending}
+                  onClick={() => reportMutation.mutate(reportPost)}
+                >
+                  <Flag aria-hidden="true" size={18} />
+                  {reportMutation.isPending ? "Đang gửi…" : "Gửi báo cáo"}
+                </button>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -405,14 +624,31 @@ function HomeRideCard({
   post,
   currentUserId,
   onRespond,
+  onHide,
+  onDelete,
+  onReport,
 }: {
   post: RidePostView;
   currentUserId: string;
   onRespond: (post: RidePostView) => void;
+  onHide: () => void;
+  onDelete: () => void;
+  onReport: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
   const isOffer = post.type === "OFFER_RIDE";
   const owner = post.ownerId === currentUserId;
   const ownerName = post.ownerDisplayName || "Thành viên Diké";
+  const requestCount = post.pendingResponseCount ?? 0;
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: PointerEvent) => {
+      if (!menu.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [menuOpen]);
   return (
     <article className={`new-ride-card ${isOffer ? "is-offer" : "is-need"}`}>
       <Link
@@ -420,77 +656,148 @@ function HomeRideCard({
         href={`/feed/${encodeURIComponent(post.id)}`}
         aria-label={`Xem chi tiết hành trình của ${ownerName}`}
       />
-      <header>
-        <MemberAvatar
-          name={ownerName}
-          avatarUrl={post.ownerAvatarUrl}
-          className="new-ride-avatar"
-          size={38}
-        />
-        <div>
-          <strong>{ownerName}</strong>
+      <div className="new-ride-content">
+        <div className="new-ride-information">
+          <header>
+            <MemberAvatar
+              name={ownerName}
+              avatarUrl={post.ownerAvatarUrl}
+              className="new-ride-avatar"
+              size={42}
+            />
+            <div>
+              <strong>{ownerName}</strong>
+              <small>
+                Hành trình công khai
+                <Globe2 aria-hidden="true" size={12} />
+              </small>
+            </div>
+            <span
+              className={`new-ride-kind ${isOffer ? "is-offer" : "is-need"}`}
+            >
+              <CarFront aria-hidden="true" size={15} />
+              {isOffer ? "Tôi chở" : "Tôi đi ké"}
+            </span>
+            {post.id.startsWith("demo-") || post.id.startsWith("demo:") ? (
+              <span className="new-ride-owned">Bài mẫu</span>
+            ) : owner ? (
+              <span className="new-ride-owned">Bài của bạn</span>
+            ) : null}
+          </header>
+          <div className="new-ride-route">
+            <span aria-hidden="true">
+              <i />
+              <b />
+              <i />
+            </span>
+            <div>
+              <small>Điểm đi</small>
+              <strong>{post.originLabel}</strong>
+              <small>Điểm đến</small>
+              <strong>{post.destinationLabel}</strong>
+            </div>
+          </div>
+          <div className="new-ride-meta">
+            <span>
+              <CalendarDays aria-hidden="true" size={15} />
+              {new Date(post.departureAt).toLocaleDateString("vi-VN")}
+            </span>
+            <span>
+              <Clock3 aria-hidden="true" size={15} />
+              {new Date(post.departureAt).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <span>
+              <CarFront aria-hidden="true" size={15} />
+              {post.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
+            </span>
+          </div>
+          {post.note ? <p className="new-ride-note">{post.note}</p> : null}
+          <div className="new-ride-stats">
+            <span>
+              <CarFront aria-hidden="true" size={15} />
+              {isOffer && typeof post.remainingSeats === "number"
+                ? `Còn ${post.remainingSeats} chỗ`
+                : "Đang tìm đồng hành"}
+            </span>
+            <span>
+              <Users aria-hidden="true" size={15} />
+              {requestCount} yêu cầu
+            </span>
+          </div>
         </div>
-        {post.id.startsWith("demo-") || post.id.startsWith("demo:") ? (
-          <span className="new-ride-owned">Bài mẫu</span>
-        ) : owner ? (
-          <span className="new-ride-owned">Bài của bạn</span>
-        ) : null}
-      </header>
-      <div className="new-ride-route">
-        <span aria-hidden="true">
-          <i />
-          <b />
-          <i />
-        </span>
-        <div>
-          <small>Điểm đón</small>
-          <strong>{post.originLabel}</strong>
-          <small>Điểm đến</small>
-          <strong>{post.destinationLabel}</strong>
+        <div className="new-ride-map-column">
+          <div className="new-ride-menu" ref={menu}>
+            <button
+              className="new-ride-more"
+              type="button"
+              aria-label="Mở tùy chọn bài đăng"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <MoreHorizontal aria-hidden="true" size={19} />
+            </button>
+            {menuOpen ? (
+              <div className="new-ride-dropdown" role="menu">
+                {owner ? (
+                  <>
+                    <button type="button" role="menuitem" onClick={onHide}>
+                      <EyeOff aria-hidden="true" size={17} /> Ẩn khỏi bảng feed
+                    </button>
+                    <button
+                      className="is-danger"
+                      type="button"
+                      role="menuitem"
+                      onClick={onDelete}
+                    >
+                      <Trash2 aria-hidden="true" size={17} /> Xóa bài đăng
+                    </button>
+                  </>
+                ) : null}
+                <button type="button" role="menuitem" onClick={onReport}>
+                  <Flag aria-hidden="true" size={17} /> Báo cáo bài đăng
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <FeedRoutePreview
+            id={post.id}
+            origin={post.originLabel}
+            destination={post.destinationLabel}
+          />
+          <footer>
+            {owner ? (
+              <span className="new-ride-request-count">
+                <Users aria-hidden="true" size={15} />
+                Xem {requestCount} yêu cầu
+                <ArrowRight aria-hidden="true" size={15} />
+              </span>
+            ) : (
+              <button
+                className="new-ride-response-link"
+                type="button"
+                onClick={() => onRespond(post)}
+              >
+                {isOffer ? "Đi ké ngay" : "Chở ngay"}
+                <ArrowRight aria-hidden="true" size={15} />
+              </button>
+            )}
+          </footer>
         </div>
       </div>
-      <div className="new-ride-meta">
-        <span>
-          <CalendarDays aria-hidden="true" size={15} />
-          {new Date(post.departureAt).toLocaleDateString("vi-VN")}
-        </span>
-        <span>
-          <Clock3 aria-hidden="true" size={15} />
-          {new Date(post.departureAt).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-        <span>
-          <CarFront aria-hidden="true" size={15} />
-          {post.vehicleType === "MOTORCYCLE" ? "Xe máy" : "Ô tô"}
-        </span>
-      </div>
-      {post.note ? <p className="new-ride-note">{post.note}</p> : null}
-      <footer>
-        <span>
-          {isOffer && typeof post.remainingSeats === "number"
-            ? `Còn ${post.remainingSeats} chỗ`
-            : "Đang tìm đồng hành"}
-        </span>
-        {owner ? (
-          <span className="new-ride-request-count">
-            <Users aria-hidden="true" size={15} />
-            {post.pendingResponseCount} yêu cầu
-          </span>
-        ) : (
-          <button
-            className="new-ride-response-link"
-            type="button"
-            onClick={() => onRespond(post)}
-          >
-            {isOffer ? "Đi ké ngay" : "Chở ngay"}
-            <ArrowRight aria-hidden="true" size={15} />
-          </button>
-        )}
-      </footer>
     </article>
   );
+}
+
+function localDateKey(value: string) {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function FeedSkeleton() {

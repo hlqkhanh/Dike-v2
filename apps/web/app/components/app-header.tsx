@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { journeyApi } from "../../src/journey/api";
 import { authApi } from "../../src/auth/api";
@@ -88,6 +88,14 @@ export function AppHeader({
   const unread = (notifications.data ?? []).filter(
     (item) => !item.readAt,
   ).length;
+  const orderedNotifications = useMemo(
+    () =>
+      [...(notifications.data ?? [])].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [notifications.data],
+  );
   const refresh = () =>
     client.invalidateQueries({ queryKey: ["notifications"] });
   const readAll = useMutation({
@@ -358,8 +366,8 @@ export function AppHeader({
                 <p>Đang tải thông báo…</p>
               ) : notifications.isError ? (
                 <p role="alert">Chưa thể tải thông báo.</p>
-              ) : notifications.data?.length ? (
-                notifications.data.slice(0, 8).map((item) => {
+              ) : orderedNotifications.length ? (
+                orderedNotifications.slice(0, 8).map((item) => {
                   const { Icon, tone } = notificationAppearance(item);
                   return (
                     <Link

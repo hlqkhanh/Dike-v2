@@ -173,7 +173,9 @@ export default function NotificationsPage() {
     onSuccess: refresh,
   });
 
-  const notifications = list.data ?? [];
+  const notifications = [...(list.data ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
   const unread = notifications.filter((item) => !item.readAt).length;
   const counts = notifications.reduce<Record<NotificationCategory, number>>(
     (result, item) => {

@@ -111,6 +111,9 @@ test("simulated verification status is accessible", async ({ page }) => {
   const notificationDialog = page.getByRole("dialog", { name: "Thông báo" });
   await expect(notificationDialog).toBeVisible();
   await expect(
+    notificationDialog.locator(".notification-panel-item strong").first(),
+  ).toHaveText("Chuyến đi đã được xác nhận");
+  await expect(
     notificationDialog.getByText("2 thông báo chưa đọc"),
   ).toBeVisible();
   await expectNoSeriousViolations(page);
@@ -131,6 +134,9 @@ test("simulated verification status is accessible", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Thông báo", level: 1 }),
   ).toBeVisible();
+  await expect(
+    page.locator(".notification-center-item-copy strong").first(),
+  ).toHaveText("Chuyến đi đã được xác nhận");
   await page.getByRole("button", { name: /Chuyến đi/ }).click();
   await expect(
     page.getByRole("heading", { name: "Chuyến đi thông báo" }),

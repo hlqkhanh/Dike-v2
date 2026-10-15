@@ -99,8 +99,9 @@ test("opening a demo post encodes its identifier once for detail and responses",
   });
   await page.goto("/home");
   await page.locator(".new-ride-card-link").click();
+  await expect(page.locator(".feed-detail-card")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Chi tiết bài đăng", exact: true }),
+    page.getByText("Khách thử nghiệm", { exact: true }).first(),
   ).toBeVisible();
   await expect
     .poll(() => requestedPaths)
@@ -121,6 +122,19 @@ test("feed shows real author names and photos, preserving sample placeholders", 
     route.fulfill({
       contentType: "image/svg+xml",
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="green"/></svg>',
+    }),
+  );
+  await page.route("**/api/v1/ride-posts/*/route", (route) =>
+    route.fulfill({
+      json: {
+        geometry: [
+          { latitude: 21.0285, longitude: 105.8542 },
+          { latitude: 20.9802, longitude: 105.7851 },
+        ],
+        distanceMeters: 9200,
+        durationSeconds: 1320,
+        provider: "OSRM",
+      },
     }),
   );
   const base = {
@@ -176,6 +190,75 @@ test("feed shows real author names and photos, preserving sample placeholders", 
   await expect(cards.nth(2).locator("header strong")).toHaveText(
     "Thành viên Diké",
   );
+  await expect(cards.locator(".post-route-map-canvas")).toHaveCount(3);
+});
+
+test("feed filters by departure date and exposes contextual post actions", async ({
+  page,
+}) => {
+  const posts = [
+    {
+      id: "owned",
+      ownerId: "passenger",
+      ownerDisplayName: "Bài của tôi",
+      type: "OFFER_RIDE",
+      status: "OPEN",
+      originLabel: "Điểm A",
+      destinationLabel: "Điểm B",
+      vehicleType: "CAR",
+      departureAt: "2026-10-20T05:00:00Z",
+      createdAt: "2026-10-15T05:00:00Z",
+      version: 1,
+      remainingSeats: 2,
+      pendingResponseCount: 1,
+    },
+    {
+      id: "other",
+      ownerId: "other-member",
+      ownerDisplayName: "Bài của người khác",
+      type: "NEED_RIDE",
+      status: "OPEN",
+      originLabel: "Điểm C",
+      destinationLabel: "Điểm D",
+      vehicleType: "MOTORCYCLE",
+      departureAt: "2026-10-21T05:00:00Z",
+      createdAt: "2026-10-14T05:00:00Z",
+      version: 0,
+      pendingResponseCount: 0,
+    },
+  ];
+  await page.route("**/api/v1/ride-posts?**", (route) =>
+    route.fulfill({ json: { items: posts } }),
+  );
+  await page.route("**/api/v1/ride-posts/owned/close", (route) =>
+    route.fulfill({ json: { ...posts[0], status: "CLOSED", version: 2 } }),
+  );
+
+  await page.goto("/home");
+  const cards = page.locator(".new-ride-card");
+  await expect(cards).toHaveCount(2);
+
+  await page.getByRole("button", { name: "Mới nhất" }).click();
+  await page.getByRole("menuitemradio", { name: "Cũ nhất" }).click();
+  await expect(cards.first().locator("header strong")).toHaveText(
+    "Bài của người khác",
+  );
+
+  await page.getByLabel("Lọc theo ngày khởi hành").fill("2026-10-20");
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first().locator("header strong")).toHaveText(
+    "Bài của tôi",
+  );
+
+  await cards
+    .first()
+    .getByRole("button", { name: "Mở tùy chọn bài đăng" })
+    .click();
+  await expect(
+    page.getByRole("menuitem", { name: "Ẩn khỏi bảng feed" }),
+  ).toBeVisible();
+  await page.getByRole("menuitem", { name: "Xóa bài đăng" }).click();
+  await expect(cards).toHaveCount(0);
 });
 
 test("home feed scrolls over the stationary banner without scrolling the document", async ({
