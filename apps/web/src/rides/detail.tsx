@@ -100,6 +100,7 @@ export function PostDetail({ id }: { id: string }) {
   };
   return (
     <main className="feed-detail-page">
+      <h1 className="sr-only">Chi tiết bài đăng</h1>
       {post.isPending ? (
         <div className="feed-detail-state">
           <LoadingState label="Đang tải chi tiết bài đăng" />

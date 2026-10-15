@@ -1040,6 +1040,9 @@ function ProposalCard({
               <X aria-hidden="true" size={16} /> Từ chối
             </button>
             <button
+              aria-label={
+                p.status === "PENDING" ? "Đồng ý đi cùng" : "Chấp nhận"
+              }
               className="is-primary"
               disabled={command.isPending || p.status !== "PENDING"}
               onClick={() => act("accept")}
