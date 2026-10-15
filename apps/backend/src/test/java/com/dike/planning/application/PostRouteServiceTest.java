@@ -20,6 +20,16 @@ class PostRouteServiceTest {
   final PostRouteService service = new PostRouteService(posts, store, routes, recovery);
 
   @Test
+  void requestPrefillCanOnlyUseTheRequestersOwnedSnapshot() {
+    var snapshot = mock(RouteSnapshot.class);
+    when(snapshot.ownerUserId()).thenReturn("owner");
+    when(routes.route("saved")).thenReturn(Optional.of(snapshot));
+    assertThat(service.ownedSnapshot("owner", "saved")).isSameAs(snapshot);
+    assertThatThrownBy(() -> service.ownedSnapshot("another-user", "saved"))
+        .isInstanceOf(ApiException.class);
+  }
+
+  @Test
   void accessIsCheckedBeforeReadingAnyRoute() {
     doThrow(new ApiException(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "Hidden"))
         .when(posts)

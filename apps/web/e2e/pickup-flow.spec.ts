@@ -155,9 +155,19 @@ for (const entry of ["home", "detail"]) {
     await page.route(
       "**/api/v1/ride-posts/pickup-post/pickup-checks",
       (route) => {
-        expect(route.request().postDataJSON()).toEqual({
-          pickupPlaceRef: pickup.placeRef,
-        });
+        const body = route.request().postDataJSON();
+        if (!body.pickupPlaceRef)
+          return route.fulfill({
+            json: {
+              ...result,
+              pickup: { ...pickup, displayLabel: post.originLabel },
+              pickupIndex: 0,
+              geometry: [result.geometry[0], result.geometry[2]],
+              extraMeters: 0,
+              extraSeconds: 0,
+            },
+          });
+        expect(body).toEqual({ pickupPlaceRef: pickup.placeRef });
         expect(route.request().headers()["x-xsrf-token"]).toBe("csrf-pickup");
         return route.fulfill({ json: result });
       },
@@ -172,8 +182,8 @@ for (const entry of ["home", "detail"]) {
       dialog.getByRole("heading", { name: "Đi ké cùng Linh Nguyễn" }),
     ).toBeVisible();
     const submit = dialog.getByRole("button", { name: "Gửi yêu cầu đi ké" });
-    await expect(submit).toBeDisabled();
-    await expect(dialog.locator("input")).toHaveCount(1);
+    await expect(submit).toBeEnabled();
+    await expect(dialog.locator("input")).toHaveCount(2);
     await expect(dialog.locator('input[type="datetime-local"]')).toHaveCount(0);
     await expect(dialog.locator(".maplibregl-marker")).toHaveCount(2);
     await expect(dialog.locator(".route-member-marker--a")).toHaveText("LN");
@@ -293,4 +303,94 @@ test("driver sees pickup evidence and cannot confirm an expired result", async (
   await expect(
     requests.getByRole("button", { name: "Xác nhận", exact: true }),
   ).toBeDisabled();
+});
+
+test("both addresses are editable and each empty address falls back to the driver", async ({
+  page,
+}) => {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/v1/ride-posts/pickup-post/responses", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(
+    "**/api/v1/ride-posts/pickup-post/pickup-checks",
+    (route) => {
+      bodies.push(route.request().postDataJSON());
+      return route.fulfill({ json: result });
+    },
+  );
+  await page.goto("/feed/pickup-post?action=respond");
+  const dialog = page.getByRole("dialog"),
+    origin = dialog.getByLabel("Điểm đón của bạn"),
+    destination = dialog.getByLabel("Điểm đến của bạn");
+  expect(bodies).toHaveLength(0);
+  await expect(origin).toHaveAttribute("placeholder", post.originLabel);
+  await expect(destination).toHaveAttribute(
+    "placeholder",
+    post.destinationLabel,
+  );
+  await destination.fill("Nguyễn Trãi");
+  await expect(
+    dialog.getByRole("button", { name: "Gửi yêu cầu đi ké" }),
+  ).toBeDisabled();
+  await destination.press("Enter");
+  await dialog.getByRole("button", { name: pickup.displayLabel }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+  expect(bodies[0]).toEqual({ dropoffPlaceRef: pickup.placeRef });
+  await origin.fill("Nguyễn Trãi");
+  await origin.press("Enter");
+  await dialog.getByRole("button", { name: pickup.displayLabel }).click();
+  await expect.poll(() => bodies.length).toBe(2);
+  expect(bodies[1]).toEqual({
+    pickupPlaceRef: pickup.placeRef,
+    dropoffPlaceRef: pickup.placeRef,
+  });
+  await dialog
+    .getByRole("button", { name: "Đổi điểm đến", exact: true })
+    .click();
+  await expect.poll(() => bodies.length).toBe(3);
+  expect(bodies[2]).toEqual({ pickupPlaceRef: pickup.placeRef });
+  await dialog
+    .getByRole("button", { name: "Đổi điểm đón", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Gửi yêu cầu đi ké" }),
+  ).toBeEnabled();
+  expect(bodies).toHaveLength(3);
+});
+
+test("empty addresses and message can send immediately even when the map fails", async ({
+  page,
+}) => {
+  let checks = 0,
+    sent = 0;
+  await page.route("**/api/v1/ride-posts/pickup-post/route", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: { code: "MAP_UNAVAILABLE", message: "Map unavailable" } },
+    }),
+  );
+  await page.route(
+    "**/api/v1/ride-posts/pickup-post/pickup-checks",
+    (route) => {
+      checks++;
+      return route.fulfill({ status: 503, json: {} });
+    },
+  );
+  await page.route("**/api/v1/ride-posts/pickup-post/responses", (route) => {
+    if (route.request().method() !== "POST") return route.fulfill({ json: [] });
+    sent++;
+    expect(route.request().postDataJSON()).toEqual({ message: "" });
+    return route.fulfill({
+      json: { id: "response", postId: post.id, status: "PENDING" },
+    });
+  });
+  await page.goto("/feed/pickup-post?action=respond");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByLabel("Điểm đón của bạn")).toHaveValue("");
+  await expect(dialog.getByLabel("Điểm đến của bạn")).toHaveValue("");
+  await dialog.getByRole("button", { name: "Gửi yêu cầu đi ké" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(sent).toBe(1);
+  expect(checks).toBe(0);
 });

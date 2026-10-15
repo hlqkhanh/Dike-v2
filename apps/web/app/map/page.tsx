@@ -22,7 +22,7 @@ import type {
 } from "../../src/routing/api";
 import { ErrorState, LoadingState, PageHeader } from "../components/app-ui";
 
-const DynamicMap = dynamic(() => import("./DynamicMap"), {
+const RouteMap = dynamic(() => import("../../src/rides/post-route-map"), {
   ssr: false,
   loading: () => <LoadingState label="Đang tải bản đồ" />,
 });
@@ -201,7 +201,11 @@ export default function MapPage() {
           className="settings-card map-canvas-card"
           aria-label="Bản đồ tuyến đường"
         >
-          <DynamicMap route={route?.geometry} />
+          <RouteMap
+            route={route}
+            origin={route?.origin.displayLabel || "Điểm đi"}
+            destination={route?.destination.displayLabel || "Điểm đến"}
+          />
           {!route ? (
             <div className="map-empty-overlay">
               <MapPinned aria-hidden="true" size={30} />

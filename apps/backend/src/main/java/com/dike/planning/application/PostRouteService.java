@@ -32,6 +32,13 @@ public class PostRouteService {
         route.geometry(), route.distanceMeters(), route.durationSeconds(), route.provider());
   }
 
+  public com.dike.planning.domain.RouteSnapshot ownedSnapshot(String viewer, String routeId) {
+    return routes
+        .route(routeId)
+        .filter(route -> viewer.equals(route.ownerUserId()))
+        .orElseThrow(PostRouteService::missing);
+  }
+
   public com.dike.planning.domain.RouteSnapshot snapshot(String viewer, String postId) {
     posts.requireReadable(viewer, postId);
     var post = postStore.find(postId).orElseThrow(PostRouteService::missing);

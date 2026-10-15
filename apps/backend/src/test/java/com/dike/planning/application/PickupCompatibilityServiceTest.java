@@ -95,6 +95,97 @@ class PickupCompatibilityServiceTest {
   }
 
   @Test
+  void sameRouteRequestsNeedNoDirectionsOrSavedRouteButStillRequireAnAvailableTrip() {
+    assertThat(service.require("passenger", "post", null)).isNull();
+    verifyNoInteractions(routes, provider, cache, places);
+    trip.put("remainingSeats", 0);
+    assertThatThrownBy(() -> service.require("passenger", "post", null))
+        .isInstanceOf(ApiException.class);
+  }
+
+  @Test
+  void emptyAddressesReuseBothDriverPointsWithoutCallingDirections() {
+    var result =
+        service.check("passenger", "post", new PickupCompatibilityService.Input(null, null, null));
+    assertThat(result.pickup()).isEqualTo(a);
+    assertThat(result.dropoff()).isEqualTo(c);
+    assertThat(result.extraMeters()).isZero();
+    assertThat(result.extraSeconds()).isZero();
+    assertThat(result.compatible()).isTrue();
+    verifyNoInteractions(provider, places);
+  }
+
+  @Test
+  void destinationOnlyUsesDriverOriginAndCountsTheRemainingDriverLeg() {
+    when(places.find("passenger", "resolved-dropoff")).thenReturn(Optional.of(b));
+    var result =
+        service.check(
+            "passenger",
+            "post",
+            new PickupCompatibilityService.Input(
+                null, null, null, null, "resolved-dropoff", false, false));
+    assertThat(result.pickup()).isEqualTo(a);
+    assertThat(result.dropoff()).isEqualTo(b);
+    assertThat(result.arrivalAt()).isEqualTo(departure.plusSeconds(400));
+    assertThat(result.extraMeters()).isEqualTo(500);
+    assertThat(result.extraSeconds()).isEqualTo(200);
+    verify(provider).route(a, b, VehicleMode.CAR);
+    verify(provider).route(b, c, VehicleMode.CAR);
+  }
+
+  @Test
+  void clearingPrefilledAddressesOverridesOwnedRouteIndependently() {
+    var own = mock(RouteSnapshot.class);
+    when(own.origin()).thenReturn(b);
+    when(own.destination()).thenReturn(b);
+    when(own.vehicleMode()).thenReturn(VehicleMode.CAR);
+    when(own.expiresAt()).thenReturn(now.plusSeconds(7200));
+    when(routes.ownedSnapshot("passenger", "own-route")).thenReturn(own);
+    var destinationOnly =
+        service.check(
+            "passenger",
+            "post",
+            new PickupCompatibilityService.Input(null, null, null, "own-route", null, true, false));
+    assertThat(destinationOnly.pickup()).isEqualTo(a);
+    assertThat(destinationOnly.dropoff()).isEqualTo(b);
+    var pickupOnly =
+        service.check(
+            "passenger",
+            "post",
+            new PickupCompatibilityService.Input(null, null, null, "own-route", null, false, true));
+    assertThat(pickupOnly.pickup()).isEqualTo(b);
+    assertThat(pickupOnly.dropoff()).isEqualTo(c);
+    var both =
+        service.check(
+            "passenger",
+            "post",
+            new PickupCompatibilityService.Input(null, null, null, "own-route", null, true, true));
+    assertThat(both.pickup()).isEqualTo(a);
+    assertThat(both.dropoff()).isEqualTo(c);
+  }
+
+  @Test
+  void rejectsExpiredAndForgedDropoffReferences() {
+    assertThatThrownBy(
+            () ->
+                service.check(
+                    "passenger",
+                    "post",
+                    new PickupCompatibilityService.Input(
+                        null, null, null, null, "unknown-place", false, false)))
+        .isInstanceOf(ApiException.class);
+    assertThatThrownBy(
+            () ->
+                service.check(
+                    "passenger",
+                    "post",
+                    new PickupCompatibilityService.Input(
+                        null, null, null, null, "bad/ref", false, false)))
+        .isInstanceOf(ApiException.class);
+    verifyNoInteractions(provider);
+  }
+
+  @Test
   void computesRealRoadDetourAndPickupTimeAtCommonDestination() {
     var result = check();
     assertThat(result.compatible()).isTrue();
@@ -119,6 +210,53 @@ class PickupCompatibilityServiceTest {
     assertThat(result.readyAt()).isEqualTo(departure);
     assertThat(result.latestPickupAt()).isEqualTo(departure.plus(Duration.ofHours(4)));
     assertThat(result.compatible()).isTrue();
+  }
+
+  @Test
+  void prefillsBothPointsFromOwnedJourneyAndIncludesTheDriversRemainingLeg() {
+    var dropoff = place("Passenger destination", 105.78);
+    var own = mock(RouteSnapshot.class);
+    when(own.origin()).thenReturn(b);
+    when(own.destination()).thenReturn(dropoff);
+    when(own.vehicleMode()).thenReturn(VehicleMode.CAR);
+    when(own.expiresAt()).thenReturn(now.plusSeconds(7200));
+    when(routes.ownedSnapshot("passenger", "own-route")).thenReturn(own);
+    when(provider.route(b, dropoff, VehicleMode.CAR)).thenReturn(leg(4000, 600, b, dropoff));
+    when(provider.route(dropoff, c, VehicleMode.CAR)).thenReturn(leg(3500, 400, dropoff, c));
+
+    var result =
+        service.check(
+            "passenger",
+            "post",
+            new PickupCompatibilityService.Input(null, null, null, "own-route"));
+
+    assertThat(result.pickup()).isEqualTo(b);
+    assertThat(result.dropoff()).isEqualTo(dropoff);
+    assertThat(result.destinationLabel()).isEqualTo("Passenger destination");
+    assertThat(result.driverDestinationLabel()).isEqualTo("C");
+    assertThat(result.extraMeters()).isEqualTo(500);
+    assertThat(result.extraSeconds()).isEqualTo(200);
+    assertThat(result.arrivalAt()).isEqualTo(departure.plusSeconds(1000));
+    assertThat(result.pickupIndex()).isEqualTo(1);
+    assertThat(result.dropoffIndex()).isEqualTo(3);
+    assertThat(result.geometry()).hasSize(6);
+    verifyNoInteractions(places);
+    verify(provider).route(dropoff, c, VehicleMode.CAR);
+  }
+
+  @Test
+  void rejectsExpiredPassengerRouteBeforeCallingDirections() {
+    var own = mock(RouteSnapshot.class);
+    when(own.expiresAt()).thenReturn(now.minusSeconds(1));
+    when(routes.ownedSnapshot("passenger", "expired-route")).thenReturn(own);
+    assertThatThrownBy(
+            () ->
+                service.check(
+                    "passenger",
+                    "post",
+                    new PickupCompatibilityService.Input(null, null, null, "expired-route")))
+        .isInstanceOf(ApiException.class);
+    verifyNoInteractions(provider, places);
   }
 
   @Test
@@ -191,8 +329,7 @@ class PickupCompatibilityServiceTest {
             Clock.fixed(now.plusSeconds(301), ZoneOffset.UTC));
     assertThatThrownBy(() -> later.require("passenger", "post", check.id()))
         .isInstanceOf(ApiException.class);
-    assertThatThrownBy(() -> service.require("passenger", "post", null))
-        .isInstanceOf(ApiException.class);
+    assertThat(service.require("passenger", "post", null)).isNull();
   }
 
   @Test

@@ -107,6 +107,7 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/api/v1/demo/**",
                         "/api/v1/ride-posts/**",
+                        "/api/v1/ride-discovery",
                         "/api/v1/ride-post-responses/**",
                         "/api/v1/ride-post-sources/**",
                         "/api/v1/saved-posts/**",
@@ -188,8 +189,16 @@ public class SecurityConfiguration {
                                 request,
                                 response,
                                 HttpServletResponse.SC_FORBIDDEN,
-                                "CSRF_INVALID",
-                                "Yêu cầu bảo mật không hợp lệ")))
+                                exception
+                                        instanceof
+                                        org.springframework.security.web.csrf.CsrfException
+                                    ? "CSRF_INVALID"
+                                    : "ACCESS_DENIED",
+                                exception
+                                        instanceof
+                                        org.springframework.security.web.csrf.CsrfException
+                                    ? "Yêu cầu bảo mật không hợp lệ"
+                                    : "Bạn không có quyền thực hiện yêu cầu này")))
         .headers(Customizer.withDefaults());
 
     http.addFilterBefore(new TrustedOriginFilter(properties), CsrfFilter.class);

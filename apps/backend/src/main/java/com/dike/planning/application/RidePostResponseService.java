@@ -87,7 +87,8 @@ public class RidePostResponseService {
             Document.class,
             "ride_post_responses");
     if (existing != null
-        && (pickupCheck == null || pickupCheck.id().equals(existing.getString("pickupCheckId"))))
+        && java.util.Objects.equals(
+            pickupCheck == null ? null : pickupCheck.id(), existing.getString("pickupCheckId")))
       return view(existing);
 
     Instant now = clock.instant();
@@ -112,7 +113,7 @@ public class RidePostResponseService {
                       .is(existing.get("version"))),
               new Update()
                   .set("pickupCheckId", pickupCheckId)
-                  .set("pickupCheck", pickupData)
+                  .set("pickupCheck", pickupCheck == null ? null : pickupData)
                   .set("message", safeMessage)
                   .set("updatedAt", clock.instant())
                   .inc("version", 1L),

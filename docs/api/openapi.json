@@ -7,6 +7,40 @@
   },
   "servers": [{ "url": "/api/v1" }],
   "paths": {
+    "/ride-discovery": {
+      "post": {
+        "tags": ["ride-discovery-controller"],
+        "operationId": "discoverRides",
+        "security": [
+          {
+            "sessionCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RideDiscoveryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nearby trips from saved routes, within 5 km and one hour. Discovery does not confirm pickup compatibility.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RideDiscoveryResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ride-posts/{postId}/pickup-checks": {
       "post": {
         "tags": ["ride-post-response-controller"],
@@ -3856,6 +3890,59 @@
   },
   "components": {
     "schemas": {
+      "RideDiscoveryResults": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RideDiscoveryMatch"
+            }
+          }
+        }
+      },
+      "RideDiscoveryMatch": {
+        "type": "object",
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/RidePostView"
+          },
+          "pickupDistanceMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "destinationDistanceMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "timeDifferenceMinutes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RideDiscoveryInput": {
+        "type": "object",
+        "required": ["routeId", "role", "departureAt", "seats"],
+        "properties": {
+          "routeId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["driver", "passenger"]
+          },
+          "departureAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          }
+        }
+      },
       "DiscussPostRequest": {
         "type": "object",
         "properties": {
@@ -5114,9 +5201,11 @@
       },
       "PickupCheckInput": {
         "type": "object",
-        "required": ["pickupPlaceRef"],
+        "required": [],
         "properties": {
-          "pickupPlaceRef": { "type": "string" },
+          "pickupPlaceRef": {
+            "type": "string"
+          },
           "readyAt": {
             "type": "string",
             "format": "date-time",
@@ -5126,6 +5215,21 @@
             "type": "string",
             "format": "date-time",
             "description": "Optional; defaults to four hours after trip departure"
+          },
+          "passengerRouteId": {
+            "type": "string",
+            "nullable": true,
+            "description": "An owned route snapshot supplying the pickup and requested destination without another place search."
+          },
+          "dropoffPlaceRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "useDriverPickup": {
+            "type": "boolean"
+          },
+          "useDriverDropoff": {
+            "type": "boolean"
           }
         }
       },
@@ -5144,33 +5248,107 @@
       "PickupCheck": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "postId": { "type": "string" },
-          "passengerId": { "type": "string" },
-          "tripId": { "type": "string" },
-          "postVersion": { "type": "integer", "format": "int64" },
-          "tripVersion": { "type": "integer", "format": "int64" },
-          "tripRouteVersion": { "type": "integer", "format": "int64" },
-          "routeId": { "type": "string" },
-          "pickup": { "$ref": "#/components/schemas/PlaceSnapshot" },
-          "destinationLabel": { "type": "string" },
-          "readyAt": { "type": "string", "format": "date-time" },
-          "latestPickupAt": { "type": "string", "format": "date-time" },
-          "pickupAt": { "type": "string", "format": "date-time" },
-          "arrivalAt": { "type": "string", "format": "date-time" },
-          "extraMeters": { "type": "integer", "format": "int64" },
-          "extraSeconds": { "type": "integer", "format": "int64" },
-          "maxExtraMeters": { "type": "integer", "format": "int64" },
-          "maxExtraSeconds": { "type": "integer", "format": "int64" },
-          "compatible": { "type": "boolean" },
-          "pickupIndex": { "type": "integer", "format": "int32" },
-          "reason": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "string"
+          },
+          "passengerId": {
+            "type": "string"
+          },
+          "tripId": {
+            "type": "string"
+          },
+          "postVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tripVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tripRouteVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "routeId": {
+            "type": "string"
+          },
+          "pickup": {
+            "$ref": "#/components/schemas/PlaceSnapshot"
+          },
+          "destinationLabel": {
+            "type": "string"
+          },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latestPickupAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pickupAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivalAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "extraMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "extraSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxExtraMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxExtraSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "pickupIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          },
           "geometry": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/RoutePoint" }
+            "items": {
+              "$ref": "#/components/schemas/RoutePoint"
+            }
           },
-          "provider": { "type": "string" },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "provider": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dropoff": {
+            "$ref": "#/components/schemas/PlaceSnapshot",
+            "nullable": true
+          },
+          "dropoffIndex": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "driverDestinationLabel": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "RidePostRoute": {

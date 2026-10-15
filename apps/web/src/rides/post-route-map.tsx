@@ -6,10 +6,18 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { RidePostRoute } from "@dike/api-client-ts";
 
 type MapMember = { name: string; avatarUrl?: string | null };
-function memberMarker(member: MapMember, letter: "A" | "B") {
+function memberMarker(
+  member: MapMember,
+  letter: "A" | "B" | "C" | "D",
+  sharedMember?: MapMember,
+) {
   const element = document.createElement("div");
-  element.className = `route-member-marker route-member-marker--${letter.toLowerCase()}`;
-  element.setAttribute("aria-label", `Điểm xuất phát của ${member.name}`);
+  const kind = letter === "A" || letter === "B" ? "origin" : "destination";
+  element.className = `route-member-marker route-member-marker--${letter.toLowerCase()} route-member-marker--${kind}`;
+  element.setAttribute(
+    "aria-label",
+    `${kind === "origin" ? "Điểm đón" : "Điểm đến"} của ${member.name}${sharedMember ? " và " + sharedMember.name : ""}`,
+  );
   const pin = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   pin.setAttribute("viewBox", "0 0 48 60");
   pin.setAttribute("aria-hidden", "true");
@@ -43,6 +51,14 @@ function memberMarker(member: MapMember, letter: "A" | "B") {
     avatar.replaceChildren(img);
   }
   element.append(pin, avatar);
+  if (sharedMember) {
+    element.classList.add("route-member-marker--shared");
+    const sharedAvatar = memberMarker(sharedMember, letter).querySelector(
+      ".route-member-marker-avatar",
+    )!;
+    sharedAvatar.classList.add("route-member-marker-avatar--shared");
+    element.append(sharedAvatar);
+  }
   return element;
 }
 
@@ -58,36 +74,79 @@ export default function PostRouteMap({
   pickupIndex,
   driver,
   passenger,
+  layer = "map",
+  padding,
+  routeColor = "#07966e",
+  dropoff,
+  dropoffIndex,
 }: {
-  route: RidePostRoute;
+  route?: RidePostRoute;
   origin: string;
   destination: string;
   pickup?: { longitude: number; latitude: number; displayLabel: string };
   pickupIndex?: number;
   driver?: MapMember;
   passenger?: MapMember;
+  layer?: "map" | "satellite";
+  padding?: number;
+  routeColor?: string;
+  dropoff?: { longitude: number; latitude: number; displayLabel: string };
+  dropoffIndex?: number;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!container.current || route.geometry.length < 2) return;
-    const coordinates = route.geometry.map(
+    if (!container.current) return;
+    const coordinates = (route?.geometry ?? []).map(
       (p) => [p.longitude, p.latitude] as [number, number],
     );
-    const bounds = coordinates.reduce(
-      (b, p) => b.extend(p),
-      new LngLatBounds(coordinates[0], coordinates[0]),
-    );
+    const visiblePoints = [...coordinates];
+    if (pickup) visiblePoints.push([pickup.longitude, pickup.latitude]);
+    if (dropoff) visiblePoints.push([dropoff.longitude, dropoff.latitude]);
+    const bounds =
+      visiblePoints.length >= 2
+        ? visiblePoints.reduce(
+            (b, p) => b.extend(p),
+            new LngLatBounds(coordinates[0], coordinates[0]),
+          )
+        : undefined;
     let map: Map;
-    const fitPadding = driver
-      ? { top: 140, bottom: 130, left: 60, right: 60 }
-      : 48;
+    const fitPadding =
+      padding ??
+      (driver
+        ? {
+            top: Math.min(140, container.current.clientHeight * 0.4),
+            bottom: Math.min(130, container.current.clientHeight * 0.15),
+            left: Math.min(60, container.current.clientWidth * 0.12),
+            right: Math.min(60, container.current.clientWidth * 0.12),
+          }
+        : 48);
     try {
       map = new Map({
         container: container.current,
-        style: "https://tiles.openfreemap.org/styles/positron",
-        bounds,
+        style:
+          layer === "satellite"
+            ? {
+                version: 8,
+                sources: {
+                  satellite: {
+                    type: "raster",
+                    tiles: [
+                      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                    ],
+                    tileSize: 256,
+                    attribution: "Tiles &copy; Esri",
+                  },
+                },
+                layers: [
+                  { id: "satellite", type: "raster", source: "satellite" },
+                ],
+              }
+            : "https://tiles.openfreemap.org/styles/positron",
+        ...(bounds
+          ? { bounds }
+          : { center: [106.660172, 10.762622] as [number, number], zoom: 12 }),
         fitBoundsOptions: { padding: fitPadding, maxZoom: 15 },
         scrollZoom: true,
         cooperativeGestures: window.matchMedia("(pointer: coarse)").matches,
@@ -110,20 +169,40 @@ export default function PostRouteMap({
     map.on("error", () => setFailed(true));
     map.on("load", () => {
       setFailed(false);
+      if (coordinates.length < 2) return;
       const split =
         pickup &&
         typeof pickupIndex === "number" &&
         pickupIndex >= 0 &&
         pickupIndex < coordinates.length;
+      const hasDropoff =
+        split &&
+        typeof dropoffIndex === "number" &&
+        dropoffIndex >= pickupIndex &&
+        dropoffIndex < coordinates.length - 1;
       const segments = split
         ? [
             {
               coordinates: coordinates.slice(0, pickupIndex + 1),
-              color: "#e6aa32",
+              color: "#e9bd52",
             },
-            { coordinates: coordinates.slice(pickupIndex), color: "#07966e" },
+            {
+              coordinates: coordinates.slice(
+                pickupIndex,
+                hasDropoff ? dropoffIndex + 1 : undefined,
+              ),
+              color: hasDropoff ? "#2563eb" : "#07966e",
+            },
+            ...(hasDropoff
+              ? [
+                  {
+                    coordinates: coordinates.slice(dropoffIndex),
+                    color: "#07966e",
+                  },
+                ]
+              : []),
           ]
-        : [{ coordinates, color: "#07966e" }];
+        : [{ coordinates, color: routeColor }];
       map.addSource("post-route", {
         type: "geojson",
         data: {
@@ -154,35 +233,86 @@ export default function PostRouteMap({
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": ["get", "color"], "line-width": 5 },
       });
-      new Marker(
-        driver
-          ? { element: memberMarker(driver, "A"), anchor: "bottom" }
-          : { color: "#07966e" },
-      )
-        .setLngLat(coordinates[0])
-        .setPopup(new Popup({ offset: 28 }).setText(origin))
-        .addTo(map);
-      new Marker({ color: driver ? "#07966e" : "#ef4444" })
-        .setLngLat(coordinates[coordinates.length - 1])
-        .setPopup(new Popup({ offset: 28 }).setText(destination))
-        .addTo(map);
+      type Stop = {
+        point: [number, number];
+        label: string;
+        letter: "A" | "B" | "C" | "D";
+        member?: MapMember;
+        sharedMember?: MapMember;
+      };
+      const stops: Stop[] = [
+        { point: coordinates[0], label: origin, letter: "A", member: driver },
+        {
+          point: coordinates[coordinates.length - 1],
+          label: destination,
+          letter: "C",
+          member: driver,
+        },
+      ];
       if (pickup)
+        stops.push({
+          point: [pickup.longitude, pickup.latitude],
+          label: pickup.displayLabel,
+          letter: "B",
+          member: passenger,
+        });
+      if (dropoff || pickup)
+        stops.push({
+          point: dropoff
+            ? [dropoff.longitude, dropoff.latitude]
+            : coordinates[coordinates.length - 1],
+          label: dropoff?.displayLabel ?? destination,
+          letter: "D",
+          member: passenger,
+        });
+      const isOrigin = (stop: Stop) =>
+        stop.letter === "A" || stop.letter === "B";
+      const samePoint = (a: Stop, b: Stop) => {
+        const radians = Math.PI / 180;
+        const lat = (a.point[1] - b.point[1]) * radians;
+        const lng = (a.point[0] - b.point[0]) * radians;
+        const h =
+          Math.sin(lat / 2) ** 2 +
+          Math.cos(a.point[1] * radians) *
+            Math.cos(b.point[1] * radians) *
+            Math.sin(lng / 2) ** 2;
+        return 6371000 * 2 * Math.asin(Math.min(1, Math.sqrt(h))) <= 15;
+      };
+      const markers: Stop[] = [];
+      for (const stop of stops) {
+        const shared = markers.find(
+          (existing) =>
+            isOrigin(existing) === isOrigin(stop) && samePoint(existing, stop),
+        );
+        if (shared) {
+          shared.sharedMember = stop.member;
+          shared.label += " · " + stop.label;
+        } else markers.push({ ...stop });
+      }
+      for (const stop of markers) {
+        const label = isOrigin(stop) ? "Điểm đón" : "Điểm đến";
         new Marker(
-          passenger
-            ? { element: memberMarker(passenger, "B"), anchor: "bottom" }
-            : { color: "#2563eb" },
+          stop.member
+            ? {
+                element: memberMarker(
+                  stop.member,
+                  stop.letter,
+                  stop.sharedMember,
+                ),
+                anchor: "bottom",
+              }
+            : { color: isOrigin(stop) ? "#e9bd52" : "#07966e" },
         )
-          .setLngLat([pickup.longitude, pickup.latitude])
+          .setLngLat(stop.point)
           .setPopup(
-            new Popup({ offset: 28 }).setText(
-              `Điểm đón: ${pickup.displayLabel}`,
-            ),
+            new Popup({ offset: 28 }).setText(`${label}: ${stop.label}`),
           )
           .addTo(map);
+      }
     });
     const resize = new ResizeObserver(() => {
       map.resize();
-      if (container.current && container.current.clientWidth > 0) {
+      if (bounds && container.current && container.current.clientWidth > 0) {
         map.fitBounds(bounds, {
           padding: fitPadding,
           maxZoom: 15,
@@ -203,6 +333,11 @@ export default function PostRouteMap({
     pickupIndex,
     driver,
     passenger,
+    layer,
+    padding,
+    routeColor,
+    dropoff,
+    dropoffIndex,
     attempt,
   ]);
   return (

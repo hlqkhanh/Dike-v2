@@ -1,11 +1,11 @@
-import { NewPost } from "../../../src/rides/new-post";
-export default async function Page({
+﻿import { redirect } from "next/navigation";
+export default async function NewPostPage({
   searchParams,
 }: {
   searchParams: Promise<{ route?: string }>;
 }) {
-  const params = await searchParams;
-  return (
-    <NewPost routeId={typeof params.route === "string" ? params.route : ""} />
+  const { route } = await searchParams;
+  redirect(
+    `/rides/new?mode=passenger${typeof route === "string" && route ? `&route=${encodeURIComponent(route)}` : ""}`,
   );
 }

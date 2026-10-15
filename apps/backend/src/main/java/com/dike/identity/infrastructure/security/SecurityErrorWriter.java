@@ -24,6 +24,7 @@ final class SecurityErrorWriter {
       throws IOException {
     Object requestId = request.getAttribute(RequestIdFilter.REQUEST_ID_ATTRIBUTE);
     response.setStatus(status);
+    response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Pragma", "no-cache");

@@ -29,6 +29,8 @@ import type {
   ReadMarker,
   RequestDecision,
   ResolvePlace,
+  RideDiscoveryInput,
+  RideDiscoveryResults,
   RidePostCreate,
   RidePostEdit,
   RidePostRoute,
@@ -46,6 +48,13 @@ import type {
   Verify,
   Version,
 } from "./schema";
+
+export const discoverRidesOperation = {
+  method: "POST",
+  path: "/ride-discovery",
+} as const;
+export type DiscoverRidesOperationRequest = RideDiscoveryInput;
+export type DiscoverRidesOperationResponse = RideDiscoveryResults;
 
 export const checkRidePostPickupOperation = {
   method: "POST",

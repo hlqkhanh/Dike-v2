@@ -25,7 +25,11 @@ import { MemberAvatar } from "../../app/components/member-avatar";
 import { authApi } from "../auth/api";
 import { rideApi } from "./api";
 import { routingApi } from "../routing/client";
-import type { PlaceResponse, PlaceSuggestionResponse } from "../routing/api";
+import type {
+  PlaceSuggestionResponse,
+  RoutePlace,
+  RouteResponse,
+} from "../routing/api";
 
 const RouteMap = dynamic(() => import("./post-route-map"), { ssr: false });
 const formatTime = (value: string) =>
@@ -143,9 +147,13 @@ export function PickupSummary({
                       <RouteMap
                         route={savedRoute}
                         origin={originLabel}
-                        destination={check.destinationLabel}
+                        destination={
+                          check.driverDestinationLabel ?? check.destinationLabel
+                        }
                         pickup={check.pickup}
                         pickupIndex={check.pickupIndex}
+                        dropoff={check.dropoff}
+                        dropoffIndex={check.dropoffIndex}
                         driver={driver}
                         passenger={passenger}
                       />
@@ -171,7 +179,7 @@ export function PickupSummary({
                       <div>
                         <Flag aria-hidden="true" />
                         <span>
-                          <strong>Điểm đến chung</strong>
+                          <strong>Điểm đến của bạn</strong>
                           {check.destinationLabel}
                         </span>
                       </div>
@@ -217,23 +225,188 @@ export function PickupSummary({
   );
 }
 
+type RequestPlace = RoutePlace & { placeRef?: string };
+
+function RequestAddress({
+  id,
+  label,
+  placeholder,
+  value,
+  selected,
+  disabled,
+  onEdit,
+  onSelect,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  selected?: RequestPlace;
+  disabled: boolean;
+  onEdit: (value: string) => void;
+  onSelect: (place: RequestPlace) => void;
+}) {
+  const revision = useRef(0);
+  const search = useMutation({
+    mutationFn: async (query: string) => {
+      const token = (await routingApi.createPlaceSession()).sessionToken;
+      return {
+        token,
+        query,
+        suggestions: await routingApi.autocompletePlaces(token, query),
+      };
+    },
+  });
+  const select = useMutation({
+    mutationFn: (value: {
+      suggestion: PlaceSuggestionResponse;
+      token: string;
+      revision: number;
+    }) => routingApi.resolvePlace(value.token, value.suggestion.placeRef),
+    onSuccess: (place, request) => {
+      if (request.revision !== revision.current) return;
+      onSelect(place);
+      search.reset();
+    },
+  });
+  const suggestions =
+    !selected && search.data?.query === value.trim()
+      ? search.data.suggestions
+      : [];
+  const canSearch =
+    value.trim().length >= 3 && !selected && !search.isPending && !disabled;
+  function edit(text: string) {
+    revision.current++;
+    select.reset();
+    search.reset();
+    onEdit(text);
+  }
+  return (
+    <>
+      <label htmlFor={id}>{label}</label>
+      <div className={`passenger-address ${selected ? "is-selected" : ""}`}>
+        {id === "pickup-address" ? <MapPin size={20} /> : <Flag size={20} />}
+        <input
+          id={id}
+          value={value}
+          maxLength={250}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete="off"
+          onChange={(event) => edit(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              if (canSearch) search.mutate(value.trim());
+            }
+          }}
+        />
+        {selected ? (
+          <button
+            type="button"
+            aria-label={
+              id === "pickup-address" ? "Đổi điểm đón" : "Đổi điểm đến"
+            }
+            disabled={disabled}
+            onClick={() => edit("")}
+          >
+            <X size={16} />
+          </button>
+        ) : (
+          <button
+            className="passenger-search-button"
+            type="button"
+            aria-label={
+              id === "pickup-address" ? "Tìm địa điểm" : "Tìm điểm đến"
+            }
+            title="Tìm địa điểm (Enter)"
+            disabled={!canSearch}
+            onClick={() => search.mutate(value.trim())}
+          >
+            <Search size={18} />
+          </button>
+        )}
+      </div>
+      {suggestions.length > 0 && (
+        <ul className="passenger-suggestions">
+          {suggestions.map((item) => (
+            <li key={item.placeRef}>
+              <button
+                type="button"
+                disabled={select.isPending || disabled}
+                onClick={() =>
+                  select.mutate({
+                    suggestion: item,
+                    token: search.data!.token,
+                    revision: revision.current,
+                  })
+                }
+              >
+                <MapPin size={16} />
+                <span>{item.displayLabel}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {search.isPending && (
+        <span className="passenger-hint" role="status">
+          Đang tìm địa điểm…
+        </span>
+      )}
+      {!selected &&
+        search.isSuccess &&
+        search.data.query === value.trim() &&
+        !suggestions.length && (
+          <span className="passenger-hint">
+            Chưa tìm thấy địa điểm. Thử nhập địa chỉ cụ thể hơn.
+          </span>
+        )}
+      {(search.error || select.error) && (
+        <p className="passenger-error" role="alert">
+          {(select.error ?? search.error)?.message}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function PassengerRequest({
   post,
   onClose,
   onSent,
+  initialJourney,
+  initialMessage = "",
 }: {
   post: RidePostView;
   onClose: () => void;
   onSent?: () => void;
+  initialJourney?: RouteResponse;
+  initialMessage?: string;
 }) {
   const client = useQueryClient();
-  const [text, setText] = useState("");
-  const [selected, setSelected] = useState<PlaceResponse>();
-  const [message, setMessage] = useState("");
+  const [text, setText] = useState(initialJourney?.origin.displayLabel ?? "");
+  const [selected, setSelected] = useState<
+    (RoutePlace & { placeRef?: string }) | undefined
+  >(
+    initialJourney
+      ? { ...initialJourney.origin, placeRef: undefined }
+      : undefined,
+  );
+  const [message, setMessage] = useState(initialMessage.slice(0, 300));
   const [check, setCheck] = useState<PickupCheck>();
   const [now, setNow] = useState(() => Date.now());
-  const input = useRef<HTMLInputElement>(null);
   const generation = useRef(0);
+  const [destinationText, setDestinationText] = useState(
+    initialJourney?.destination.displayLabel ?? "",
+  );
+  const [destinationSelected, setDestinationSelected] = useState<
+    RequestPlace | undefined
+  >(
+    initialJourney
+      ? { ...initialJourney.destination, placeRef: undefined }
+      : undefined,
+  );
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
@@ -265,7 +438,7 @@ export function PassengerRequest({
   );
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    input.current?.focus();
+    document.getElementById("pickup-address")?.focus();
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
       window.clearInterval(timer);
@@ -273,65 +446,77 @@ export function PassengerRequest({
     };
   }, []);
   const evaluate = useMutation({
-    mutationFn: (value: { placeRef: string; generation: number }) =>
-      rideApi.checkPickup(post.id, { pickupPlaceRef: value.placeRef }),
+    mutationFn: (value: {
+      generation: number;
+      pickup?: RequestPlace;
+      dropoff?: RequestPlace;
+    }) =>
+      rideApi.checkPickup(post.id, {
+        pickupPlaceRef: value.pickup?.placeRef,
+        dropoffPlaceRef: value.dropoff?.placeRef,
+        passengerRouteId: initialJourney?.id,
+        ...(initialJourney && !value.pickup ? { useDriverPickup: true } : {}),
+        ...(initialJourney && !value.dropoff ? { useDriverDropoff: true } : {}),
+      }),
     onSuccess: (result, value) => {
       if (value.generation === generation.current) setCheck(result);
     },
   });
-  const search = useMutation({
-    mutationFn: async (query: string) => {
-      const token = (await routingApi.createPlaceSession()).sessionToken;
-      return {
-        token,
-        suggestions: await routingApi.autocompletePlaces(token, query),
-        query,
-      };
-    },
-  });
-  const { mutate: searchPlaces } = search;
-  const select = useMutation({
-    mutationFn: (value: {
-      suggestion: PlaceSuggestionResponse;
-      token: string;
-      generation: number;
-    }) => routingApi.resolvePlace(value.token, value.suggestion.placeRef),
-    onSuccess: (place, value) => {
-      if (value.generation !== generation.current) return;
-      setSelected(place);
-      setText(place.displayLabel);
-      setCheck(undefined);
-      search.reset();
-      evaluate.mutate({
-        placeRef: place.placeRef,
-        generation: value.generation,
-      });
-    },
-  });
+  const sameRoute = !text.trim() && !destinationText.trim();
+  const addressesReady =
+    (!text.trim() || !!selected) &&
+    (!destinationText.trim() || !!destinationSelected);
+  const { mutate: evaluatePickup } = evaluate;
+  useEffect(() => {
+    if (!addressesReady || sameRoute) return;
+    const timer = window.setTimeout(
+      () =>
+        evaluatePickup({
+          generation: generation.current,
+          pickup: selected,
+          dropoff: destinationSelected,
+        }),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, [
+    addressesReady,
+    sameRoute,
+    selected,
+    destinationSelected,
+    evaluatePickup,
+  ]);
   const send = useMutation({
-    mutationFn: () => rideApi.createPostResponse(post.id, message, check?.id),
+    mutationFn: () =>
+      rideApi.createPostResponse(
+        post.id,
+        message,
+        sameRoute ? undefined : check?.id,
+      ),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ["feed"] });
       onSent?.();
       onClose();
     },
   });
-  function editAddress(value: string) {
+  function invalidateAddress() {
     generation.current++;
-    setText(value);
-    setSelected(undefined);
     setCheck(undefined);
     evaluate.reset();
     send.reset();
+  }
+  function retryCheck() {
+    if (addressesReady)
+      evaluate.mutate({
+        generation: generation.current,
+        pickup: selected,
+        dropoff: destinationSelected,
+      });
   }
   const fresh =
     check &&
     check.postVersion === post.version &&
     new Date(check.expiresAt).getTime() > now;
-  const suggestions =
-    !selected && search.data?.query === text.trim()
-      ? search.data.suggestions
-      : [];
   const route = useMemo(
     () =>
       check
@@ -344,8 +529,8 @@ export function PassengerRequest({
         : baseRoute.data,
     [check, baseRoute.data],
   );
-  const error = send.error ?? evaluate.error ?? select.error ?? search.error;
-  const busy = select.isPending || evaluate.isPending;
+  const error = send.error ?? evaluate.error;
+  const busy = evaluate.isPending;
   return (
     <div
       className="home-response-modal passenger-modal"
@@ -389,212 +574,153 @@ export function PassengerRequest({
           <X size={20} />
         </button>
         <div className="passenger-content">
-          <div className="passenger-heading">
-            <span className="passenger-eyebrow">CÙNG CHUNG ĐIỂM ĐẾN</span>
-            <h2 id="pickup-request-title">Đi ké cùng {driver.name}</h2>
-            <p>Chọn nơi đón, phần còn lại để Diké tìm đường.</p>
-          </div>
-          <div className="passenger-driver">
-            <MemberAvatar
-              name={driver.name}
-              avatarUrl={driver.avatarUrl}
-              className="passenger-avatar"
-              size={40}
-            />
-            <div>
-              <strong>{driver.name}</strong>
-              <span>
-                <Clock3 size={14} />
-                Khởi hành {formatTime(post.departureAt)}
-              </span>
+          <div className="passenger-scroll">
+            <div className="passenger-heading">
+              <span className="passenger-eyebrow">ĐỒNG HÀNH CÙNG NHAU</span>
+              <h2 id="pickup-request-title">Đi ké cùng {driver.name}</h2>
+              <p>
+                Để trống địa chỉ để đi cùng điểm đón hoặc điểm đến của người
+                chở.
+              </p>
             </div>
-          </div>
-          <div className="passenger-fields">
-            <label htmlFor="pickup-address">Điểm đón của bạn</label>
-            <div
-              className={`passenger-address ${selected ? "is-selected" : ""}`}
-            >
-              <MapPin size={20} />
-              <input
-                ref={input}
+            <div className="passenger-driver">
+              <MemberAvatar
+                name={driver.name}
+                avatarUrl={driver.avatarUrl}
+                className="passenger-avatar"
+                size={40}
+              />
+              <div>
+                <strong>{driver.name}</strong>
+                <span>
+                  <Clock3 size={14} />
+                  Khởi hành {formatTime(post.departureAt)}
+                </span>
+              </div>
+            </div>
+            <div className="passenger-fields">
+              <RequestAddress
                 id="pickup-address"
+                label="Điểm đón của bạn"
+                placeholder={post.originLabel}
                 value={text}
-                maxLength={250}
-                placeholder="Bạn muốn được đón ở đâu?"
+                selected={selected}
                 disabled={send.isPending}
-                autoComplete="off"
-                onChange={(e) => editAddress(e.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    if (
-                      text.trim().length >= 3 &&
-                      !selected &&
-                      !search.isPending &&
-                      !send.isPending &&
-                      !event.nativeEvent.isComposing
-                    )
-                      searchPlaces(text.trim());
-                  }
+                onEdit={(value) => {
+                  invalidateAddress();
+                  setText(value);
+                  setSelected(undefined);
+                }}
+                onSelect={(place) => {
+                  invalidateAddress();
+                  setText(place.displayLabel);
+                  setSelected(place);
                 }}
               />
-              {selected ? (
-                <button
-                  type="button"
-                  aria-label="Đổi điểm đón"
-                  disabled={send.isPending}
-                  onClick={() => {
-                    editAddress("");
-                    input.current?.focus();
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              ) : (
-                <button
-                  className="passenger-search-button"
-                  type="button"
-                  aria-label="Tìm địa điểm"
-                  title="Tìm địa điểm (Enter)"
-                  disabled={
-                    text.trim().length < 3 || search.isPending || send.isPending
-                  }
-                  onClick={() => searchPlaces(text.trim())}
-                >
-                  <Search size={18} />
-                </button>
-              )}
-            </div>
-            {suggestions.length > 0 && (
-              <ul className="passenger-suggestions">
-                {suggestions.map((item) => (
-                  <li key={item.placeRef}>
-                    <button
-                      type="button"
-                      disabled={select.isPending || send.isPending}
-                      onClick={() =>
-                        select.mutate({
-                          suggestion: item,
-                          token: search.data!.token,
-                          generation: generation.current,
-                        })
-                      }
-                    >
-                      <MapPin size={16} />
-                      <span>{item.displayLabel}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!selected && search.isPending && (
-              <span className="passenger-hint" role="status">
-                Đang tìm địa điểm…
-              </span>
-            )}
-            {!selected &&
-              search.isSuccess &&
-              search.data.query === text.trim() &&
-              !suggestions.length && (
-                <span className="passenger-hint">
-                  Chưa tìm thấy địa điểm. Thử nhập địa chỉ cụ thể hơn.
-                </span>
-              )}
-            {busy && (
-              <div className="passenger-match is-loading" role="status">
-                <span className="passenger-loading-dot" />
-                Đang tìm tuyến ghé đón phù hợp…
-              </div>
-            )}
-            {check && !busy && (
-              <div
-                className={`passenger-match ${check.compatible ? "is-compatible" : "is-incompatible"}`}
-                role="status"
-              >
-                <Check size={18} />
-                <div>
-                  <strong>
-                    {check.compatible
-                      ? "Tiện đường"
-                      : check.reason === "PICKUP_TOO_LATE"
-                        ? "Chưa phù hợp giờ đón"
-                        : "Điểm đón vượt mức ghé đón"}
-                  </strong>
-                  <span>
-                    Thêm{" "}
-                    {new Intl.NumberFormat("vi-VN", {
-                      maximumFractionDigits: 1,
-                    }).format(check.extraMeters / 1000)}{" "}
-                    km · {Math.ceil(check.extraSeconds / 60)} phút
-                    {check.compatible
-                      ? ` · Đón khoảng ${new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(check.pickupAt))}`
-                      : ""}
-                  </span>
+              <RequestAddress
+                id="pickup-destination"
+                label="Điểm đến của bạn"
+                placeholder={post.destinationLabel}
+                value={destinationText}
+                selected={destinationSelected}
+                disabled={send.isPending}
+                onEdit={(value) => {
+                  invalidateAddress();
+                  setDestinationText(value);
+                  setDestinationSelected(undefined);
+                }}
+                onSelect={(place) => {
+                  invalidateAddress();
+                  setDestinationText(place.displayLabel);
+                  setDestinationSelected(place);
+                }}
+              />
+              {busy && (
+                <div className="passenger-match is-loading" role="status">
+                  <span className="passenger-loading-dot" />
+                  Đang tìm tuyến ghé đón phù hợp…
                 </div>
-              </div>
-            )}
-            <label className="passenger-message" htmlFor="pickup-message">
-              Lời nhắn <span>Không bắt buộc</span>
-            </label>
-            <textarea
-              id="pickup-message"
-              maxLength={300}
-              value={message}
-              disabled={send.isPending}
-              placeholder="Ví dụ: Mình đợi ở cổng chính nhé."
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            <span className="passenger-message-count">
-              {message.length}/300
-            </span>
-            {error && (
-              <p className="passenger-error" role="alert">
-                {error.message}
-                {selected && !send.isPending && !busy && (
+              )}
+              {check && !busy && (
+                <div
+                  className={`passenger-match ${check.compatible ? "is-compatible" : "is-incompatible"}`}
+                  role="status"
+                >
+                  <Check size={18} />
+                  <div>
+                    <strong>
+                      {check.compatible
+                        ? "Tiện đường"
+                        : check.reason === "PICKUP_TOO_LATE"
+                          ? "Chưa phù hợp giờ đón"
+                          : "Điểm đón vượt mức ghé đón"}
+                    </strong>
+                    <span>
+                      Thêm{" "}
+                      {new Intl.NumberFormat("vi-VN", {
+                        maximumFractionDigits: 1,
+                      }).format(check.extraMeters / 1000)}{" "}
+                      km · {Math.ceil(check.extraSeconds / 60)} phút
+                      {check.compatible
+                        ? ` · Đón khoảng ${new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(check.pickupAt))}`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <label className="passenger-message" htmlFor="pickup-message">
+                Lời nhắn <span>Không bắt buộc</span>
+              </label>
+              <textarea
+                id="pickup-message"
+                maxLength={300}
+                value={message}
+                disabled={send.isPending}
+                placeholder="Ví dụ: Mình đợi ở cổng chính nhé."
+                onChange={(e) => setMessage(e.target.value)}
+              />
+              <span className="passenger-message-count">
+                {message.length}/300
+              </span>
+              {error && (
+                <p className="passenger-error" role="alert">
+                  {error.message}
+                  {addressesReady && !send.isPending && !busy && (
+                    <button type="button" onClick={retryCheck}>
+                      Thử lại
+                    </button>
+                  )}
+                </p>
+              )}
+              {check && !fresh && (
+                <p className="passenger-hint" role="status">
+                  Kết quả cần cập nhật.
                   <button
                     type="button"
-                    onClick={() =>
-                      evaluate.mutate({
-                        placeRef: selected.placeRef,
-                        generation: generation.current,
-                      })
-                    }
+                    disabled={busy || send.isPending || !addressesReady}
+                    onClick={retryCheck}
                   >
-                    Thử lại
+                    Kiểm tra lại
                   </button>
-                )}
-              </p>
-            )}
-            {check && !fresh && (
-              <p className="passenger-hint" role="status">
-                Kết quả cần cập nhật.
-                <button
-                  type="button"
-                  disabled={busy || send.isPending}
-                  onClick={() => {
-                    if (selected)
-                      evaluate.mutate({
-                        placeRef: selected.placeRef,
-                        generation: generation.current,
-                      });
-                  }}
-                >
-                  Kiểm tra lại
-                </button>
-              </p>
-            )}
-            {check?.provider === "FAKE" && (
-              <span className="passenger-hint">
-                Tuyến đường mô phỏng của bản demo.
-              </span>
-            )}
+                </p>
+              )}
+              {check?.provider === "FAKE" && (
+                <span className="passenger-hint">
+                  Tuyến đường mô phỏng của bản demo.
+                </span>
+              )}
+            </div>
           </div>
           <div className="passenger-footer">
             <p>Người chở sẽ xác nhận yêu cầu của bạn.</p>
             <button
               className="passenger-submit"
               type="button"
-              disabled={!check?.compatible || !fresh || busy || send.isPending}
+              disabled={
+                !addressesReady ||
+                (!sameRoute && (!check?.compatible || !fresh || busy)) ||
+                send.isPending
+              }
               onClick={() => send.mutate()}
             >
               <Send size={18} />
@@ -610,7 +736,9 @@ export function PassengerRequest({
             <span>TUYẾN ĐƯỜNG CỦA BẠN</span>
             <strong>
               <MapPin size={16} />
-              {post.destinationLabel}
+              {check?.destinationLabel ??
+                destinationSelected?.displayLabel ??
+                post.destinationLabel}
             </strong>
           </div>
           {route ? (
@@ -620,6 +748,8 @@ export function PassengerRequest({
               destination={post.destinationLabel}
               pickup={check?.pickup ?? selected}
               pickupIndex={check?.pickupIndex}
+              dropoff={check?.dropoff ?? destinationSelected}
+              dropoffIndex={check?.dropoffIndex}
               driver={driver}
               passenger={passenger}
             />

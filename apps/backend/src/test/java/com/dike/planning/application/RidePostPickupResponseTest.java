@@ -32,14 +32,29 @@ class RidePostPickupResponseTest {
           pickups);
 
   @Test
-  void offerCannotBeRequestedWithoutServerVerifiedPickupEvidence() {
+  void sameRouteRequestCanBeSentWithoutPickupEvidenceOrMessage() {
+    when(mongo.findById("post", Document.class, "ride_posts"))
+        .thenReturn(
+            new Document("ownerId", "driver")
+                .append("status", "OPEN")
+                .append("type", "OFFER_RIDE"));
+    var result = responses.create("passenger", "post", null, null);
+    assertThat(result.status()).isEqualTo("PENDING");
+    assertThat(result.message()).isEmpty();
+    assertThat(result.pickupCheck()).isNull();
+    verify(pickups).require("passenger", "post", null);
+    verifyNoInteractions(conversations);
+  }
+
+  @Test
+  void unavailableSameRouteCannotBeRequested() {
     when(mongo.findById("post", Document.class, "ride_posts"))
         .thenReturn(
             new Document("ownerId", "driver")
                 .append("status", "OPEN")
                 .append("type", "OFFER_RIDE"));
     when(pickups.require("passenger", "post", null))
-        .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "PICKUP_CHECK_REQUIRED", "Required"));
+        .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "TRIP_NOT_AVAILABLE", "Unavailable"));
     assertThatThrownBy(() -> responses.create("passenger", "post", "hello", null))
         .isInstanceOf(ApiException.class);
     verify(mongo, never()).insert(any(Document.class), eq("ride_post_responses"));

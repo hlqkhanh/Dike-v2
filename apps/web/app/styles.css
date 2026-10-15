@@ -1,5 +1,14 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap");
 
+:root {
+  --ride-passenger-accent: #e9bd52;
+  --ride-passenger-accent-hover: #dcae42;
+  --ride-passenger-accent-ink: #c18a13;
+  --ride-passenger-accent-soft: #fff9e7;
+  --ride-passenger-accent-border: #efdfa9;
+  --ride-passenger-on-accent: #fff;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -886,6 +895,9 @@
 .trip-create-map > div {
   height: 100% !important;
   min-height: 250px !important;
+}
+.trip-create-map .post-route-map-canvas {
+  height: 100%;
 }
 .trip-summary-route {
   display: grid;
@@ -10330,8 +10342,12 @@ a {
   border-color: #cbe6da;
 }
 .new-ride-card.is-need {
-  background: linear-gradient(150deg, #fff9e7, #ffffff 65%);
-  border-color: #efdfa9;
+  background: linear-gradient(
+    150deg,
+    var(--ride-passenger-accent-soft),
+    #ffffff 65%
+  );
+  border-color: var(--ride-passenger-accent-border);
   box-shadow: 0 8px 24px rgba(140, 105, 30, 0.08);
 }
 .new-ride-card.is-need .new-ride-avatar {
@@ -10339,7 +10355,7 @@ a {
   color: #795710;
 }
 .new-ride-card.is-need .new-ride-route i {
-  border-color: #c18a13;
+  border-color: var(--ride-passenger-accent-ink);
 }
 .new-ride-card.is-need .new-ride-route b {
   background: #ead69b;
@@ -10511,14 +10527,14 @@ a {
   font-weight: 800 !important;
 }
 .new-ride-card.is-need > footer .new-ride-response-link {
-  background: #e9bd52;
-  color: #ffffff;
+  background: var(--ride-passenger-accent);
+  color: var(--ride-passenger-on-accent);
 }
 .new-ride-card > footer .new-ride-response-link:hover {
   background: #096b53;
 }
 .new-ride-card.is-need > footer .new-ride-response-link:hover {
-  background: #dcae42;
+  background: var(--ride-passenger-accent-hover);
 }
 .home-response-modal {
   position: fixed;
@@ -11035,7 +11051,8 @@ a {
 }
 .home-response-modal > section.passenger-dialog {
   width: min(1100px, 100%);
-  min-height: 610px;
+  height: min(800px, calc(100dvh - 48px));
+  min-height: 0;
   max-height: calc(100dvh - 48px);
   padding: 0;
   display: grid;
@@ -11048,9 +11065,17 @@ a {
 .passenger-content {
   display: flex;
   flex-direction: column;
-  padding: 28px;
+  padding: 0;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.passenger-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 28px 28px 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .passenger-eyebrow {
   font-size: 0.68rem;
@@ -11313,8 +11338,10 @@ a {
   line-height: 1.6;
 }
 .passenger-footer {
-  margin-top: auto;
-  padding-top: 22px;
+  flex-shrink: 0;
+  padding: 12px 28px 20px;
+  border-top: 1px solid #edf3ef;
+  background: #fff;
 }
 .passenger-footer p {
   margin: 0 0 12px;
@@ -11366,19 +11393,19 @@ a {
 .passenger-map-panel {
   position: relative;
   min-width: 0;
-  min-height: 610px;
+  min-height: 0;
   background: #eaf3ee;
 }
 .passenger-map-panel .post-route-map-frame {
   width: 100%;
   height: 100%;
-  min-height: 610px;
+  min-height: 0;
   border: 0;
   border-radius: 0;
 }
 .passenger-map-panel .post-route-map-canvas {
   height: 100%;
-  min-height: 610px;
+  min-height: 0;
 }
 .passenger-map-heading {
   position: absolute;
@@ -11450,7 +11477,7 @@ a {
   background: #07966e;
 }
 .passenger-map-placeholder {
-  min-height: 610px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -11476,12 +11503,12 @@ a {
 .route-member-marker > svg {
   width: 48px;
   height: 60px;
-  fill: #e6aa32;
+  fill: #e9bd52;
   stroke: #fff;
   stroke-width: 2px;
   filter: drop-shadow(0 4px 6px #103a3338);
 }
-.route-member-marker--b > svg {
+.route-member-marker--destination > svg {
   fill: #07966e;
 }
 .route-member-marker-avatar {
@@ -11499,6 +11526,17 @@ a {
   color: #245644;
   font-weight: 800;
   font-size: 0.78rem;
+}
+.route-member-marker--shared .route-member-marker-avatar {
+  width: 27px;
+  height: 27px;
+  top: 8px;
+  left: 3px;
+  font-size: 0.6rem;
+}
+.route-member-marker--shared .route-member-marker-avatar--shared {
+  top: 17px;
+  left: 19px;
 }
 .route-member-marker img {
   width: 100%;
@@ -11550,12 +11588,25 @@ a {
     flex-direction: column;
     max-height: calc(100dvh - 24px);
     min-height: 0;
-    overflow-y: auto;
+    height: calc(100dvh - 24px);
+    overflow: hidden;
     border-radius: 22px;
   }
   .passenger-content {
-    padding: 25px 22px;
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .passenger-scroll {
+    padding: 20px 22px 12px;
+  }
+  .passenger-footer {
+    padding: 10px 22px 16px;
+  }
+  .passenger-map-panel {
+    order: -1;
+    flex-shrink: 0;
   }
   .passenger-heading {
     padding-right: 25px;
@@ -11570,8 +11621,8 @@ a {
   .passenger-map-panel .post-route-map-frame,
   .passenger-map-panel .post-route-map-canvas,
   .passenger-map-placeholder {
-    height: 390px;
-    min-height: 390px;
+    height: clamp(280px, 35dvh, 340px);
+    min-height: 280px;
   }
   .passenger-map-heading {
     top: 15px;
@@ -12353,14 +12404,20 @@ a {
 /* Driver/passenger role colors */
 .unified-ride-page-v2--driver {
   --ride-accent: #087f5b;
+  --ride-accent-ink: #087f5b;
+  --ride-on-accent: #fff;
+  --ride-accent-surface: #f7fbf9;
   --ride-accent-hover: #066a4c;
   --ride-accent-soft: #e8f5ee;
   --ride-accent-ring: rgba(8, 127, 91, 0.14);
 }
 .unified-ride-page-v2--passenger {
-  --ride-accent: #e9bd52;
-  --ride-accent-hover: #dcae42;
-  --ride-accent-soft: #fff9e8;
+  --ride-accent: var(--ride-passenger-accent);
+  --ride-accent-ink: var(--ride-passenger-accent-ink);
+  --ride-on-accent: var(--ride-passenger-on-accent);
+  --ride-accent-surface: var(--ride-passenger-accent-soft);
+  --ride-accent-hover: var(--ride-passenger-accent-hover);
+  --ride-accent-soft: var(--ride-passenger-accent-soft);
   --ride-accent-ring: rgba(140, 105, 30, 0.16);
 }
 .unified-ride-page-v2 .unified-panel-icon,
@@ -12368,7 +12425,7 @@ a {
 .unified-ride-page-v2 .unified-place-search-btn,
 .unified-ride-page-v2 .unified-seats-icon,
 .unified-ride-page-v2 .unified-hint-note svg {
-  color: var(--ride-accent);
+  color: var(--ride-accent-ink, var(--ride-accent));
 }
 .unified-ride-page-v2 .unified-panel-icon,
 .unified-ride-page-v2 .unified-hint-note {
@@ -12386,6 +12443,7 @@ a {
 }
 .unified-ride-page-v2 .unified-plan-btn {
   background: var(--ride-accent);
+  color: var(--ride-on-accent);
   box-shadow: 0 6px 20px var(--ride-accent-ring);
 }
 .unified-ride-page-v2 .unified-plan-btn:hover:not(:disabled) {
@@ -12395,6 +12453,7 @@ a {
 .unified-ride-page-v2 .unified-map-layer-toggle button.active,
 .unified-ride-page-v2 .unified-step--active .unified-step-number {
   background: var(--ride-accent);
+  color: var(--ride-on-accent);
 }
 .unified-ride-page-v2 .unified-place-suggestions button:hover,
 .unified-ride-page-v2 .unified-map-layer-toggle button:not(.active):hover {
@@ -12413,39 +12472,9 @@ a {
 .unified-ride-page-v2--passenger
   .unified-mode-switch
   button:last-child[aria-pressed="true"] {
-  color: #e9bd52;
-  border: 1px solid #e9bd52;
-  background: #fff9e8;
+  color: var(--ride-accent-ink);
+  background: var(--ride-accent-soft);
 }
-.unified-ride-page-v2--passenger .unified-swap-btn,
-.unified-ride-page-v2--passenger .unified-seats-btn,
-.unified-ride-page-v2--passenger .unified-map-layer-toggle button,
-.unified-ride-page-v2--passenger .unified-route-result-stats svg {
-  color: #e9bd52;
-}
-.unified-ride-page-v2--passenger .unified-swap-btn,
-.unified-ride-page-v2--passenger .unified-seats-btn,
-.unified-ride-page-v2--passenger .unified-map-layer-toggle button,
-.unified-ride-page-v2--passenger .unified-vehicle-icons button,
-.unified-ride-page-v2--passenger .unified-plan-btn {
-  border: 1px solid #e9bd52;
-  background: #fff9e8;
-  color: #e9bd52;
-  box-shadow: none;
-}
-.unified-ride-page-v2--passenger .app-button--primary {
-  border-color: #e9bd52;
-  background: #fff9e8;
-  color: #e9bd52;
-  box-shadow: none;
-}
-.unified-ride-page-v2--passenger .app-button--primary:hover,
-.unified-ride-page-v2--passenger .unified-plan-btn:hover:not(:disabled) {
-  border-color: #e9bd52;
-  background: #fff4d6;
-  color: #e9bd52;
-}
-
 /* ── Right panel (map card) ── */
 .unified-right-panel {
   background: #ffffff;
@@ -12513,6 +12542,16 @@ a {
 .unified-map-canvas > div {
   height: 100% !important;
   min-height: 400px !important;
+}
+.unified-map-canvas .post-route-map-frame {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+}
+.unified-map-canvas .post-route-map-canvas {
+  height: 100%;
+  min-height: 400px;
 }
 .unified-route-badge {
   position: absolute;
@@ -15489,6 +15528,9 @@ a {
   width: 100%;
   background: #eaf5ef;
 }
+.map-canvas-card .post-route-map-canvas {
+  height: clamp(360px, 50vh, 600px);
+}
 .post-route-map-canvas .maplibregl-canvas {
   outline: none;
 }
@@ -15996,4 +16038,567 @@ a {
   .is-embedded .message-thread {
     padding: 16px;
   }
+}
+
+/* Unified trip composer and discovery */
+.ride-compose-page .unified-ride-body {
+  margin: 24px auto 0;
+  padding-bottom: 64px;
+}
+.ride-compose-page .unified-left-panel {
+  gap: 16px;
+  padding: 24px 24px 20px;
+}
+.ride-compose-page .unified-left-panel .ride-compose-field {
+  gap: 7px;
+}
+.ride-compose-page .unified-left-panel .ride-compose-field input {
+  padding: 11px 12px;
+}
+.ride-compose-page .unified-left-panel .ride-compose-field textarea {
+  min-height: 60px;
+  padding: 9px 12px;
+  line-height: 1.45;
+}
+.ride-compose-page .unified-left-panel .unified-seats-control {
+  width: fit-content;
+  min-width: 100px;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 4px 8px;
+  gap: 8px;
+}
+.ride-compose-page .unified-left-panel .unified-plan-btn {
+  min-height: 48px;
+  padding: 12px 16px;
+}
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .unified-right-panel {
+  min-height: 460px;
+}
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .unified-map-header {
+  padding: 20px 24px;
+  align-items: center;
+}
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .unified-map-canvas,
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .post-route-map-canvas {
+  min-height: 320px;
+}
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .unified-map-canvas
+  > div {
+  min-height: 320px !important;
+}
+.ride-compose-page
+  .unified-ride-body:not(.ride-discovery-layout)
+  .ride-inline-stats
+  > span {
+  padding: 14px 7px;
+}
+.ride-compose-field {
+  display: grid;
+  gap: 9px;
+  font-size: 0.88rem;
+  color: #315b4e;
+  font-weight: 650;
+}
+.ride-compose-field > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ride-compose-field input,
+.ride-compose-field textarea,
+.ride-compose-field select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d2e5dc;
+  border-radius: 12px;
+  background: #fbfdfc;
+  padding: 13px 14px;
+  color: #143f33;
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+.ride-compose-field textarea {
+  resize: vertical;
+  min-height: 78px;
+  line-height: 1.6;
+}
+.ride-compose-field input:focus,
+.ride-compose-field textarea:focus,
+.ride-compose-field select:focus {
+  border-color: #0c9973;
+  box-shadow: 0 0 0 3px #0c997313;
+}
+.ride-compose-field small {
+  color: #799389;
+  font-size: 0.75rem;
+  font-weight: 450;
+}
+.unified-seats-control.is-fixed {
+  justify-content: center;
+  gap: 15px;
+  min-height: 46px;
+  background: #f1f8f4;
+  color: #087f5b;
+}
+.ride-inline-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: #f7fbf9;
+  border-top: 1px solid #e0eee7;
+  flex-shrink: 0;
+}
+.ride-inline-stats > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 18px 7px;
+  color: #0a8564;
+}
+.ride-inline-stats > span + span {
+  border-left: 1px solid #e0eee7;
+}
+.ride-inline-stats small {
+  color: #7a9589;
+  font-size: 0.76rem;
+  text-align: center;
+}
+.ride-inline-stats strong {
+  color: #174c3b;
+  font-size: 0.9rem;
+}
+.ride-discovery-layout {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr);
+  align-items: start;
+}
+.ride-draft-preview {
+  min-height: 0;
+}
+.ride-draft-preview .unified-map-header {
+  padding: 14px 18px;
+  align-items: center;
+}
+.ride-draft-preview .unified-map-header h2 {
+  font-size: 1rem;
+}
+.ride-draft-preview .unified-map-layer-toggle button {
+  padding: 7px 10px;
+  font-size: 0.75rem;
+}
+.ride-draft-preview .unified-map-canvas {
+  height: clamp(220px, 32svh, 300px);
+  min-height: 0;
+  flex: none;
+}
+.ride-draft-preview .unified-map-canvas > div,
+.ride-draft-preview .post-route-map-canvas {
+  min-height: 0 !important;
+}
+.ride-draft-content {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.ride-draft-preview .ride-inline-stats > span {
+  flex-direction: row;
+  gap: 8px;
+  padding: 13px 6px;
+}
+.ride-draft-preview .ride-inline-stats > span > svg {
+  flex-shrink: 0;
+}
+.ride-draft-preview .ride-draft-route {
+  gap: 10px;
+}
+.ride-draft-preview .ride-draft-route p {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.ride-draft-preview .ride-draft-route p > span,
+.ride-draft-preview .ride-draft-note > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.ride-draft-preview .ride-draft-note {
+  padding: 8px 10px;
+}
+.ride-draft-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ride-draft-audience {
+  flex: 0 0 140px;
+}
+.ride-draft-audience select {
+  padding: 9px 10px;
+  font-size: 0.8rem;
+}
+.ride-draft-time svg {
+  flex-shrink: 0;
+}
+.ride-draft-author {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.ride-draft-author > div,
+.ride-discovery-card header > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.ride-draft-author strong,
+.ride-discovery-card header strong {
+  font-size: 0.92rem;
+  color: #174c3b;
+}
+.ride-draft-author small,
+.ride-discovery-card header small {
+  font-size: 0.76rem;
+  color: #7a9589;
+}
+.ride-draft-route {
+  display: grid;
+  gap: 17px;
+  position: relative;
+}
+.ride-draft-route::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 4px;
+  border-left: 1px dashed #bedbcd;
+}
+.ride-draft-route p {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  margin: 0;
+  color: #244e41;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.ride-draft-route i {
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border: 2px solid #0a9871;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.ride-draft-route p:last-child i {
+  border-color: #eda739;
+}
+.ride-draft-time {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #526f62;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.ride-draft-note,
+.ride-match-note {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f4f9f6;
+  margin: 0;
+  color: #688478;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ride-publication-hint {
+  margin: -8px 0 0;
+  font-size: 0.74rem;
+  color: #7a9589;
+  line-height: 1.6;
+}
+.ride-draft-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+.ride-compose-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  color: #547364;
+  border: 1px solid #d8e7df;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.ride-draft-actions .unified-plan-btn {
+  min-height: 42px;
+  padding: 10px;
+  font-size: 0.82rem;
+}
+.ride-draft-actions .ride-compose-secondary {
+  padding: 10px;
+  font-size: 0.8rem;
+}
+.ride-compose-notice {
+  font-size: 0.8rem;
+  color: #9a641b;
+  background: #fff9ef;
+  border: 1px solid #f4dfb5;
+  padding: 12px;
+  border-radius: 10px;
+  line-height: 1.6;
+  margin: 0;
+}
+.ride-compose-notice a {
+  text-decoration: underline;
+}
+.ride-discovery-results {
+  display: grid;
+  gap: 17px;
+  min-width: 0;
+}
+.ride-discovery-results > header {
+  padding: 16px 0 5px;
+}
+.ride-discovery-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #0a9370;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.ride-discovery-results h2 {
+  margin: 8px 0;
+  color: #123f32;
+  font-size: clamp(1.3rem, 2vw, 1.65rem);
+  letter-spacing: -0.03em;
+}
+.ride-discovery-results > header p {
+  margin: 0;
+  color: #789285;
+  font-size: 0.83rem;
+  line-height: 1.7;
+}
+.ride-discovery-count {
+  color: #708e7e;
+  font-size: 0.77rem;
+  margin: 0;
+}
+.ride-discovery-card {
+  display: grid;
+  gap: 19px;
+  padding: 22px;
+  border: 1px solid #d5e7dd;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 24px #174c3b05;
+}
+.ride-discovery-card > header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ride-discovery-card > header > span:last-child {
+  margin-left: auto;
+  color: #168767;
+  background: #edf8f2;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.ride-match-distances {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  color: #799284;
+  font-size: 0.74rem;
+}
+.ride-discovery-card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #eef4f0;
+  padding-top: 16px;
+}
+.ride-discovery-card footer a {
+  color: #769283;
+  font-size: 0.8rem;
+}
+.ride-discovery-card footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #087f60;
+  color: #fff;
+  padding: 11px 15px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.ride-discovery-empty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 64px 26px;
+  border: 1px dashed #cbded2;
+  border-radius: 20px;
+  background: #ffffffa6;
+}
+.ride-discovery-empty > span {
+  display: grid;
+  place-items: center;
+  width: 65px;
+  height: 65px;
+  border-radius: 20px;
+  background: #e8f6ee;
+  color: #149273;
+}
+.ride-discovery-empty h3 {
+  color: #305b48;
+  margin: 0;
+  font-size: 1.1rem;
+}
+.ride-discovery-empty p {
+  max-width: 350px;
+  margin: 0;
+  color: #7a9284;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.ride-discovery-success {
+  display: flex;
+  gap: 9px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #e5f7ee;
+  color: #13865e;
+  font-size: 0.85rem;
+}
+@media (max-width: 900px) {
+  .ride-discovery-layout {
+    grid-template-columns: 1fr;
+  }
+  .ride-discovery-results > header {
+    padding-top: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .ride-draft-content {
+    padding: 20px;
+  }
+  .ride-discovery-card {
+    padding: 18px;
+  }
+  .ride-inline-stats small {
+    font-size: 0.68rem;
+  }
+  .ride-inline-stats strong {
+    font-size: 0.82rem;
+  }
+  .ride-discovery-card > header {
+    flex-wrap: wrap;
+  }
+  .ride-discovery-card > header > span:last-child {
+    margin-left: 56px;
+  }
+}
+.ride-compose-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: #e6f6ed;
+  color: #087f60;
+  font-weight: 750;
+  overflow: hidden;
+}
+.ride-compose-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ride-compose-page .unified-plan-btn {
+  background: var(--ride-accent);
+  color: var(--ride-on-accent);
+  border-color: var(--ride-accent);
+}
+.ride-compose-page .unified-plan-btn:hover:not(:disabled) {
+  background: var(--ride-accent-hover);
+}
+.ride-compose-page .unified-plan-btn:disabled {
+  opacity: 0.5;
+}
+.ride-discovery-results > header {
+  padding: 22px;
+  border: 1px solid #d5e7dd;
+  border-radius: 18px;
+  background: #fff;
+}
+
+/* Keep neutral controls unchanged; only active accents follow the selected role. */
+.ride-compose-page .unified-vehicle-icons button[aria-pressed="true"] {
+  color: var(--ride-accent-ink);
+}
+.ride-compose-page .unified-seats-control.is-fixed {
+  background: var(--ride-accent-soft);
+  color: var(--ride-accent-ink);
+}
+.ride-compose-page .ride-inline-stats {
+  background: #fff;
+}
+.ride-compose-page .ride-inline-stats > span {
+  color: var(--ride-accent-ink);
+}
+.ride-compose-page .ride-compose-field input:focus,
+.ride-compose-page .ride-compose-field textarea:focus,
+.ride-compose-page .ride-compose-field select:focus {
+  border-color: var(--ride-accent);
+  box-shadow: 0 0 0 3px var(--ride-accent-ring);
+}
+.ride-compose-page .ride-discovery-card footer button {
+  background: var(--ride-accent);
+  color: var(--ride-on-accent);
+}
+.ride-compose-page .ride-discovery-card > header > span:last-child {
+  background: var(--ride-accent-soft);
+  color: var(--ride-accent-ink);
+}
+.ride-compose-page .ride-draft-route p:first-child i {
+  border-color: var(--ride-accent);
+}
+.ride-compose-page .ride-compose-avatar {
+  background: var(--ride-accent-soft);
+  color: var(--ride-accent-ink);
 }

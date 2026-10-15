@@ -1,23 +1,34 @@
-"use client";
+﻿"use client";
 
 import {
   ArrowDownUp,
+  ArrowLeft,
   ArrowRight,
   Bike,
+  CalendarClock,
   CarFront,
-  Info,
+  Check,
+  Clock3,
+  Coins,
   MapPin,
   Minus,
   Plus,
   Search,
+  Send,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ApiError } from "@dike/api-client-ts";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { RidePostView, TripView } from "@dike/api-client-ts";
+import { authApi } from "../../../src/auth/api";
 import { routingApi } from "../../../src/routing/client";
+import { rideApi } from "../../../src/rides/api";
+import { PassengerRequest } from "../../../src/rides/passenger-request";
+import { MemberAvatar } from "../../components/member-avatar";
 import type {
   ContributionEstimate,
   PlaceResponse,
@@ -27,11 +38,10 @@ import type {
 } from "../../../src/routing/api";
 import { ErrorState, LoadingState } from "../../components/app-ui";
 
-const DynamicMap = dynamic(() => import("../../map/DynamicMap"), {
+const RouteMap = dynamic(() => import("../../../src/rides/post-route-map"), {
   ssr: false,
   loading: () => <LoadingState label="Đang tải bản đồ" />,
 });
-
 type Picker = {
   query: string;
   sessionToken?: string;
@@ -46,34 +56,272 @@ const emptyPicker = (): Picker => ({
   loading: false,
   searched: false,
 });
+type Publication = {
+  key: string;
+  departure: string;
+  source?: { id: string; version: number };
+  trip?: TripView;
+  post?: RidePostView;
+  opened?: boolean;
+};
+const dateLocal = (value: number) =>
+  new Date(value - new Date(value).getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+const dateLabel = (value: string) =>
+  new Date(value).toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+  });
+const distance = (value: number) =>
+  value < 1000
+    ? `${Math.round(value)} m`
+    : `${(value / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} km`;
+const money = (value: number) =>
+  value.toLocaleString("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  });
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : "Chưa thể xử lý. Vui lòng thử lại.";
 
 export function UnifiedRideFlow({
   initialMode,
+  initialRouteId,
 }: {
   initialMode: "driver" | "passenger";
+  initialRouteId?: string;
 }) {
   const router = useRouter();
+  const client = useQueryClient();
   const [mode, setMode] = useState(initialMode);
   const [origin, setOrigin] = useState<Picker>(emptyPicker);
   const [destination, setDestination] = useState<Picker>(emptyPicker);
-  const [vehicleMode, setVehicleMode] = useState<VehicleMode>("MOTORBIKE");
+  const [chosenVehicleMode, setVehicleMode] =
+    useState<VehicleMode>("MOTORBIKE");
   const [seats, setSeats] = useState(1);
-  const [route, setRoute] = useState<RouteResponse>();
-  const [estimate, setEstimate] = useState<ContributionEstimate>();
+  const [departure, setDeparture] = useState("");
+  const [immediate, setImmediate] = useState(true);
+  const [note, setNote] = useState("");
+  const [audience, setAudience] = useState("PUBLIC");
+  const [calculatedRoute, setRoute] = useState<RouteResponse>();
+  const [calculatedEstimate, setEstimate] = useState<ContributionEstimate>();
+  const [ignoreInitialRoute, setIgnoreInitialRoute] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [error, setError] = useState<string>();
+  const [stage, setStage] = useState<"edit" | "matches">("edit");
   const [mapLayer, setMapLayer] = useState<"map" | "satellite">("map");
-
+  const [responsePost, setResponsePost] = useState<RidePostView>();
+  const [responseMessage, setResponseMessage] = useState("");
+  const [sent, setSent] = useState<string>();
+  const [publishingStarted, setPublishingStarted] = useState(false);
+  const generation = useRef({ origin: 0, destination: 0, route: 0 });
+  const publication = useRef<Publication | undefined>(undefined);
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDeparture(dateLocal(Date.now())),
+      0,
+    );
+    return () => window.clearTimeout(timer);
+  }, []);
+  const session = useQuery({
+    queryKey: ["auth", "session"],
+    queryFn: authApi.session,
+    enabled: false,
+  });
+  const capabilities = useQuery({
+    queryKey: ["rides", "capabilities"],
+    queryFn: rideApi.capabilities,
+  });
+  const importedRoute = useQuery({
+    queryKey: ["routing", "route", initialRouteId],
+    queryFn: () => routingApi.getRoute(initialRouteId!),
+    enabled: Boolean(initialRouteId) && !ignoreInitialRoute,
+    retry: false,
+  });
+  const route =
+    calculatedRoute ?? (!ignoreInitialRoute ? importedRoute.data : undefined);
+  const vehicleMode =
+    !ignoreInitialRoute && importedRoute.data
+      ? importedRoute.data.vehicleMode
+      : chosenVehicleMode;
+  const importedEstimate = useQuery({
+    queryKey: ["routing", "compose-estimate", initialRouteId],
+    queryFn: () =>
+      routingApi.createEstimate(
+        importedRoute.data!.id,
+        importedRoute.data!.distanceMeters,
+        1,
+      ),
+    enabled: Boolean(importedRoute.data) && !ignoreInitialRoute,
+    retry: false,
+  });
+  const estimate =
+    calculatedEstimate ??
+    (!ignoreInitialRoute ? importedEstimate.data : undefined);
+  const member = useMemo(
+    () => ({
+      name: session.data?.user?.displayName || "Bạn",
+      avatarUrl: session.data?.user?.avatarUrl,
+    }),
+    [session.data?.user?.displayName, session.data?.user?.avatarUrl],
+  );
+  const vehicle = capabilities.data?.vehicles.find(
+    (v) => v.type === (vehicleMode === "MOTORBIKE" ? "MOTORCYCLE" : "CAR"),
+  );
+  const maxSeats =
+    vehicleMode === "MOTORBIKE"
+      ? 1
+      : Math.min(8, vehicle?.passengerCapacity ?? 4);
+  const effectiveSeats = Math.min(seats, maxSeats);
+  const discovery = useMutation({ mutationFn: rideApi.discover });
+  const offer = useMutation({
+    mutationFn: () =>
+      rideApi.createPostResponse(responsePost!.id, responseMessage),
+    onSuccess: () => {
+      setSent("Đã gửi đề nghị chở. Bài đang soạn của bạn chưa được đăng.");
+      setResponsePost(undefined);
+    },
+  });
+  const publish = useMutation({
+    mutationFn: async () => {
+      if (!route) throw new Error("Hãy tính tuyến đường trước khi đăng bài.");
+      if (
+        new Date(route.expiresAt).getTime() <= Date.now() &&
+        !publication.current
+      )
+        throw new Error("Tuyến đường đã hết hạn. Quay lại để tính tuyến mới.");
+      const visibility = audience === "DRAFT" ? "PUBLIC" : audience;
+      if (!publication.current) {
+        const time = immediate
+          ? Date.now() + 120000
+          : new Date(departure).getTime();
+        if (!Number.isFinite(time) || time <= Date.now())
+          throw new Error("Vui lòng chọn giờ khởi hành trong tương lai.");
+        if (
+          mode === "driver" &&
+          (!capabilities.data?.canCreateTrip || !vehicle)
+        )
+          throw new Error(
+            "Chưa có phương tiện đã duyệt phù hợp. Bạn có thể cập nhật trong trang cá nhân.",
+          );
+        publication.current = {
+          key: crypto.randomUUID(),
+          departure: new Date(time).toISOString(),
+        };
+        setPublishingStarted(true);
+      }
+      const progress = publication.current;
+      if (mode === "driver") {
+        progress.trip ??= await rideApi.createTrip(
+          {
+            vehicleId: vehicle!.id,
+            routeId: route.id,
+            departureAt: progress.departure,
+            originLabel: route.origin.publicAreaLabel,
+            destinationLabel: route.destination.publicAreaLabel,
+            offeredSeats: effectiveSeats,
+            contributionPerKm: estimate?.suggestedPerKmVnd ?? 1000,
+            detourMeters: 1000,
+            detourSeconds: 300,
+            visibility,
+            communityId: "",
+          },
+          progress.key,
+        );
+        progress.source = {
+          id: progress.trip.id,
+          version: progress.trip.version,
+        };
+      } else {
+        progress.source ??= await rideApi.createSource(
+          {
+            routeId: route.id,
+            departureAt: progress.departure,
+            arrivalAt: new Date(
+              new Date(progress.departure).getTime() +
+                (Math.max(60, route.durationSeconds) + 3600) * 1000,
+            ).toISOString(),
+          },
+          progress.key,
+        );
+      }
+      progress.post ??= await rideApi.createPost(
+        {
+          type: mode === "driver" ? "OFFER_RIDE" : "NEED_RIDE",
+          sourceId: progress.source.id,
+          sourceVersion: progress.source.version,
+          visibility,
+          note,
+        },
+        progress.key,
+      );
+      if (audience !== "DRAFT") {
+        if (mode === "driver") {
+          if (!progress.opened) {
+            await rideApi.openTrip(
+              progress.trip!.id,
+              progress.trip!.version,
+              progress.key,
+            );
+            progress.opened = true;
+          }
+        } else
+          progress.post = await rideApi.postAction(
+            progress.post.id,
+            "publish",
+            progress.post.version,
+            progress.key,
+          );
+      }
+      return progress.post;
+    },
+    onSuccess: (post) => {
+      void client.invalidateQueries({ queryKey: ["feed"] });
+      void client.invalidateQueries({ queryKey: ["rides"] });
+      router.push(`/feed/${encodeURIComponent(post.id)}`);
+    },
+    onError: () => {
+      const progress = publication.current;
+      if (progress && !progress.source && !progress.trip && !progress.post) {
+        publication.current = undefined;
+        setPublishingStarted(false);
+      }
+    },
+  });
+  function clearRoute() {
+    setVehicleMode(vehicleMode);
+    setIgnoreInitialRoute(true);
+    generation.current.route++;
+    setRoute(undefined);
+    setEstimate(undefined);
+    setError(undefined);
+  }
+  function updatePicker(field: "origin" | "destination", next: Picker) {
+    generation.current[field]++;
+    clearRoute();
+    (field === "origin" ? setOrigin : setDestination)(next);
+  }
   function choose(next: "driver" | "passenger") {
+    if (publishingStarted || planning) return;
     setMode(next);
+    setStage("edit");
+    discovery.reset();
+    setSent(undefined);
     router.replace(`/rides/new?mode=${next}`, { scroll: false });
   }
-
-  async function search(current: Picker, update: (value: Picker) => void) {
+  async function search(field: "origin" | "destination") {
+    const current = field === "origin" ? origin : destination;
+    if (current.loading) return;
     const query = current.query.trim();
     if (query.length < 3)
       return setError("Nhập ít nhất 3 ký tự để tìm địa điểm.");
-    setError(undefined);
+    const update = field === "origin" ? setOrigin : setDestination;
+    const token = ++generation.current[field];
+    clearRoute();
     update({ ...current, loading: true, searched: true, selected: undefined });
     try {
       const session = await routingApi.createPlaceSession();
@@ -81,96 +329,183 @@ export function UnifiedRideFlow({
         session.sessionToken,
         query,
       );
-      update({
-        query,
-        sessionToken: session.sessionToken,
-        suggestions,
-        loading: false,
-        searched: true,
-      });
+      if (token === generation.current[field])
+        update({
+          query,
+          sessionToken: session.sessionToken,
+          suggestions,
+          loading: false,
+          searched: true,
+        });
     } catch (cause) {
-      update({ ...current, loading: false, searched: true });
-      setError(messageOf(cause));
+      if (token === generation.current[field]) {
+        update({ ...current, loading: false });
+        setError(messageOf(cause));
+      }
     }
   }
-
   async function select(
+    field: "origin" | "destination",
     suggestion: PlaceSuggestionResponse,
-    current: Picker,
-    update: (value: Picker) => void,
   ) {
-    if (!current.sessionToken)
-      return setError("Phiên chọn địa điểm đã hết hạn. Hãy tìm lại.");
-    setError(undefined);
-    update({ ...current, query: suggestion.displayLabel, loading: true });
+    const current = field === "origin" ? origin : destination;
+    if (!current.sessionToken || current.loading) return;
+    const token = ++generation.current[field];
+    const update = field === "origin" ? setOrigin : setDestination;
+    update({ ...current, loading: true });
     try {
       const selected = await routingApi.resolvePlace(
         current.sessionToken,
         suggestion.placeRef,
       );
-      update({
-        query: selected.displayLabel,
-        suggestions: [],
-        selected,
-        loading: false,
-        searched: true,
-      });
+      if (token === generation.current[field]) {
+        clearRoute();
+        update({
+          query: selected.displayLabel,
+          selected,
+          loading: false,
+          searched: true,
+          suggestions: [],
+        });
+      }
     } catch (cause) {
-      update({ ...current, loading: false });
-      setError(messageOf(cause));
+      if (token === generation.current[field]) {
+        update({ ...current, loading: false });
+        setError(messageOf(cause));
+      }
     }
   }
-
+  function searchTime() {
+    const time = immediate ? Date.now() : new Date(departure).getTime();
+    if (
+      !Number.isFinite(time) ||
+      (!immediate && time <= Date.now()) ||
+      time > Date.now() + 7 * 86400000
+    )
+      throw new Error("Chọn giờ khởi hành từ hiện tại đến 7 ngày tới.");
+    return new Date(time).toISOString();
+  }
   async function plan(event: FormEvent) {
     event.preventDefault();
-    if (!origin.selected || !destination.selected)
-      return setError("Chọn đủ điểm đi và điểm đến trước khi tính tuyến.");
-    setPlanning(true);
+    if (planning || (!route && (!origin.selected || !destination.selected)))
+      return;
     setError(undefined);
-    setRoute(undefined);
-    setEstimate(undefined);
     try {
+      const departureAt = searchTime();
+      if (route) {
+        if (new Date(route.expiresAt).getTime() <= Date.now()) {
+          clearRoute();
+          throw new Error("Tuyến đường đã hết hạn. Vui lòng tính lại.");
+        }
+        setStage("matches");
+        discovery.mutate({
+          routeId: route.id,
+          role: mode,
+          departureAt,
+          seats: effectiveSeats,
+        });
+        return;
+      }
+      const token = ++generation.current.route;
+      setPlanning(true);
       const next = await routingApi.createRoute(
-        origin.selected.placeRef,
-        destination.selected.placeRef,
+        origin.selected!.placeRef,
+        destination.selected!.placeRef,
         vehicleMode,
       );
+      if (token !== generation.current.route) return;
       setRoute(next);
-      setEstimate(
-        await routingApi.createEstimate(next.id, next.distanceMeters, seats),
-      );
+      try {
+        const value = await routingApi.createEstimate(
+          next.id,
+          next.distanceMeters,
+          effectiveSeats,
+        );
+        if (token === generation.current.route) setEstimate(value);
+      } catch {
+        if (token === generation.current.route)
+          setError("Đã tính tuyến đường. Chưa tải được đóng góp gợi ý.");
+      }
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
       setPlanning(false);
     }
   }
-
-  function swap() {
-    setOrigin(destination);
-    setDestination(origin);
-    setRoute(undefined);
-    setEstimate(undefined);
-  }
-
-  function changeVehicleMode(next: VehicleMode) {
-    setVehicleMode(next);
-    setRoute(undefined);
-    setEstimate(undefined);
-  }
-
+  const stats = route ? (
+    <div className="ride-inline-stats">
+      <span>
+        <MapPin size={19} />
+        <small className={stage === "matches" ? "sr-only" : undefined}>
+          Khoảng cách
+        </small>
+        <strong>{distance(route.distanceMeters)}</strong>
+      </span>
+      <span>
+        <Clock3 size={19} />
+        <small className={stage === "matches" ? "sr-only" : undefined}>
+          Thời gian
+        </small>
+        <strong>
+          {Math.max(1, Math.ceil(route.durationSeconds / 60))} phút
+        </strong>
+      </span>
+      <span>
+        <Coins size={19} />
+        <small className={stage === "matches" ? "sr-only" : undefined}>
+          Đóng góp gợi ý
+        </small>
+        <strong>{estimate ? money(estimate.amountVnd) : "—"}</strong>
+      </span>
+    </div>
+  ) : null;
+  const map = (
+    <>
+      <div className="unified-map-header">
+        <h2>
+          {stage === "matches" ? "Hành trình của bạn" : "Xem trước tuyến đường"}
+        </h2>
+        <div className="unified-map-layer-toggle">
+          {(["map", "satellite"] as const).map((layer) => (
+            <button
+              key={layer}
+              type="button"
+              className={mapLayer === layer ? "active" : ""}
+              aria-pressed={mapLayer === layer}
+              onClick={() => setMapLayer(layer)}
+            >
+              {layer === "map" ? "Bản đồ" : "Vệ tinh"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="unified-map-canvas">
+        <RouteMap
+          route={route}
+          origin={route?.origin.displayLabel || "Điểm đi"}
+          destination={route?.destination.displayLabel || "Điểm đến"}
+          driver={member}
+          layer={mapLayer}
+          padding={stage === "matches" ? 56 : 64}
+          routeColor={mode === "passenger" ? "#e9bd52" : "#07966e"}
+        />
+      </div>
+      {stats}
+    </>
+  );
   return (
-    <main className={`unified-ride-page-v2 unified-ride-page-v2--${mode}`}>
+    <main
+      className={`unified-ride-page-v2 unified-ride-page-v2--${mode} ride-compose-page`}
+    >
       <section className="unified-ride-intro">
         <p>Tạo hành trình</p>
         <h1>
           {mode === "driver"
-            ? "Bạn muốn chở ai hôm nay?"
-            : "Bạn muốn đi ké đến đâu?"}
+            ? "Chia sẻ chỗ trống, cùng một hành trình"
+            : "Tìm người đồng hành cho chuyến đi"}
         </h1>
         <span>
-          Chọn vai trò, lên tuyến đường và xem các lựa chọn phù hợp trước khi
-          đăng.
+          Lên tuyến đường, tìm chuyến phù hợp hoặc chia sẻ hành trình của bạn.
         </span>
         <div
           className="unified-mode-switch"
@@ -179,263 +514,508 @@ export function UnifiedRideFlow({
         >
           <button
             type="button"
+            disabled={publishingStarted || planning}
             aria-pressed={mode === "driver"}
             onClick={() => choose("driver")}
           >
-            <CarFront aria-hidden="true" />
+            <CarFront />
             Tôi chở<small>Có chỗ trống</small>
           </button>
           <button
             type="button"
+            disabled={publishingStarted || planning}
             aria-pressed={mode === "passenger"}
             onClick={() => choose("passenger")}
           >
-            <Users aria-hidden="true" />
+            <Users />
             Tôi đi ké<small>Cần người chở</small>
           </button>
         </div>
       </section>
-
-      {/* ── Main content: left form + right map ── */}
-      <section className="unified-ride-body">
-        {/* LEFT PANEL: Trip info form */}
-        <form className="unified-left-panel" onSubmit={plan}>
-          {/* Card header */}
-          <div className="unified-panel-header">
-            <span className="unified-panel-icon">
-              <CarFront size={20} />
-            </span>
-            <div>
-              <h2>Thông tin chuyến đi</h2>
-              <p>Nhập điểm đi, điểm đến và phương tiện của bạn.</p>
-            </div>
-          </div>
-
-          {/* Place pickers */}
-          <div className="unified-place-group">
-            <PlacePicker
-              label="Điểm đi"
-              dotColor="green"
-              state={origin}
-              update={setOrigin}
-              onSearch={() => search(origin, setOrigin)}
-              onSelect={(item) => select(item, origin, setOrigin)}
-            />
-            <button
-              className="unified-swap-btn"
-              type="button"
-              aria-label="Đổi điểm đi và điểm đến"
-              onClick={swap}
-            >
-              <ArrowDownUp size={16} />
-            </button>
-            <PlacePicker
-              label="Điểm đến"
-              dotColor="red"
-              state={destination}
-              update={setDestination}
-              onSearch={() => search(destination, setDestination)}
-              onSelect={(item) => select(item, destination, setDestination)}
-            />
-          </div>
-
-          {/* Vehicle & seats row */}
-          <div className="unified-options-row">
-            <div className="unified-option-vehicle">
-              <span className="unified-option-label">Phương tiện</span>
-              <div
-                className="unified-vehicle-icons"
-                role="group"
-                aria-label="Phương tiện"
-              >
-                <button
-                  type="button"
-                  aria-label="Xe máy"
-                  title="Xe máy"
-                  aria-pressed={vehicleMode === "MOTORBIKE"}
-                  onClick={() => changeVehicleMode("MOTORBIKE")}
-                >
-                  <Bike aria-hidden="true" size={23} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Ô tô"
-                  title="Ô tô"
-                  aria-pressed={vehicleMode === "CAR"}
-                  onClick={() => changeVehicleMode("CAR")}
-                >
-                  <CarFront aria-hidden="true" size={23} />
-                </button>
-              </div>
-            </div>
-            <div className="unified-option-seats">
-              <span className="unified-option-label">
-                {mode === "driver" ? "Số chỗ trống" : "Số chỗ cần"}
+      {stage === "edit" ? (
+        <section className="unified-ride-body">
+          <form className="unified-left-panel" onSubmit={plan}>
+            <div className="unified-panel-header">
+              <span className="unified-panel-icon">
+                <CarFront size={22} />
               </span>
-              <div className="unified-seats-control">
-                <span className="unified-seats-icon" aria-hidden="true">
-                  <Users size={16} />
-                </span>
-                <button
-                  type="button"
-                  className="unified-seats-btn"
-                  aria-label="Giảm"
-                  disabled={seats <= 1}
-                  onClick={() => setSeats(Math.max(1, seats - 1))}
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="unified-seats-value">{seats}</span>
-                <button
-                  type="button"
-                  className="unified-seats-btn"
-                  aria-label="Tăng"
-                  disabled={seats >= 4}
-                  onClick={() => setSeats(Math.min(4, seats + 1))}
-                >
-                  <Plus size={14} />
-                </button>
+              <div>
+                <h2>Thông tin chuyến đi</h2>
               </div>
             </div>
-          </div>
-
-          {error ? <ErrorState message={error} /> : null}
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            className="unified-plan-btn"
-            disabled={planning || !origin.selected || !destination.selected}
-          >
-            <Users size={18} />
-            {planning ? "Đang tính tuyến…" : "Tính tuyến đường"}
-            <ArrowRight size={16} />
-          </button>
-
-          {/* Hint note */}
-          <p className="unified-hint-note">
-            <Info size={14} />
-            <span>
-              Sau khi tính tuyến, bạn có thể hoàn tất thời gian và{" "}
-              {mode === "driver" ? "đăng chuyến" : "đăng nhu cầu"}.
-            </span>
-          </p>
-        </form>
-
-        {/* RIGHT PANEL: Map preview */}
-        <div className="unified-right-panel">
-          <div className="unified-map-header">
-            <h2>Xem trước tuyến đường</h2>
-            <p>Tuyến đường sẽ hiển thị sau khi bạn nhập điểm đi và điểm đến.</p>
-            <div className="unified-map-layer-toggle">
+            <div className="unified-place-group">
+              <PlacePicker
+                label="Điểm đi"
+                state={
+                  route && !origin.query
+                    ? { ...origin, query: route.origin.displayLabel }
+                    : origin
+                }
+                update={(next) => updatePicker("origin", next)}
+                onSearch={() => void search("origin")}
+                onSelect={(item) => void select("origin", item)}
+              />
               <button
+                className="unified-swap-btn"
                 type="button"
-                className={mapLayer === "map" ? "active" : ""}
-                aria-pressed={mapLayer === "map"}
-                onClick={() => setMapLayer("map")}
+                aria-label="Đổi điểm đi và điểm đến"
+                disabled={planning}
+                onClick={() => {
+                  generation.current.origin++;
+                  generation.current.destination++;
+                  setOrigin({ ...destination, loading: false });
+                  setDestination({ ...origin, loading: false });
+                  clearRoute();
+                }}
               >
-                Bản đồ
+                <ArrowDownUp size={16} />
               </button>
-              <button
-                type="button"
-                className={mapLayer === "satellite" ? "active" : ""}
-                aria-pressed={mapLayer === "satellite"}
-                onClick={() => setMapLayer("satellite")}
-              >
-                Vệ tinh
-              </button>
+              <PlacePicker
+                label="Điểm đến"
+                state={
+                  route && !destination.query
+                    ? { ...destination, query: route.destination.displayLabel }
+                    : destination
+                }
+                update={(next) => updatePicker("destination", next)}
+                onSearch={() => void search("destination")}
+                onSelect={(item) => void select("destination", item)}
+              />
             </div>
-          </div>
-          <div className="unified-map-canvas">
-            <DynamicMap route={route?.geometry} layer={mapLayer} />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stepper ── */}
-      <nav className="unified-stepper" aria-label="Các bước tạo chuyến">
-        <div className="unified-step unified-step--active">
-          <span className="unified-step-number">1</span>
-          <span className="unified-step-label">Chọn tuyến đường</span>
-        </div>
-        <div className="unified-step-line" />
-        <div className="unified-step">
-          <span className="unified-step-number">2</span>
-          <span className="unified-step-label">Thông tin chuyến</span>
-        </div>
-        <div className="unified-step-line" />
-        <div className="unified-step">
-          <span className="unified-step-number">3</span>
-          <span className="unified-step-label">Xác nhận</span>
-        </div>
-      </nav>
-
-      {/* Route result (shown after planning) */}
-      {route ? (
-        <section className="unified-route-result">
-          <div className="unified-route-result-heading">
-            <div>
-              <p className="app-eyebrow">Tuyến đã tính</p>
-              <h2>
-                {route.origin.publicAreaLabel} →{" "}
-                {route.destination.publicAreaLabel}
-              </h2>
+            <label className="ride-compose-field">
+              <span>
+                <CalendarClock size={17} /> Ngày giờ khởi hành
+              </span>
+              <input
+                type="datetime-local"
+                required
+                value={departure}
+                onChange={(e) => {
+                  setDeparture(e.target.value);
+                  setImmediate(false);
+                }}
+              />
+            </label>
+            <div className="unified-options-row">
+              <div>
+                <span className="unified-option-label">Phương tiện</span>
+                <div
+                  className="unified-vehicle-icons"
+                  role="group"
+                  aria-label="Phương tiện"
+                >
+                  {(["MOTORBIKE", "CAR"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      aria-label={v === "CAR" ? "Ô tô" : "Xe máy"}
+                      aria-pressed={vehicleMode === v}
+                      disabled={planning}
+                      onClick={() => {
+                        clearRoute();
+                        setVehicleMode(v);
+                        setSeats(1);
+                      }}
+                    >
+                      {v === "CAR" ? (
+                        <CarFront size={23} />
+                      ) : (
+                        <Bike size={23} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="unified-option-label">
+                  {mode === "driver" ? "Số chỗ trống" : "Số chỗ cần"}
+                </span>
+                <div
+                  className={`unified-seats-control ${maxSeats === 1 ? "is-fixed" : ""}`}
+                >
+                  <Users size={17} />
+                  {maxSeats > 1 && (
+                    <button
+                      className="unified-seats-btn"
+                      type="button"
+                      aria-label="Giảm số chỗ"
+                      disabled={seats <= 1 || planning}
+                      onClick={() => {
+                        setSeats(seats - 1);
+                        clearRoute();
+                      }}
+                    >
+                      <Minus size={15} />
+                    </button>
+                  )}
+                  <output className="unified-seats-value" aria-label="Số chỗ">
+                    {effectiveSeats}
+                  </output>
+                  {maxSeats > 1 && (
+                    <button
+                      className="unified-seats-btn"
+                      type="button"
+                      aria-label="Tăng số chỗ"
+                      disabled={seats >= maxSeats || planning}
+                      onClick={() => {
+                        setSeats(seats + 1);
+                        clearRoute();
+                      }}
+                    >
+                      <Plus size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <span className="status-pill status-pill--success">
-              Có hiệu lực
-            </span>
-          </div>
-          <div className="unified-route-result-stats">
-            <span>
-              <MapPin aria-hidden="true" size={18} />
-              <small>Khoảng cách</small>
-              <strong>{distance(route.distanceMeters)}</strong>
-            </span>
-            <span>
-              <CarFront aria-hidden="true" size={18} />
-              <small>Thời gian</small>
-              <strong>{duration(route.durationSeconds)}</strong>
-            </span>
-            <span>
-              <Users aria-hidden="true" size={18} />
-              <small>Đóng góp gợi ý{estimate?.demo ? " (mô phỏng)" : ""}</small>
-              <strong>
-                {estimate ? money(estimate.amountVnd) : "Đang tính…"}
-              </strong>
-            </span>
-          </div>
-          <div className="unified-route-result-actions">
-            <Link
-              className="app-button app-button--primary"
-              href={
-                mode === "driver"
-                  ? `/trips/new?route=${encodeURIComponent(route.id)}&seats=${seats}&contributionPerKm=${estimate?.suggestedPerKmVnd ?? 1000}`
-                  : `/feed/new?route=${encodeURIComponent(route.id)}`
+            <label className="ride-compose-field">
+              <span>
+                Lời nhắn <small>(không bắt buộc)</small>
+              </span>
+              <textarea
+                rows={2}
+                maxLength={500}
+                placeholder="Ví dụ: Mình có thể ghé đón dọc đường…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </label>
+            {error && <ErrorState message={error} />}
+            {initialRouteId && !ignoreInitialRoute && importedRoute.isError && (
+              <ErrorState
+                message={messageOf(importedRoute.error)}
+                onRetry={() => void importedRoute.refetch()}
+              />
+            )}
+            <button
+              type="submit"
+              className="unified-plan-btn"
+              disabled={
+                planning ||
+                (!route && (!origin.selected || !destination.selected)) ||
+                !departure
               }
             >
-              {mode === "driver"
-                ? "Tiếp tục tạo chuyến"
-                : "Tiếp tục đăng nhu cầu"}
-              <ArrowRight aria-hidden="true" size={17} />
-            </Link>
-          </div>
+              <Search size={18} />
+              {planning
+                ? "Đang tính tuyến…"
+                : route
+                  ? "Bắt đầu tìm chuyến"
+                  : "Tính tuyến đường"}
+              <ArrowRight size={17} />
+            </button>
+          </form>
+          <aside className="unified-right-panel">{map}</aside>
         </section>
+      ) : (
+        <section className="unified-ride-body ride-discovery-layout">
+          <aside className="unified-right-panel ride-draft-preview">
+            {map}
+            <div className="ride-draft-content">
+              <div className="ride-draft-author">
+                <MemberAvatar
+                  className="ride-compose-avatar"
+                  name={member.name}
+                  avatarUrl={member.avatarUrl}
+                  size={42}
+                />
+                <div>
+                  <strong>{member.name}</strong>
+                  <small>
+                    {mode === "driver" ? "Tôi chở" : "Tôi đi ké"} ·{" "}
+                    {vehicleMode === "CAR" ? "Ô tô" : "Xe máy"} ·{" "}
+                    {effectiveSeats} chỗ
+                  </small>
+                </div>
+              </div>
+              <div className="ride-draft-route">
+                <p>
+                  <i />
+                  <span title={route?.origin.displayLabel}>
+                    {route?.origin.displayLabel}
+                  </span>
+                </p>
+                <p>
+                  <i />
+                  <span title={route?.destination.displayLabel}>
+                    {route?.destination.displayLabel}
+                  </span>
+                </p>
+              </div>
+              <div className="ride-draft-meta">
+                <p className="ride-draft-time">
+                  <CalendarClock size={17} />
+                  {immediate ? "Đi ngay" : dateLabel(departure)}
+                </p>
+                <label className="ride-compose-field ride-draft-audience">
+                  <span className="sr-only">Chế độ bài đăng</span>
+                  <select
+                    value={audience}
+                    disabled={publishingStarted}
+                    onChange={(e) => setAudience(e.target.value)}
+                  >
+                    <option value="PUBLIC">Công khai</option>
+                    <option value="FRIENDS">Bạn bè</option>
+                    <option value="DRAFT">Bản nháp</option>
+                  </select>
+                </label>
+              </div>
+              {note && (
+                <p className="ride-draft-note" title={note}>
+                  <span>{note}</span>
+                </p>
+              )}
+              {mode === "driver" &&
+                (!vehicle || !capabilities.data?.canCreateTrip) && (
+                  <p className="ride-compose-notice">
+                    Bạn cần phương tiện đã duyệt để đăng chuyến.{" "}
+                    <Link href="/profile">Cập nhật hồ sơ</Link>
+                  </p>
+                )}
+              {publish.isError && (
+                <ErrorState message={messageOf(publish.error)} />
+              )}
+              <div className="ride-draft-actions">
+                <button
+                  type="button"
+                  className="ride-compose-secondary"
+                  aria-label="Quay lại chỉnh sửa"
+                  disabled={publishingStarted}
+                  onClick={() => {
+                    setStage("edit");
+                    publish.reset();
+                  }}
+                >
+                  <ArrowLeft size={17} />
+                  Chỉnh sửa
+                </button>
+                <button
+                  type="button"
+                  className="unified-plan-btn"
+                  disabled={
+                    publish.isPending ||
+                    (mode === "driver" &&
+                      (!vehicle || !capabilities.data?.canCreateTrip))
+                  }
+                  onClick={() => publish.mutate()}
+                >
+                  <Send size={17} />
+                  {publish.isPending ? "Đang đăng…" : "Đăng bài"}
+                </button>
+              </div>
+            </div>
+          </aside>
+          <section
+            className="ride-discovery-results"
+            aria-live="polite"
+            aria-label="Kết quả tìm chuyến"
+          >
+            {sent && (
+              <p className="ride-discovery-success">
+                <Check size={18} />
+                {sent}
+              </p>
+            )}
+            {discovery.isPending ? (
+              <LoadingState label="Đang tìm chuyến phù hợp" />
+            ) : discovery.isError ? (
+              <ErrorState
+                message={messageOf(discovery.error)}
+                onRetry={() => {
+                  try {
+                    discovery.mutate({
+                      routeId: route!.id,
+                      role: mode,
+                      departureAt: searchTime(),
+                      seats: effectiveSeats,
+                    });
+                  } catch (e) {
+                    setError(messageOf(e));
+                  }
+                }}
+              />
+            ) : discovery.data?.items.length ? (
+              <>
+                <p className="sr-only">
+                  {discovery.data.items.length} gợi ý phù hợp · Kiểm tra lại
+                  điểm đón khi gửi yêu cầu
+                </p>
+                {discovery.data.items.map((item) => (
+                  <article className="ride-discovery-card" key={item.post.id}>
+                    <header>
+                      <MemberAvatar
+                        className="ride-compose-avatar"
+                        name={item.post.ownerDisplayName}
+                        avatarUrl={item.post.ownerAvatarUrl}
+                        size={44}
+                      />
+                      <div>
+                        <strong>{item.post.ownerDisplayName}</strong>
+                        <small>
+                          {dateLabel(item.post.departureAt)} ·{" "}
+                          {item.post.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
+                        </small>
+                      </div>
+                      <span>
+                        {item.timeDifferenceMinutes === 0
+                          ? "Cùng giờ"
+                          : `${Math.abs(item.timeDifferenceMinutes)} phút ${item.timeDifferenceMinutes > 0 ? "sau" : "trước"}`}
+                      </span>
+                    </header>
+                    <div className="ride-draft-route">
+                      <p>
+                        <i />
+                        <span>{item.post.originLabel}</span>
+                      </p>
+                      <p>
+                        <i />
+                        <span>{item.post.destinationLabel}</span>
+                      </p>
+                    </div>
+                    {item.post.note && (
+                      <p className="ride-match-note">{item.post.note}</p>
+                    )}
+                    <div className="ride-match-distances">
+                      <span>
+                        Điểm đón cách tuyến ~
+                        {distance(item.pickupDistanceMeters)}
+                      </span>
+                      <span>
+                        Điểm đến cách tuyến ~
+                        {distance(item.destinationDistanceMeters)}
+                      </span>
+                    </div>
+                    <footer>
+                      <Link href={`/feed/${encodeURIComponent(item.post.id)}`}>
+                        Xem chi tiết
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          offer.reset();
+                          setResponseMessage("");
+                          setResponsePost(item.post);
+                        }}
+                      >
+                        {mode === "driver" ? "Đề nghị chở" : "Yêu cầu đi ké"}
+                        <ArrowRight size={16} />
+                      </button>
+                    </footer>
+                  </article>
+                ))}
+              </>
+            ) : (
+              <div className="ride-discovery-empty">
+                <span>
+                  <Search size={28} />
+                </span>
+                <h3>Chưa tìm thấy chuyến phù hợp</h3>
+                <p>
+                  Bạn có thể điều chỉnh hành trình hoặc đăng bài để những người
+                  khác tìm thấy bạn.
+                </p>
+              </div>
+            )}
+          </section>
+        </section>
+      )}
+      {responsePost?.type === "OFFER_RIDE" ? (
+        <PassengerRequest
+          key={`${responsePost.id}:${route?.id}`}
+          post={responsePost}
+          initialJourney={route}
+          initialMessage={note}
+          onClose={() => setResponsePost(undefined)}
+          onSent={() =>
+            setSent(
+              "Đã gửi yêu cầu đi ké. Bài đang soạn của bạn chưa được đăng.",
+            )
+          }
+        />
+      ) : responsePost ? (
+        <div
+          className="home-response-modal"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !offer.isPending)
+              setResponsePost(undefined);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ride-offer-title"
+          >
+            <button
+              className="home-response-close"
+              type="button"
+              aria-label="Đóng"
+              disabled={offer.isPending}
+              onClick={() => setResponsePost(undefined)}
+            >
+              <X />
+            </button>
+            <div className="home-response-heading">
+              <span>
+                <Send size={25} />
+              </span>
+              <h2 id="ride-offer-title">Gửi đề nghị chở?</h2>
+            </div>
+            <p className="home-response-description">
+              Gửi yêu cầu tới {responsePost.ownerDisplayName}. Bài đang soạn của
+              bạn chưa được đăng.
+            </p>
+            <div className="ride-draft-route">
+              <p>
+                <i />
+                <span>{responsePost.originLabel}</span>
+              </p>
+              <p>
+                <i />
+                <span>{responsePost.destinationLabel}</span>
+              </p>
+            </div>
+            <label className="ride-compose-field">
+              <span>Lời nhắn (không bắt buộc)</span>
+              <textarea
+                autoFocus
+                rows={3}
+                maxLength={300}
+                value={responseMessage}
+                onChange={(e) => setResponseMessage(e.target.value)}
+              />
+            </label>
+            {offer.isError && <ErrorState message={messageOf(offer.error)} />}
+            <div className="home-response-actions">
+              <button
+                type="button"
+                disabled={offer.isPending}
+                onClick={() => setResponsePost(undefined)}
+              >
+                Quay lại
+              </button>
+              <button
+                type="button"
+                className="is-submit"
+                disabled={offer.isPending}
+                onClick={() => offer.mutate()}
+              >
+                {offer.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </main>
   );
 }
-
-/* ─── Place Picker sub-component ─── */
 function PlacePicker({
   label,
-  dotColor,
   state,
   update,
   onSearch,
   onSelect,
 }: {
   label: string;
-  dotColor: "green" | "red";
   state: Picker;
   update: (value: Picker) => void;
   onSearch: () => void;
@@ -443,20 +1023,15 @@ function PlacePicker({
 }) {
   return (
     <div className="unified-place-picker">
-      <label className="unified-place-label">
-        <span className={`unified-place-dot unified-place-dot--${dotColor}`} />
-      </label>
       <div className="unified-place-input-row">
-        <MapPin size={16} className="unified-place-pin" />
+        <MapPin size={17} className="unified-place-pin" />
         <input
           aria-label={label}
           value={state.query}
           placeholder={`Nhập ${label.toLowerCase()}`}
-          onChange={(e) =>
-            update({ ...state, query: e.target.value, selected: undefined })
-          }
+          onChange={(e) => update({ ...emptyPicker(), query: e.target.value })}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
               e.preventDefault();
               onSearch();
             }
@@ -469,52 +1044,31 @@ function PlacePicker({
           disabled={state.loading}
           onClick={onSearch}
         >
-          <Search size={16} />
+          <Search size={18} />
         </button>
       </div>
-      {state.suggestions.length ? (
+      {state.suggestions.length > 0 && (
         <ul className="unified-place-suggestions">
           {state.suggestions.map((item) => (
             <li key={item.placeRef}>
-              <button type="button" onClick={() => onSelect(item)}>
+              <button
+                type="button"
+                disabled={state.loading}
+                onClick={() => onSelect(item)}
+              >
                 <strong>{item.mainText}</strong>
                 <span>{item.secondaryText}</span>
               </button>
             </li>
           ))}
         </ul>
-      ) : null}
+      )}
       {state.searched &&
-      !state.loading &&
-      !state.selected &&
-      !state.suggestions.length ? (
-        <p className="unified-place-empty">Không có kết quả phù hợp.</p>
-      ) : null}
+        !state.loading &&
+        !state.selected &&
+        !state.suggestions.length && (
+          <p className="unified-place-empty">Không có kết quả phù hợp.</p>
+        )}
     </div>
   );
-}
-
-/* ─── Utility helpers ─── */
-const distance = (value: number) =>
-  value < 1000
-    ? `${Math.round(value)} m`
-    : `${(value / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} km`;
-
-const duration = (value: number) => {
-  const minutes = Math.max(1, Math.round(value / 60));
-  return minutes < 60
-    ? `${minutes} phút`
-    : `${Math.floor(minutes / 60)} giờ ${minutes % 60} phút`;
-};
-
-const money = (value: number) =>
-  value.toLocaleString("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  });
-
-function messageOf(error: unknown) {
-  if (error instanceof ApiError) return error.message;
-  return "Không thể xử lý yêu cầu bản đồ. Vui lòng thử lại.";
 }

@@ -11,6 +11,8 @@ import type {
   PickupCheckInput,
   DraftAgain,
   TripStops,
+  RideDiscoveryInput,
+  RideDiscoveryResults,
 } from "./generated/schema";
 import type {
   RidePostPage,
@@ -99,6 +101,8 @@ export function createRideApi(configuration: ApiClientConfiguration) {
   const id = encodeURIComponent;
   const page = (cursor?: string) => (cursor ? `?cursor=${id(cursor)}` : "");
   return {
+    discover: (body: RideDiscoveryInput) =>
+      request<RideDiscoveryResults>("/ride-discovery", "POST", body),
     createSource: (body: PostSourceCreate, key: string) =>
       request<PostSource>("/ride-post-sources", "POST", body, key),
     findAgain: (bookingId: string, version: number, key: string) =>
