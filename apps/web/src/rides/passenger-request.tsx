@@ -37,7 +37,17 @@ const formatTime = (value: string) =>
     timeZone: "Asia/Ho_Chi_Minh",
   }).format(new Date(value));
 
-export function PickupSummary({ check }: { check: PickupCheck }) {
+export function PickupSummary({
+  check,
+  originLabel = "Điểm khởi hành",
+  driver,
+  passenger,
+}: {
+  check: PickupCheck;
+  originLabel?: string;
+  driver?: { name: string; avatarUrl?: string | null };
+  passenger?: { name: string; avatarUrl?: string | null };
+}) {
   const [open, setOpen] = useState(false);
   const [renderedAt] = useState(() => Date.now());
   const extraDistance = new Intl.NumberFormat("vi-VN", {
@@ -50,6 +60,15 @@ export function PickupSummary({ check }: { check: PickupCheck }) {
       ? "Không phù hợp giờ đón"
       : "Vượt mức ghé đón";
   const expired = new Date(check.expiresAt).getTime() <= renderedAt;
+  const savedRoute = useMemo(
+    () => ({
+      geometry: check.geometry,
+      distanceMeters: 0,
+      durationSeconds: 0,
+      provider: check.provider,
+    }),
+    [check.geometry, check.provider],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -118,51 +137,76 @@ export function PickupSummary({ check }: { check: PickupCheck }) {
                   Thông tin chi tiết về lộ trình và điểm đón/trả của người đi
                   ké.
                 </p>
-                <div className="pickup-detail-list">
-                  <div>
-                    <MapPin aria-hidden="true" />
-                    <span>
-                      <strong>Điểm đón</strong>
-                      {check.pickup.displayLabel}
-                    </span>
+                <div className="pickup-detail-content">
+                  <div className="pickup-detail-map">
+                    {check.geometry.length >= 2 ? (
+                      <RouteMap
+                        route={savedRoute}
+                        origin={originLabel}
+                        destination={check.destinationLabel}
+                        pickup={check.pickup}
+                        pickupIndex={check.pickupIndex}
+                        driver={driver}
+                        passenger={passenger}
+                      />
+                    ) : (
+                      <div className="pickup-detail-map-fallback" role="status">
+                        Tuyến đường cũ chưa có dữ liệu bản đồ được lưu.
+                      </div>
+                    )}
+                    <div className="pickup-detail-detour">
+                      <strong>Phát sinh +{extraDistance} km</strong>
+                      <span>Thêm khoảng {extraMinutes} phút</span>
+                    </div>
                   </div>
-                  <div>
-                    <Flag aria-hidden="true" />
-                    <span>
-                      <strong>Điểm đến chung</strong>
-                      {check.destinationLabel}
-                    </span>
+                  <div className="pickup-detail-information">
+                    <div className="pickup-detail-list">
+                      <div>
+                        <MapPin aria-hidden="true" />
+                        <span>
+                          <strong>Điểm đón</strong>
+                          {check.pickup.displayLabel}
+                        </span>
+                      </div>
+                      <div>
+                        <Flag aria-hidden="true" />
+                        <span>
+                          <strong>Điểm đến chung</strong>
+                          {check.destinationLabel}
+                        </span>
+                      </div>
+                      <div>
+                        <Route aria-hidden="true" />
+                        <span>
+                          <strong>Giới hạn người chở</strong>
+                          {check.maxExtraMeters / 1000} km ·{" "}
+                          {check.maxExtraSeconds / 60} phút
+                        </span>
+                      </div>
+                      <div>
+                        <Clock3 aria-hidden="true" />
+                        <span>
+                          <strong>Dự kiến đón</strong>
+                          {formatTime(check.pickupAt)}
+                        </span>
+                      </div>
+                      <div>
+                        <Flag aria-hidden="true" />
+                        <span>
+                          <strong>Dự kiến tới nơi</strong>
+                          {formatTime(check.arrivalAt)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pickup-detail-note">
+                      <Info size={20} aria-hidden="true" />
+                      <span>
+                        {expired
+                          ? "Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm tra lại để bạn xác nhận."
+                          : `Kiểm tra điểm đón có hiệu lực đến ${formatTime(check.expiresAt)}.`}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <Route aria-hidden="true" />
-                    <span>
-                      <strong>Giới hạn người chở</strong>
-                      {check.maxExtraMeters / 1000} km ·{" "}
-                      {check.maxExtraSeconds / 60} phút
-                    </span>
-                  </div>
-                  <div>
-                    <Clock3 aria-hidden="true" />
-                    <span>
-                      <strong>Dự kiến đón</strong>
-                      {formatTime(check.pickupAt)}
-                    </span>
-                  </div>
-                  <div>
-                    <Flag aria-hidden="true" />
-                    <span>
-                      <strong>Dự kiến tới nơi</strong>
-                      {formatTime(check.arrivalAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="pickup-detail-note">
-                  <Info size={20} aria-hidden="true" />
-                  <span>
-                    {expired
-                      ? "Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm tra lại để bạn xác nhận."
-                      : `Kiểm tra điểm đón có hiệu lực đến ${formatTime(check.expiresAt)}.`}
-                  </span>
                 </div>
               </section>
             </div>,

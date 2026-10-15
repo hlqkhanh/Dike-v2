@@ -1,13 +1,12 @@
 "use client";
 import { MemberAvatar } from "../../app/components/member-avatar";
 import { PostRoute } from "./post-route";
-import { PassengerRequest, PickupSummary } from "./passenger-request";
+import { PassengerRequest } from "./passenger-request";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowLeft,
   Bookmark,
   CalendarClock,
@@ -45,6 +44,9 @@ import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
   const [now, setNow] = useState(() => Date.now());
+  const [selectedResponseId, setSelectedResponseId] = useState<string | null>(
+    null,
+  );
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 10000);
     return () => window.clearInterval(timer);
@@ -62,15 +64,12 @@ export function PostDetail({ id }: { id: string }) {
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
   });
-  const [reason, setReason] = useState("UNSAFE");
-  const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
   const [confirmResponse, setConfirmResponse] = useState(
     () => searchParams.get("action") === "respond",
   );
   const actionCommand = useRideCommand();
   const responseCommand = useRideCommand();
-  const reportCommand = useRideCommand();
   const chatCommand = useRideCommand();
   useAuthFailure(post.error);
   const owner = post.data?.ownerId === session.data?.user.id;
@@ -82,6 +81,9 @@ export function PostDetail({ id }: { id: string }) {
   });
   const myResponse = responses.data?.find(
     (item) => item.requesterId === session.data?.user.id,
+  );
+  const selectedResponse = responses.data?.find(
+    (item) => item.id === selectedResponseId && item.pickupCheck,
   );
   useEffect(() => {
     if (!post.data || !session.data || owner || post.data.status !== "OPEN")
@@ -112,23 +114,11 @@ export function PostDetail({ id }: { id: string }) {
         </div>
       ) : post.data ? (
         <>
-          <header className="feed-detail-hero">
-            <div>
-              <Link className="feed-detail-back" href="/feed">
-                <ArrowLeft aria-hidden="true" size={17} /> Quay lại bảng tin
-              </Link>
-              <p>
-                {post.data.type === "NEED_RIDE"
-                  ? "Nhu cầu di chuyển"
-                  : "Chuyến đi chia sẻ"}
-              </p>
-              <h1>Chi tiết bài đăng</h1>
-              <span>
-                Kiểm tra tuyến đường, khung giờ và trạng thái trước khi trao đổi
-                với người đăng.
-              </span>
-            </div>
-          </header>
+          <nav className="feed-detail-topbar" aria-label="Điều hướng bài đăng">
+            <Link className="feed-detail-back" href="/feed">
+              <ArrowLeft aria-hidden="true" size={17} /> Quay lại bảng tin
+            </Link>
+          </nav>
 
           <div className="feed-detail-layout">
             <section className="feed-detail-main">
@@ -378,13 +368,38 @@ export function PostDetail({ id }: { id: string }) {
                     </div>
                     {responses.data.map((item) => (
                       <article
-                        className={`feed-response-request is-${item.status.toLowerCase()}`}
+                        className={`feed-response-request is-${item.status.toLowerCase()} ${item.pickupCheck ? "has-pickup" : ""} ${selectedResponseId === item.id ? "is-map-selected" : ""}`}
                         key={item.id}
+                        tabIndex={item.pickupCheck ? 0 : undefined}
+                        aria-label={
+                          item.pickupCheck
+                            ? `Hiển thị tuyến đón của ${item.requesterDisplayName || "Thành viên Diké"} trên bản đồ`
+                            : undefined
+                        }
+                        onClick={() => {
+                          if (item.pickupCheck) {
+                            setSelectedResponseId((current) =>
+                              current === item.id ? null : item.id,
+                            );
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (
+                            item.pickupCheck &&
+                            (event.key === "Enter" || event.key === " ")
+                          ) {
+                            event.preventDefault();
+                            setSelectedResponseId((current) =>
+                              current === item.id ? null : item.id,
+                            );
+                          }
+                        }}
                       >
                         <Link
                           className="feed-response-requester"
                           href={`/profile/${encodeURIComponent(item.requesterId)}`}
                           aria-label={`Xem hồ sơ của ${item.requesterDisplayName || "Thành viên Diké"}`}
+                          onClick={(event) => event.stopPropagation()}
                         >
                           <span
                             className="feed-response-avatar"
@@ -420,10 +435,6 @@ export function PostDetail({ id }: { id: string }) {
                           </span>
                         </Link>
 
-                        {item.pickupCheck ? (
-                          <PickupSummary check={item.pickupCheck} />
-                        ) : null}
-
                         <div className="feed-response-request-message">
                           <span>
                             <MessageCircle aria-hidden="true" size={16} />
@@ -456,7 +467,8 @@ export function PostDetail({ id }: { id: string }) {
                               <button
                                 type="button"
                                 disabled={responseCommand.isPending}
-                                onClick={() =>
+                                onClick={(event) => {
+                                  event.stopPropagation();
                                   responseCommand.mutate({
                                     signature: `post-response:${item.id}:${item.version}:reject`,
                                     run: () =>
@@ -465,8 +477,8 @@ export function PostDetail({ id }: { id: string }) {
                                         item.version,
                                         "REJECTED",
                                       ),
-                                  })
-                                }
+                                  });
+                                }}
                               >
                                 Từ chối
                               </button>
@@ -482,7 +494,8 @@ export function PostDetail({ id }: { id: string }) {
                                       ).getTime() <= now,
                                   )
                                 }
-                                onClick={() =>
+                                onClick={(event) => {
+                                  event.stopPropagation();
                                   responseCommand.mutate({
                                     signature: `post-response:${item.id}:${item.version}:accept`,
                                     run: () =>
@@ -491,8 +504,8 @@ export function PostDetail({ id }: { id: string }) {
                                         item.version,
                                         "ACCEPTED",
                                       ),
-                                  })
-                                }
+                                  });
+                                }}
                               >
                                 Xác nhận
                               </button>
@@ -587,64 +600,6 @@ export function PostDetail({ id }: { id: string }) {
                   </section>
                 </div>
               ) : null}
-
-              <details className="feed-detail-report">
-                <summary>
-                  <AlertTriangle aria-hidden="true" size={22} />
-                  <span>
-                    <strong>Báo cáo nội dung không phù hợp</strong>
-                    <small>
-                      Nếu bài đăng có nội dung vi phạm, bạn có thể báo cáo để
-                      đội ngũ Diké xem xét.
-                    </small>
-                  </span>
-                </summary>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    reportCommand.mutate({
-                      signature: `report:${id}:${reason}:${note}`,
-                      run: (key) =>
-                        rideApi.report({ postId: id, reason, note }, key),
-                    });
-                  }}
-                >
-                  <label className="dike-field">
-                    Lý do
-                    <select
-                      value={reason}
-                      onChange={(event) => setReason(event.target.value)}
-                    >
-                      <option value="UNSAFE">Không an toàn</option>
-                      <option value="SPAM">Spam</option>
-                      <option value="MISLEADING">Sai thông tin</option>
-                      <option value="OTHER">Khác</option>
-                    </select>
-                  </label>
-                  <label className="dike-field">
-                    Thông tin bổ sung
-                    <textarea
-                      maxLength={1000}
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="app-button app-button--danger"
-                    disabled={
-                      reportCommand.isPending || reportCommand.isSuccess
-                    }
-                  >
-                    {reportCommand.isPending ? "Đang gửi…" : "Gửi báo cáo"}
-                  </button>
-                </form>
-                {reportCommand.isSuccess ? (
-                  <p role="status">Đã tiếp nhận báo cáo.</p>
-                ) : null}
-                {reportCommand.isError ? (
-                  <p role="alert">{reportCommand.error.message}</p>
-                ) : null}
-              </details>
             </section>
 
             <aside className="feed-detail-sidebar">
@@ -659,38 +614,38 @@ export function PostDetail({ id }: { id: string }) {
                   id={id}
                   origin={post.data.originLabel}
                   destination={post.data.destinationLabel}
+                  pickupCheck={selectedResponse?.pickupCheck ?? undefined}
+                  driver={{
+                    name: post.data.ownerDisplayName || "Người đăng chuyến",
+                    avatarUrl: post.data.ownerAvatarUrl,
+                  }}
+                  passenger={
+                    selectedResponse
+                      ? {
+                          name:
+                            selectedResponse.requesterDisplayName ||
+                            "Thành viên Diké",
+                          avatarUrl: selectedResponse.requesterAvatarUrl,
+                        }
+                      : undefined
+                  }
                 />
-                <dl>
-                  <div>
-                    <dt>
-                      <CalendarClock aria-hidden="true" size={18} /> Khởi hành
-                    </dt>
-                    <dd>{dateTime(post.data.departureAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>
-                      <Clock3 aria-hidden="true" size={18} /> Bài hết hạn
-                    </dt>
-                    <dd>{dateTime(post.data.expiresAt)}</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <section className="feed-detail-state-card">
-                <h2>Trạng thái bài đăng</h2>
-                <div>
-                  <i className={`is-${post.data.status.toLowerCase()}`} />
-                  <span>
-                    <strong>{statusName(post.data.status)}</strong>
-                    <small>
-                      {post.data.status === "DRAFT"
-                        ? "Bài đăng chưa được hiển thị công khai."
-                        : post.data.status === "OPEN"
-                          ? "Bài đăng đang hiển thị với những thành viên phù hợp."
-                          : "Bài đăng không còn nhận đề nghị mới."}
-                    </small>
-                  </span>
-                </div>
+                {!selectedResponse ? (
+                  <dl>
+                    <div>
+                      <dt>
+                        <CalendarClock aria-hidden="true" size={18} /> Khởi hành
+                      </dt>
+                      <dd>{dateTime(post.data.departureAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>
+                        <Clock3 aria-hidden="true" size={18} /> Bài hết hạn
+                      </dt>
+                      <dd>{dateTime(post.data.expiresAt)}</dd>
+                    </div>
+                  </dl>
+                ) : null}
               </section>
             </aside>
           </div>

@@ -278,19 +278,18 @@ test("driver sees pickup evidence and cannot confirm an expired result", async (
   );
   await page.goto("/feed/pickup-post");
   const requests = page.locator(".feed-response-owner-panel");
-  const pickupSummary = requests.getByRole("button", {
-    name: /Tiện đường/,
-  });
-  await expect(pickupSummary).toBeVisible();
-  await expect(
-    pickupSummary.getByText("+0,7 km · 3 phút", { exact: true }),
-  ).toBeVisible();
-  await pickupSummary.click();
+  const request = requests.getByLabel(/Hiển thị tuyến đón của/);
+  await expect(request).toBeVisible();
+  await request.click();
 
-  const detail = page.getByRole("dialog", { name: "Chi tiết tiện đường" });
-  await expect(detail).toBeVisible();
-  await expect(detail.getByText(pickup.displayLabel)).toBeVisible();
-  await expect(detail.getByText(/Kiểm tra điểm đón đã hết hạn/)).toBeVisible();
+  await expect(request).toHaveClass(/is-map-selected/);
+  const routeCard = page.locator(".feed-detail-map-card");
+  await expect(routeCard.locator(".post-route-map-canvas")).toBeVisible();
+  await expect(routeCard.getByText("Điểm đón", { exact: true })).toBeVisible();
+  await expect(routeCard.getByText(pickup.displayLabel)).toBeVisible();
+  await expect(
+    routeCard.getByText("Dự kiến đón", { exact: true }),
+  ).toBeVisible();
   await expect(
     requests.getByRole("button", { name: "Xác nhận", exact: true }),
   ).toBeDisabled();
