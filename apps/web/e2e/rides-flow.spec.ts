@@ -101,7 +101,9 @@ test("opening a demo post encodes its identifier once for detail and responses",
   await page.locator(".new-ride-card-link").click();
   await expect(page.locator(".feed-detail-card")).toBeVisible();
   await expect(
-    page.getByText("Khách thử nghiệm", { exact: true }).first(),
+    page
+      .locator(".feed-detail-author")
+      .getByText("Khách thử nghiệm", { exact: true }),
   ).toBeVisible();
   await expect
     .poll(() => requestedPaths)
