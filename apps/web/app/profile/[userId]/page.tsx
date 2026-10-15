@@ -9,6 +9,7 @@ import {
   ChevronRight,
   MapPin,
   MessageCircle,
+  MoreVertical,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -64,7 +65,7 @@ export default function PublicProfileDashboard({
   });
   const posts = useQuery({
     queryKey: ["profile", userId, "public-posts"],
-    queryFn: () => rideApi.feed("all"),
+    queryFn: () => rideApi.feed("latest"),
   });
   const message = useMutation({
     mutationFn: () => journeyApi.direct(userId),
@@ -121,7 +122,7 @@ export default function PublicProfileDashboard({
           </span>
           <div className="public-profile-dashboard-actions">
             <button
-              className="profile-settings-button"
+              className="profile-settings-button public-profile-message-button"
               type="button"
               disabled={message.isPending}
               onClick={() => message.mutate()}
@@ -129,8 +130,23 @@ export default function PublicProfileDashboard({
               <MessageCircle aria-hidden="true" size={16} />{" "}
               {message.isPending ? "Đang mở…" : "Nhắn tin"}
             </button>
-            <ProfileSocialActions userId={userId} />
-            <ReportDialog targetType="USER" targetId={userId} />
+            <ProfileSocialActions
+              userId={userId}
+              hideActions={["BLOCK", "UNBLOCK"]}
+            />
+            <details className="public-profile-more-actions">
+              <summary aria-label="Thêm hành động">
+                <MoreVertical aria-hidden="true" size={19} />
+              </summary>
+              <div className="public-profile-more-menu">
+                <ProfileSocialActions
+                  userId={userId}
+                  onlyActions={["BLOCK", "UNBLOCK"]}
+                  showMessages={false}
+                />
+                <ReportDialog targetType="USER" targetId={userId} menuTrigger />
+              </div>
+            </details>
           </div>
           {messageError ? (
             <p className="public-profile-dashboard-error" role="alert">
@@ -181,25 +197,24 @@ export default function PublicProfileDashboard({
         </aside>
 
         <section className="profile-trips-panel">
-          <header className="profile-trips-heading">
-            <div>
-              <p>Hành trình công khai</p>
-              <h2>Chuyến đi đã đăng</h2>
-            </div>
-          </header>
           {posts.isPending ? <LoadingState label="Đang tải chuyến đi" /> : null}
           {posts.isError ? (
-            <p className="profile-inline-error">
-              Chưa thể tải chuyến đi công khai.
-            </p>
+            <div className="public-profile-empty-posts is-error">
+              <div className="public-profile-empty-copy">
+                <strong>Chưa tải được chuyến đi</strong>
+                <span>Vui lòng thử lại sau ít phút.</span>
+                <button type="button" onClick={() => void posts.refetch()}>
+                  Thử lại
+                </button>
+              </div>
+            </div>
           ) : null}
           {!posts.isPending && !posts.isError && publicPosts.length === 0 ? (
             <div className="public-profile-empty-posts">
-              <CarFront aria-hidden="true" />
-              <strong>Chưa có chuyến đi công khai</strong>
-              <span>
-                Các hành trình mới của thành viên sẽ xuất hiện tại đây.
-              </span>
+              <div className="public-profile-empty-copy">
+                <strong>Chưa có chuyến đi</strong>
+                <span>Các hành trình công khai sẽ xuất hiện tại đây.</span>
+              </div>
             </div>
           ) : null}
           <div className="profile-trip-list">

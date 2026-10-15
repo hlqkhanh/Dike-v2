@@ -11,7 +11,6 @@ import {
   Clock3,
   Globe2,
   Lock,
-  MapPin,
   Route,
   Search,
 } from "lucide-react";
@@ -41,6 +40,15 @@ const scheduleStatusName = (value: string) =>
       : value === "ENDED"
         ? "Đã kết thúc"
         : value;
+const weekdayName: Record<string, string> = {
+  MONDAY: "T2",
+  TUESDAY: "T3",
+  WEDNESDAY: "T4",
+  THURSDAY: "T5",
+  FRIDAY: "T6",
+  SATURDAY: "T7",
+  SUNDAY: "CN",
+};
 const departureTime = (value?: string | null, fallback?: string | null) => {
   const candidate = value || fallback;
   if (!candidate) return "Chưa đặt";
@@ -122,35 +130,37 @@ export default function SchedulesPage() {
           <i className="schedule-art-pin is-two" />
           <b />
         </div>
-        <Link className="schedule-timeline-create" href="/schedules/new">
-          <CalendarPlus aria-hidden="true" size={20} /> Tạo lịch trình
-        </Link>
       </header>
 
       <section className="schedule-workspace">
-        <div
-          className="schedule-tabs"
-          role="tablist"
-          aria-label="Loại lịch trình"
-        >
-          <button
-            aria-selected={activeTab === "upcoming"}
-            className={activeTab === "upcoming" ? "is-active" : ""}
-            onClick={() => setActiveTab("upcoming")}
-            role="tab"
-            type="button"
+        <div className="schedule-workspace-toolbar">
+          <div
+            className="schedule-tabs"
+            role="tablist"
+            aria-label="Loại lịch trình"
           >
-            Sắp tới <span>{intents.data?.length ?? 0}</span>
-          </button>
-          <button
-            aria-selected={activeTab === "recurring"}
-            className={activeTab === "recurring" ? "is-active" : ""}
-            onClick={() => setActiveTab("recurring")}
-            role="tab"
-            type="button"
-          >
-            Lịch định kỳ <span>{schedules.data?.length ?? 0}</span>
-          </button>
+            <button
+              aria-selected={activeTab === "upcoming"}
+              className={activeTab === "upcoming" ? "is-active" : ""}
+              onClick={() => setActiveTab("upcoming")}
+              role="tab"
+              type="button"
+            >
+              Sắp tới <span>{intents.data?.length ?? 0}</span>
+            </button>
+            <button
+              aria-selected={activeTab === "recurring"}
+              className={activeTab === "recurring" ? "is-active" : ""}
+              onClick={() => setActiveTab("recurring")}
+              role="tab"
+              type="button"
+            >
+              Lịch định kỳ <span>{schedules.data?.length ?? 0}</span>
+            </button>
+          </div>
+          <Link className="schedule-timeline-create" href="/schedules/new">
+            <CalendarPlus aria-hidden="true" size={20} /> Tạo lịch trình
+          </Link>
         </div>
 
         {activeTab === "upcoming" ? (
@@ -337,27 +347,54 @@ export default function SchedulesPage() {
                 }
               />
             ) : null}
-            <div className="schedule-saved-grid schedule-saved-grid--compact">
+            <div className="schedule-recurring-list">
               {filteredSchedules.map((schedule) => (
-                <article className="schedule-saved-card" key={schedule.id}>
-                  <Link href={`/schedules/${encodeURIComponent(schedule.id)}`}>
-                    <span>
+                <article className="schedule-recurring-card" key={schedule.id}>
+                  <Link
+                    className="schedule-recurring-row"
+                    href={`/schedules/${encodeURIComponent(schedule.id)}`}
+                  >
+                    <span className="schedule-recurring-icon">
                       <CalendarDays aria-hidden="true" size={21} />
                     </span>
-                    <div>
+                    <div className="schedule-recurring-summary">
                       <small>{scheduleStatusName(schedule.status)}</small>
                       <h3>{schedule.name}</h3>
-                      <p>
-                        <Clock3 aria-hidden="true" size={15} />
-                        {schedule.weekdays.join(", ")} ·{" "}
-                        {schedule.startLocalTime}–{schedule.endLocalTime}
-                      </p>
-                      <p>
-                        <MapPin aria-hidden="true" size={15} />
-                        {schedule.usualOrigin.displayLabel} →{" "}
-                        {schedule.activityPlace.displayLabel}
-                      </p>
                     </div>
+                    <span className="schedule-recurring-meta">
+                      <Clock3 aria-hidden="true" size={16} />
+                      <span>
+                        <small>Khung giờ định kỳ</small>
+                        <span className="schedule-weekday-chips">
+                          {schedule.weekdays.map((day) => (
+                            <b key={day}>{weekdayName[day] ?? day}</b>
+                          ))}
+                        </span>
+                        <strong className="schedule-recurring-time">
+                          {schedule.startLocalTime}–{schedule.endLocalTime}
+                        </strong>
+                      </span>
+                    </span>
+                    <span className="schedule-recurring-route">
+                      <span
+                        className="schedule-recurring-route-line"
+                        aria-hidden="true"
+                      >
+                        <i />
+                        <b />
+                        <i />
+                      </span>
+                      <span className="schedule-recurring-route-points">
+                        <span>
+                          <small>Điểm đi</small>
+                          <strong>{schedule.usualOrigin.displayLabel}</strong>
+                        </span>
+                        <span>
+                          <small>Điểm đến</small>
+                          <strong>{schedule.activityPlace.displayLabel}</strong>
+                        </span>
+                      </span>
+                    </span>
                     <ChevronRight aria-hidden="true" size={20} />
                   </Link>
                 </article>

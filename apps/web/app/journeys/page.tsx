@@ -66,8 +66,7 @@ export default function JourneysPage() {
               {lines[1]}
             </p>
             <span className="journeys-hub-action">
-              Mở {title.toLowerCase()}{" "}
-              <ArrowUpRight size={16} aria-hidden="true" />
+              Mở {title.toLowerCase()}
             </span>
           </Link>
         ))}

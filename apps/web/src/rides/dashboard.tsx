@@ -443,7 +443,6 @@ export function RideDashboard({
   useAuthFailure(list.error);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [bookingRole, setBookingRole] = useState("ALL");
   const bookingGroups: Record<string, string[]> = {
     UPCOMING: ["CONFIRMED", "DRIVER_ARRIVED"],
     ACTIVE: ["BOARDED", "IN_PROGRESS"],
@@ -458,11 +457,9 @@ export function RideDashboard({
         : item.status === statusFilter);
     const matchesRole =
       kind !== "bookings" ||
-      bookingRole === "ALL" ||
       !("passengerId" in item) ||
-      (bookingRole === "DRIVER"
-        ? item.driverId === session.data?.user.id
-        : item.passengerId === session.data?.user.id);
+      item.driverId === session.data?.user.id ||
+      item.passengerId === session.data?.user.id;
     return matchesStatus && matchesRole;
   });
   const title = {
@@ -477,7 +474,7 @@ export function RideDashboard({
           ? "trip-gallery-page"
           : kind === "proposals"
             ? "proposal-board-page"
-            : "settings-page ride-dashboard-page"
+            : "booking-dashboard-page"
       }
     >
       {kind === "trips" ? (
@@ -515,12 +512,15 @@ export function RideDashboard({
         </header>
       ) : (
         <>
-          <PageHeader
-            eyebrow="Quản lý hành trình"
-            title={title}
-            description="Tất cả chuyến đã xác nhận, sẵn sàng cho ngày khởi hành."
-          />
-          <RideNav />
+          <header className="booking-dashboard-hero">
+            <div className="booking-dashboard-hero-copy">
+              <p>Quản lý hành trình</p>
+              <h1>{title}</h1>
+              <span>
+                Tất cả chuyến đã xác nhận, sẵn sàng cho ngày khởi hành.
+              </span>
+            </div>
+          </header>
         </>
       )}
       {kind !== "trips" && items.length > 0 ? (
@@ -564,29 +564,6 @@ export function RideDashboard({
                         CANCELLED: "Đã hủy",
                       }[status]
                     : statusName(status)}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {kind === "bookings" && items.length > 0 ? (
-        <div
-          className="journey-filter-bar"
-          role="group"
-          aria-label="Lọc theo vai trò"
-        >
-          {[
-            ["ALL", "Mọi vai trò"],
-            ["DRIVER", "Tài xế"],
-            ["PASSENGER", "Hành khách"],
-          ].map(([value, label]) => (
-            <button
-              aria-pressed={bookingRole === value}
-              className={bookingRole === value ? "is-active" : ""}
-              key={value}
-              type="button"
-              onClick={() => setBookingRole(value)}
-            >
-              {label}
             </button>
           ))}
         </div>
@@ -644,6 +621,11 @@ export function RideDashboard({
           {kind === "proposals" ? (
             <ProposalBoard
               proposals={filteredItems as ProposalView[]}
+              userId={session.data?.user.id}
+            />
+          ) : kind === "bookings" ? (
+            <BookingBoard
+              bookings={filteredItems as BookingView[]}
               userId={session.data?.user.id}
             />
           ) : (
@@ -712,6 +694,122 @@ export function RideDashboard({
   );
 }
 
+function BookingBoard({
+  bookings,
+  userId,
+}: {
+  bookings: BookingView[];
+  userId?: string;
+}) {
+  const groups = bookings.reduce<Map<string, BookingView[]>>((result, item) => {
+    const date = new Date(item.pickupAt);
+    const key = date.toLocaleDateString("vi-VN", {
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    result.set(key, [...(result.get(key) ?? []), item]);
+    return result;
+  }, new Map());
+
+  return (
+    <div className="booking-board">
+      {[...groups.entries()].map(([month, monthBookings]) => (
+        <section className="booking-month" key={month}>
+          <h2>{month}</h2>
+          <div className="booking-list">
+            {monthBookings.map((booking) => (
+              <BookingRow
+                booking={booking}
+                driver={booking.driverId === userId}
+                key={booking.id}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function BookingRow({
+  booking,
+  driver,
+}: {
+  booking: BookingView;
+  driver: boolean;
+}) {
+  const pickup = new Date(booking.pickupAt);
+  const dropoff = new Date(booking.dropoffAt);
+  const dayLabel = pickup
+    .toLocaleDateString("vi-VN", {
+      weekday: "long",
+      timeZone: "Asia/Ho_Chi_Minh",
+    })
+    .replace("Thứ ", "Thứ ");
+  const time = (date: Date) =>
+    date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+
+  return (
+    <article className="booking-row">
+      <time className="booking-date" dateTime={booking.pickupAt}>
+        <small>{dayLabel}</small>
+        <strong>
+          {pickup.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            timeZone: "Asia/Ho_Chi_Minh",
+          })}
+        </strong>
+        <span>Tháng {pickup.getMonth() + 1}</span>
+      </time>
+      <div className="booking-route-summary">
+        <h3>Booking lúc {dateTime(booking.pickupAt)}</h3>
+        <div>
+          <span aria-hidden="true" className="booking-route-line">
+            <i />
+            <b />
+            <i />
+          </span>
+          <p>
+            <small>Đón</small>
+            <strong>{time(pickup)}</strong>
+            <span>Điểm đón hiển thị trong chi tiết booking</span>
+            <small>Trả</small>
+            <strong>{time(dropoff)}</strong>
+            <span>Điểm trả hiển thị trong chi tiết booking</span>
+          </p>
+        </div>
+        <em>{bookingNextAction(booking.status, driver)}</em>
+      </div>
+      <div className="booking-row-state">
+        <span className={`is-${booking.status.toLowerCase()}`}>
+          <Check aria-hidden="true" size={16} /> {statusName(booking.status)}
+        </span>
+        <dl>
+          <div>
+            <dt>Tổng chi phí</dt>
+            <dd>{money(booking.priceVnd)}</dd>
+          </div>
+          <div>
+            <dt>Số người</dt>
+            <dd>1 người</dd>
+          </div>
+        </dl>
+      </div>
+      <Link
+        className="booking-detail-link"
+        href={`/bookings/${encodeURIComponent(booking.id)}`}
+      >
+        Xem chi tiết
+      </Link>
+    </article>
+  );
+}
+
 function ProposalBoard({
   proposals,
   userId,
@@ -763,7 +861,9 @@ function ProposalColumn({
       <header>
         <span>{icon}</span>
         <div>
-          <h2>{title}</h2>
+          <h2>
+            {title} <small>{items.length}</small>
+          </h2>
           <p>{description}</p>
         </div>
       </header>
@@ -930,34 +1030,32 @@ function ProposalCard({
           <dd>{dateTime(p.expiresAt)}</dd>
         </div>
       </dl>
-      {p.status === "PENDING" ? (
-        <footer>
-          {recipient ? (
-            <>
-              <button
-                className="is-primary"
-                disabled={command.isPending}
-                onClick={() => act("accept")}
-              >
-                <Check aria-hidden="true" size={18} /> Đồng ý đi cùng
-              </button>
-              <button
-                disabled={command.isPending}
-                onClick={() => act("reject")}
-              >
-                <X aria-hidden="true" size={18} /> Từ chối
-              </button>
-            </>
-          ) : (
+      <footer>
+        {recipient ? (
+          <>
             <button
-              disabled={command.isPending}
-              onClick={() => act("withdraw")}
+              disabled={command.isPending || p.status !== "PENDING"}
+              onClick={() => act("reject")}
             >
-              <Trash2 aria-hidden="true" size={18} /> Rút đề nghị
+              <X aria-hidden="true" size={16} /> Từ chối
             </button>
-          )}
-        </footer>
-      ) : null}
+            <button
+              className="is-primary"
+              disabled={command.isPending || p.status !== "PENDING"}
+              onClick={() => act("accept")}
+            >
+              <Check aria-hidden="true" size={16} /> Chấp nhận
+            </button>
+          </>
+        ) : (
+          <button
+            disabled={command.isPending || p.status !== "PENDING"}
+            onClick={() => act("withdraw")}
+          >
+            <Trash2 aria-hidden="true" size={16} /> Hủy đề nghị
+          </button>
+        )}
+      </footer>
       {command.isError ? (
         <p className="proposal-board-feedback" role="alert">
           {command.error.message}

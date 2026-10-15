@@ -33,7 +33,17 @@ const actionIcons = {
   BLOCK: Ban,
   UNBLOCK: RotateCcw,
 } as const;
-export function RelationActions({ relation }: { relation: RelationView }) {
+export function RelationActions({
+  relation,
+  onlyActions,
+  hideActions,
+  showMessages = true,
+}: {
+  relation: RelationView;
+  onlyActions?: string[];
+  hideActions?: string[];
+  showMessages?: boolean;
+}) {
   const client = useQueryClient();
   const pendingKey = useRef<{ action: string; key: string } | null>(null);
   const mutation = useMutation({
@@ -72,39 +82,65 @@ export function RelationActions({ relation }: { relation: RelationView }) {
   }
   return (
     <div className="social-actions">
-      {relation.allowedActions.map((action) => {
-        const Icon = actionIcons[action as keyof typeof actionIcons] ?? Send;
-        return (
-          <button
-            type="button"
-            key={action}
-            data-action={action.toLowerCase()}
-            disabled={mutation.isPending}
-            onClick={() => act(action)}
-          >
-            <Icon aria-hidden="true" size={16} />
-            {labels[action] ?? action}
-          </button>
-        );
-      })}
-      {relation.cooldownUntil && !relation.allowedActions.includes("SEND") ? (
+      {relation.allowedActions
+        .filter((action) => !onlyActions || onlyActions.includes(action))
+        .filter((action) => !hideActions?.includes(action))
+        .map((action) => {
+          const Icon = actionIcons[action as keyof typeof actionIcons] ?? Send;
+          return (
+            <button
+              type="button"
+              key={action}
+              data-action={action.toLowerCase()}
+              disabled={mutation.isPending}
+              onClick={() => act(action)}
+            >
+              <Icon aria-hidden="true" size={16} />
+              {labels[action] ?? action}
+            </button>
+          );
+        })}
+      {showMessages &&
+      relation.cooldownUntil &&
+      !relation.allowedActions.includes("SEND") ? (
         <p>
           Có thể gửi lại từ{" "}
           {new Date(relation.cooldownUntil).toLocaleString("vi-VN")}
         </p>
       ) : null}
-      {relation.blockedByMe ? <p>Bỏ chặn không tự khôi phục bạn bè.</p> : null}
-      {mutation.isError ? <p role="alert">{mutation.error.message}</p> : null}
+      {showMessages && relation.blockedByMe ? (
+        <p>Bỏ chặn không tự khôi phục bạn bè.</p>
+      ) : null}
+      {showMessages && mutation.isError ? (
+        <p role="alert">{mutation.error.message}</p>
+      ) : null}
     </div>
   );
 }
 
-export function ProfileSocialActions({ userId }: { userId: string }) {
+export function ProfileSocialActions({
+  userId,
+  onlyActions,
+  hideActions,
+  showMessages,
+}: {
+  userId: string;
+  onlyActions?: string[];
+  hideActions?: string[];
+  showMessages?: boolean;
+}) {
   const relation = useQuery({
     queryKey: ["social", "relation", userId],
     queryFn: () => socialApi.relation(userId),
     retry: false,
   });
   if (!relation.data || relation.isError) return null;
-  return <RelationActions relation={relation.data} />;
+  return (
+    <RelationActions
+      relation={relation.data}
+      onlyActions={onlyActions}
+      hideActions={hideActions}
+      showMessages={showMessages}
+    />
+  );
 }

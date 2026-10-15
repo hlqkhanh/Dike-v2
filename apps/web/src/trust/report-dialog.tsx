@@ -18,10 +18,12 @@ export function ReportDialog({
   targetType,
   targetId,
   contextBookingId,
+  menuTrigger = false,
 }: {
   targetType: "USER" | "POST" | "MESSAGE" | "TRIP" | "REVIEW";
   targetId: string;
   contextBookingId?: string;
+  menuTrigger?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [reason, setReason] = useState("UNSAFE");
@@ -40,7 +42,11 @@ export function ReportDialog({
   return (
     <>
       <button
-        className="app-button app-button--secondary"
+        className={
+          menuTrigger
+            ? "report-dialog-menu-trigger"
+            : "app-button app-button--secondary"
+        }
         type="button"
         onClick={() => dialog.current?.showModal()}
       >
