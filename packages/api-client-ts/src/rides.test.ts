@@ -24,6 +24,39 @@ it("keeps the acceptance key across retries and sends CSRF without caching", asy
     expect(JSON.parse(init.body as string)).toEqual({ version: 2 });
   }
 });
+it("initializes CSRF before the first ride mutation", async () => {
+  let cookie = "";
+  vi.stubGlobal("document", {
+    get cookie() {
+      return cookie;
+    },
+  });
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+    if (url === "/api/v1/auth/session") {
+      cookie = "XSRF-TOKEN=initialized%2Btoken";
+      return new Response(
+        JSON.stringify({ authenticated: true, user: { id: "viewer" } }),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({ items: [] }), { status: 200 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  await createRideApi({ baseUrl: "/api/v1" }).discover({
+    routeId: "route",
+    role: "driver",
+    departureAt: "2026-10-16T01:00:00Z",
+    seats: 1,
+  });
+
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/auth/session");
+  expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/ride-discovery");
+  expect(
+    new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get("X-XSRF-TOKEN"),
+  ).toBe("initialized+token");
+});
 it("accepts empty save responses", async () => {
   vi.stubGlobal(
     "fetch",

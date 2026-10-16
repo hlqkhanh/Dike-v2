@@ -78,8 +78,8 @@ export const money = (amount: number) =>
 export function RideNav() {
   return (
     <nav className="social-tabs" aria-label="Di chuyển">
-      <Link href="/feed">Bảng tin</Link>
-      <Link href="/map">Tạo nhu cầu</Link>
+      <Link href="/home">Bảng tin</Link>
+      <Link href="/rides/new">Tạo nhu cầu</Link>
       <Link href="/trips">Chuyến của tôi</Link>
       <Link href="/trips/new">Tạo chuyến</Link>
       <Link href="/proposals">Đề nghị</Link>
@@ -162,7 +162,7 @@ export function Feed() {
         title="Bảng tin di chuyển"
         description="Tìm người đồng hành có lịch trình phù hợp, lưu chuyến bạn quan tâm và cùng nhau đi xanh hơn mỗi ngày."
         actions={
-          <Link className="app-button app-button--primary" href="/map">
+          <Link className="app-button app-button--primary" href="/rides/new">
             <Plus aria-hidden="true" size={18} />
             Đăng nhu cầu
           </Link>
@@ -239,7 +239,10 @@ export function Feed() {
                     : "Thử chuyển sang Bảng tin mới nhất hoặc điều chỉnh kết nối của bạn."
               }
               action={
-                <Link className="app-button app-button--primary" href="/map">
+                <Link
+                  className="app-button app-button--primary"
+                  href="/rides/new"
+                >
                   <Plus aria-hidden="true" size={18} />
                   Tạo nhu cầu đi lại
                 </Link>
@@ -601,7 +604,7 @@ export function RideDashboard({
                 ) : (
                   <Link
                     className="app-button app-button--secondary"
-                    href="/feed"
+                    href="/home"
                   >
                     Khám phá bảng tin
                   </Link>

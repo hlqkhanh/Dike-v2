@@ -1,11 +1,21 @@
 "use client";
 
-import { Card } from "@dike/web-ui";
 import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowRight,
+  CarFront,
+  CheckCircle2,
+  CircleUserRound,
+  IdCard,
+  Phone,
+  ShieldCheck,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 import { authApi } from "../../src/auth/api";
-import { ErrorState, LoadingState, PageHeader } from "../components/app-ui";
+import { ErrorState, LoadingState } from "../components/app-ui";
 
 export default function VerificationPage() {
   const session = useQuery({
@@ -35,88 +45,119 @@ export default function VerificationPage() {
   const user = session.data.user;
   const simulated = user.accessMode === "SIMULATED";
   return (
-    <main className="settings-page">
-      <PageHeader
-        eyebrow="Minh bạch trạng thái"
-        title="Xác minh và quyền truy cập"
-        description="Kiểm tra mức xác minh và các quyền hiện đang được cấp cho tài khoản."
-      />
-      <p className="settings-copy">
-        Trạng thái tài khoản của <strong>{user.displayName}</strong>
-      </p>
-      <section className="verification-progress" aria-label="Tiến độ xác minh">
+    <main className="settings-page verification-page">
+      <header className="verification-hero">
         <div>
-          <span>Tiến độ thiết lập</span>
-          <strong>
-            {simulated
-              ? "3/5 bước"
-              : user.phoneStatus === "VERIFIED"
-                ? "3/5 bước"
-                : "2/5 bước"}
-          </strong>
+          <p>Minh bạch trạng thái</p>
+          <h1>Xác minh và quyền truy cập</h1>
+          <span>
+            Kiểm tra mức xác minh và các quyền hiện đang được cấp cho tài khoản.
+          </span>
         </div>
-        <progress
-          max="5"
-          value={simulated || user.phoneStatus === "VERIFIED" ? 3 : 2}
+        <span className="verification-hero-icon" aria-hidden="true">
+          <ShieldCheck size={46} />
+        </span>
+      </header>
+      <section className="verification-shell">
+        <div className="verification-account-line">
+          <span>
+            <CircleUserRound size={23} />
+          </span>
+          Trạng thái tài khoản của <strong>{user.displayName}</strong>
+        </div>
+        <section
+          className="verification-progress"
+          aria-label="Tiến độ xác minh"
         >
-          3 trên 5
-        </progress>
-        <p>
-          eKYC và duyệt phương tiện thật đang được hoãn; trạng thái thử nghiệm
-          không thay thế xác minh production.
-        </p>
+          <div>
+            <span>Tiến độ thiết lập</span>
+            <strong>
+              {simulated
+                ? "3/5 bước"
+                : user.phoneStatus === "VERIFIED"
+                  ? "3/5 bước"
+                  : "2/5 bước"}
+            </strong>
+          </div>
+          <progress
+            max="5"
+            value={simulated || user.phoneStatus === "VERIFIED" ? 3 : 2}
+          >
+            3 trên 5
+          </progress>
+          <p>
+            eKYC và duyệt phương tiện thật đang được hoãn; trạng thái thử nghiệm
+            không thay thế xác minh production.
+          </p>
+        </section>
+        {simulated ? (
+          <p className="simulation-notice" role="status">
+            <TriangleAlert size={20} />
+            Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này
+            không phải xác minh production.
+          </p>
+        ) : null}
+        <div className="verification-grid">
+          <StatusCard
+            icon={CheckCircle2}
+            title="Google"
+            value="Đã liên kết"
+            tone="success"
+          />
+          <StatusCard
+            icon={Phone}
+            title="Số điện thoại"
+            value={
+              user.phoneStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"
+            }
+            detail={user.phoneMasked ?? undefined}
+            tone={user.phoneStatus === "VERIFIED" ? "success" : "warning"}
+            action={
+              user.phoneStatus === "VERIFIED"
+                ? undefined
+                : { href: "/onboarding/phone", label: "Thêm số điện thoại" }
+            }
+          />
+          <StatusCard
+            icon={IdCard}
+            title="eKYC"
+            value="Tạm hoãn"
+            tone="neutral"
+          />
+          <StatusCard
+            icon={ShieldCheck}
+            title="Quyền tài xế"
+            value={
+              simulated
+                ? "Đã mở quyền thử nghiệm"
+                : user.driverApprovalEvidence === "REAL"
+                  ? "Đã duyệt"
+                  : "Chưa được duyệt"
+            }
+            tone={simulated ? "warning" : "neutral"}
+            action={{ href: "/trips/new", label: "Kiểm tra quyền tạo chuyến" }}
+          />
+          <StatusCard
+            icon={CarFront}
+            title="Phương tiện"
+            value={simulated ? "Phương tiện thử nghiệm" : "Chưa có phương tiện"}
+            tone={simulated ? "warning" : "neutral"}
+          />
+        </div>
       </section>
-      {simulated ? (
-        <p className="simulation-notice" role="status">
-          Bạn đang dùng quyền thử nghiệm trên môi trường phát triển. Quyền này
-          không phải xác minh production.
-        </p>
-      ) : null}
-      <div className="verification-grid">
-        <StatusCard title="Google" value="Đã liên kết" tone="success" />
-        <StatusCard
-          title="Số điện thoại"
-          value={
-            user.phoneStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"
-          }
-          detail={user.phoneMasked ?? undefined}
-          tone={user.phoneStatus === "VERIFIED" ? "success" : "warning"}
-          action={
-            user.phoneStatus === "VERIFIED"
-              ? undefined
-              : { href: "/onboarding/phone", label: "Thêm số điện thoại" }
-          }
-        />
-        <StatusCard title="eKYC" value="Tạm hoãn" tone="neutral" />
-        <StatusCard
-          title="Quyền tài xế"
-          value={
-            simulated
-              ? "Đã mở quyền thử nghiệm"
-              : user.driverApprovalEvidence === "REAL"
-                ? "Đã duyệt"
-                : "Chưa được duyệt"
-          }
-          tone={simulated ? "warning" : "neutral"}
-          action={{ href: "/trips/new", label: "Kiểm tra quyền tạo chuyến" }}
-        />
-        <StatusCard
-          title="Phương tiện"
-          value={simulated ? "Phương tiện thử nghiệm" : "Chưa có phương tiện"}
-          tone={simulated ? "warning" : "neutral"}
-        />
-      </div>
     </main>
   );
 }
 
 function StatusCard({
+  icon: Icon,
   title,
   value,
   detail,
   tone,
   action,
 }: {
+  icon: LucideIcon;
   title: string;
   value: string;
   detail?: string;
@@ -124,11 +165,23 @@ function StatusCard({
   action?: { href: string; label: string };
 }) {
   return (
-    <Card className="verification-card">
-      <p>{title}</p>
-      <strong className={`status-pill status-pill--${tone}`}>{value}</strong>
-      {detail ? <small>{detail}</small> : null}
-      {action ? <Link href={action.href}>{action.label}</Link> : null}
-    </Card>
+    <article className="verification-card">
+      <span className="verification-card-icon">
+        <Icon size={23} />
+      </span>
+      <div>
+        <p>{title}</p>
+        <strong className={`status-pill status-pill--${tone}`}>{value}</strong>
+        {detail ? <small>{detail}</small> : null}
+      </div>
+      {action ? (
+        <Link href={action.href}>
+          {action.label}
+          <ArrowRight size={15} />
+        </Link>
+      ) : (
+        <CheckCircle2 className="verification-card-check" size={19} />
+      )}
+    </article>
   );
 }

@@ -325,7 +325,7 @@ export default function HomePage() {
                 </a>
               </li>
               <li>
-                <Link href="/map" className="nav-link">
+                <Link href="/rides/new" className="nav-link">
                   Bản đồ
                 </Link>
               </li>

@@ -2,16 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowRight,
   CalendarDays,
   CarFront,
   ChevronRight,
+  Clock3,
   Facebook,
   Mail,
   MapPin,
   Phone,
   Plus,
   Settings,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,18 +22,8 @@ import { authApi } from "../../src/auth/api";
 import { rideApi } from "../../src/rides/api";
 import { socialApi } from "../../src/social/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/app-ui";
-
-const statusNames: Record<string, string> = {
-  DRAFT: "Bản nháp",
-  OPEN: "Đang mở",
-  MATCHED: "Đã ghép",
-  FULL: "Đủ chỗ",
-  IN_PROGRESS: "Đang đi",
-  COMPLETED: "Hoàn tất",
-  CLOSED: "Đã đóng",
-  CANCELLED: "Đã hủy",
-  EXPIRED: "Hết hạn",
-};
+import { MemberAvatar } from "../components/member-avatar";
+import { FeedRoutePreview } from "../../src/rides/feed-route-preview";
 
 const initials = (name: string) =>
   name
@@ -43,18 +34,6 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-const tripDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Chưa đặt thời gian";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
 export default function ProfileHubPage() {
   const profile = useQuery({
     queryKey: ["profile", "me"],
@@ -64,9 +43,9 @@ export default function ProfileHubPage() {
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
   });
-  const trips = useQuery({
-    queryKey: ["rides", "trips", "profile-preview"],
-    queryFn: () => rideApi.trips(),
+  const posts = useQuery({
+    queryKey: ["rides", "posts", "profile-preview"],
+    queryFn: () => rideApi.feed("mine"),
   });
   const friends = useQuery({
     queryKey: ["social", "profile-preview", "friends"],
@@ -74,7 +53,7 @@ export default function ProfileHubPage() {
   });
 
   const displayName = profile.data?.displayName ?? "Thành viên Diké";
-  const recentTrips = trips.data?.items.slice(0, 5) ?? [];
+  const recentPosts = posts.data?.items.slice(0, 5) ?? [];
   const friendPreview = friends.data?.items.slice(0, 6) ?? [];
 
   return (
@@ -228,14 +207,14 @@ export default function ProfileHubPage() {
             </Link>
           </header>
 
-          {trips.isPending ? <LoadingState label="Đang tải chuyến đi" /> : null}
-          {trips.isError ? (
+          {posts.isPending ? <LoadingState label="Đang tải chuyến đi" /> : null}
+          {posts.isError ? (
             <ErrorState
               message="Không thể tải chuyến đi của bạn."
-              onRetry={() => void trips.refetch()}
+              onRetry={() => void posts.refetch()}
             />
           ) : null}
-          {!trips.isPending && !trips.isError && recentTrips.length === 0 ? (
+          {!posts.isPending && !posts.isError && recentPosts.length === 0 ? (
             <EmptyState
               icon={CarFront}
               title="Bạn chưa đăng chuyến đi nào"
@@ -251,49 +230,114 @@ export default function ProfileHubPage() {
             />
           ) : null}
 
-          <div className="profile-trip-list">
-            {recentTrips.map((trip) => (
-              <article className="profile-trip-card" key={trip.id}>
-                <header>
-                  <span
-                    className={`profile-trip-status is-${trip.status.toLowerCase()}`}
-                  >
-                    {statusNames[trip.status] ?? trip.status}
-                  </span>
-                  <span className="profile-trip-departure">
-                    <CalendarDays aria-hidden="true" size={17} />
-                    {tripDate(trip.departureAt)}
-                  </span>
-                </header>
-                <div className="profile-trip-route">
-                  <span>
-                    <MapPin aria-hidden="true" size={19} />
-                    <strong>{trip.originLabel}</strong>
-                  </span>
-                  <i>
-                    <ArrowRight aria-hidden="true" size={20} />
-                  </i>
-                  <span>
-                    <MapPin aria-hidden="true" size={19} />
-                    <strong>{trip.destinationLabel}</strong>
-                  </span>
-                </div>
-                <footer>
-                  <span className="profile-trip-seat">
-                    <CarFront aria-hidden="true" size={17} />
-                    Còn {trip.remainingSeats}/{trip.offeredSeats} chỗ
-                  </span>
-                  <Link href={`/trips/${encodeURIComponent(trip.id)}`}>
-                    Xem chi tiết <ChevronRight aria-hidden="true" size={17} />
-                  </Link>
-                </footer>
-              </article>
-            ))}
+          <div className="profile-feed-list">
+            {recentPosts.map((post) => {
+              const isOffer = post.type === "OFFER_RIDE";
+              return (
+                <article
+                  className={`new-ride-card ${isOffer ? "is-offer" : "is-need"}`}
+                  key={post.id}
+                >
+                  <Link
+                    className="new-ride-card-link"
+                    href={`/feed/${encodeURIComponent(post.id)}`}
+                    aria-label={`Xem chi tiết hành trình ${post.originLabel} đến ${post.destinationLabel}`}
+                  />
+                  <div className="new-ride-content">
+                    <div className="new-ride-information">
+                      <header>
+                        <MemberAvatar
+                          name={post.ownerDisplayName || displayName}
+                          avatarUrl={post.ownerAvatarUrl}
+                          className="new-ride-avatar"
+                          size={42}
+                        />
+                        <div>
+                          <strong>
+                            {post.ownerDisplayName || displayName}
+                          </strong>
+                          <small>Hành trình công khai</small>
+                        </div>
+                        <span className="new-ride-owned">Bài của bạn</span>
+                        <span
+                          className={`new-ride-kind ${isOffer ? "is-offer" : "is-need"}`}
+                        >
+                          {isOffer ? "Tôi chở" : "Tôi đi ké"}
+                        </span>
+                      </header>
+                      <div className="new-ride-route">
+                        <span aria-hidden="true">
+                          <i />
+                          <b />
+                          <i />
+                        </span>
+                        <div>
+                          <small>Điểm đi</small>
+                          <strong>{post.originLabel}</strong>
+                          <small>Điểm đến</small>
+                          <strong>{post.destinationLabel}</strong>
+                        </div>
+                      </div>
+                      <div className="new-ride-meta">
+                        <span>
+                          <CalendarDays aria-hidden="true" size={15} />
+                          {new Date(post.departureAt).toLocaleDateString(
+                            "vi-VN",
+                          )}
+                        </span>
+                        <span>
+                          <Clock3 aria-hidden="true" size={15} />
+                          {new Date(post.departureAt).toLocaleTimeString(
+                            "vi-VN",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </span>
+                        <span>
+                          <CarFront aria-hidden="true" size={15} />
+                          {post.vehicleType === "MOTORCYCLE"
+                            ? "Xe máy"
+                            : "Ô tô"}
+                        </span>
+                      </div>
+                      {post.note ? (
+                        <p className="new-ride-note">{post.note}</p>
+                      ) : null}
+                      <div className="new-ride-stats">
+                        <span>
+                          <CarFront aria-hidden="true" size={15} />
+                          {isOffer
+                            ? `Còn ${post.remainingSeats} chỗ`
+                            : "Đang tìm đồng hành"}
+                        </span>
+                        <span>
+                          <Users aria-hidden="true" size={15} />
+                          {post.pendingResponseCount ?? 0} yêu cầu
+                        </span>
+                      </div>
+                    </div>
+                    <div className="new-ride-map-column">
+                      <FeedRoutePreview
+                        id={post.id}
+                        origin={post.originLabel}
+                        destination={post.destinationLabel}
+                      />
+                      <footer>
+                        <span className="new-ride-request-count">
+                          <Users aria-hidden="true" size={15} />
+                          Xem {post.pendingResponseCount ?? 0} yêu cầu
+                          <ChevronRight aria-hidden="true" size={15} />
+                        </span>
+                      </footer>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
-          {trips.data && trips.data.items.length > recentTrips.length ? (
-            <Link className="profile-view-all-trips" href="/trips">
-              Xem tất cả chuyến đi <ChevronRight aria-hidden="true" size={17} />
+          {posts.data && posts.data.items.length > recentPosts.length ? (
+            <Link className="profile-view-all-trips" href="/home">
+              Xem tất cả bài đăng <ChevronRight aria-hidden="true" size={17} />
             </Link>
           ) : null}
         </section>

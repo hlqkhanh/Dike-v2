@@ -106,7 +106,7 @@ export function NewPost({ routeId }: { routeId: string }) {
     return (
       <main className="settings-page create-flow-page">
         <PageHeader
-          backHref="/feed"
+          backHref="/home"
           backLabel="Bảng tin"
           eyebrow="Nhu cầu di chuyển"
           title="Đăng nhu cầu đi cùng"
@@ -116,7 +116,7 @@ export function NewPost({ routeId }: { routeId: string }) {
           <MapPin aria-hidden="true" size={34} />
           <h2>Chưa chọn tuyến đường</h2>
           <p>Tuyến đường giúp Diké tìm đúng người có hành trình phù hợp.</p>
-          <Link className="app-button app-button--primary" href="/map">
+          <Link className="app-button app-button--primary" href="/rides/new">
             Chọn tuyến trên bản đồ
           </Link>
         </section>

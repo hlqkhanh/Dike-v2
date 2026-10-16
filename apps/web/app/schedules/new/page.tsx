@@ -39,7 +39,7 @@ export default function NewSchedulePage() {
         title="Tạo lịch trình"
         description="Diké sẽ dựa trên lịch này để tạo nhu cầu di chuyển và gợi ý người đi cùng phù hợp."
         actions={
-          <Link className="app-button app-button--secondary" href="/map">
+          <Link className="app-button app-button--secondary" href="/rides/new">
             <MapPinned aria-hidden="true" size={17} /> Chọn địa điểm
           </Link>
         }

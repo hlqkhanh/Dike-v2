@@ -11,7 +11,7 @@ export function PageHeader({
   backLabel = "Quay lại",
 }: {
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
   description?: string;
   actions?: ReactNode;
   backHref?: string;

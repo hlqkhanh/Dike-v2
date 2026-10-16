@@ -116,7 +116,7 @@ export function PostDetail({ id }: { id: string }) {
       ) : post.data ? (
         <>
           <nav className="feed-detail-topbar" aria-label="Điều hướng bài đăng">
-            <Link className="feed-detail-back" href="/feed">
+            <Link className="feed-detail-back" href="/home">
               <ArrowLeft aria-hidden="true" size={17} /> Quay lại bảng tin
             </Link>
           </nav>

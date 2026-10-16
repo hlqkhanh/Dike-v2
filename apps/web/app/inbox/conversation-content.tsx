@@ -13,6 +13,7 @@ import {
   LoadingState,
   PageHeader,
 } from "../components/app-ui";
+import { MemberAvatar } from "../components/member-avatar";
 
 const messageTimeZone = "Asia/Ho_Chi_Minh";
 const dayFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -126,6 +127,14 @@ export function ConversationContent({
     enabled: conversations.isSuccess && !listedConversation,
   });
   const conversation = listedConversation ?? info.data;
+  const recipientId = conversation?.participantIds?.find(
+    (participantId) => participantId !== session.data?.user.id,
+  );
+  const recipientName =
+    conversation?.recipientDisplayName ||
+    (conversation?.type === "DIRECT"
+      ? "Hội thoại trực tiếp"
+      : "Hội thoại chuyến đi");
   const canSend = conversation?.canSend ?? conversation?.state === "OPEN";
   const messages = useQuery({
     queryKey: ["conversation", id],
@@ -182,10 +191,23 @@ export function ConversationContent({
               : "Hội thoại"
         }
         title={
-          conversation?.recipientDisplayName ||
-          (conversation?.type === "DIRECT"
-            ? "Hội thoại trực tiếp"
-            : "Hội thoại chuyến đi")
+          recipientId ? (
+            <Link
+              className="conversation-profile-link"
+              href={`/profile/${encodeURIComponent(recipientId)}`}
+              aria-label={`Xem hồ sơ của ${recipientName}`}
+            >
+              <MemberAvatar
+                name={recipientName}
+                avatarUrl={conversation?.recipientAvatarUrl}
+                className="conversation-header-avatar"
+                size={44}
+              />
+              <span>{recipientName}</span>
+            </Link>
+          ) : (
+            recipientName
+          )
         }
         description="Chỉ chia sẻ thông tin cần thiết cho hành trình và không gửi dữ liệu nhạy cảm."
         actions={
@@ -253,19 +275,41 @@ export function ConversationContent({
                   <article
                     className={`message-row${own ? " is-own" : ""}${continued ? " is-continuation" : ""}${spaced ? " has-time-gap" : ""}${previous && !continued && !showTime && !spaced ? " is-new-sender" : ""}`}
                   >
-                    <span
-                      className="app-avatar app-avatar--small"
-                      aria-hidden="true"
-                    >
-                      {own ? "BẠ" : message.senderId.slice(0, 2).toUpperCase()}
-                    </span>
+                    {own ? (
+                      <MemberAvatar
+                        name={session.data?.user.displayName || "Bạn"}
+                        avatarUrl={session.data?.user.avatarUrl}
+                        className="message-user-avatar"
+                        size={36}
+                      />
+                    ) : recipientId ? (
+                      <Link
+                        className="message-avatar-link"
+                        href={`/profile/${encodeURIComponent(recipientId)}`}
+                        aria-label={`Xem hồ sơ của ${recipientName}`}
+                      >
+                        <MemberAvatar
+                          name={recipientName}
+                          avatarUrl={conversation?.recipientAvatarUrl}
+                          className="message-user-avatar"
+                          size={36}
+                        />
+                      </Link>
+                    ) : (
+                      <MemberAvatar
+                        name={recipientName}
+                        avatarUrl={conversation?.recipientAvatarUrl}
+                        className="message-user-avatar"
+                        size={36}
+                      />
+                    )}
                     <div
                       className="message-bubble"
                       tabIndex={0}
                       aria-describedby={`message-time-${message.id}`}
                     >
                       {!continued ? (
-                        <strong>{own ? "Bạn" : message.senderId}</strong>
+                        <strong>{own ? "Bạn" : recipientName}</strong>
                       ) : null}
                       {message.hidden || message.text ? (
                         <p className={message.hidden ? "is-hidden" : undefined}>

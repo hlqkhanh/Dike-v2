@@ -62,22 +62,40 @@ export type CreateRidePostInput = Omit<RidePostCreate, "communityId"> & {
 
 export function createRideApi(configuration: ApiClientConfiguration) {
   const config = createApiClientConfiguration(configuration);
+  const csrfCookie = () => {
+    if (typeof document === "undefined") return undefined;
+    return document.cookie
+      .split("; ")
+      .find((cookie) => cookie.startsWith("XSRF-TOKEN="))
+      ?.slice(11);
+  };
+
+  async function ensureCsrfToken() {
+    if (csrfCookie()) return;
+    // A directly opened authenticated page can issue its first mutation before
+    // another client has initialized Spring Security's deferred CSRF cookie.
+    await fetch(`${config.baseUrl}/auth/session`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      credentials: config.credentials,
+      cache: "no-store",
+    });
+  }
+
   async function request<T>(
     path: string,
     method = "GET",
     body?: unknown,
     key?: string,
   ): Promise<T> {
+    if (method !== "GET") await ensureCsrfToken();
     const headers = new Headers({ Accept: "application/json" });
     if (body !== undefined) headers.set("Content-Type", "application/json");
     if (key) headers.set("Idempotency-Key", key);
     const requestId = config.requestId?.();
     if (requestId) headers.set("X-Request-Id", requestId);
-    if (method !== "GET" && typeof document !== "undefined") {
-      const token = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.slice(11);
+    if (method !== "GET") {
+      const token = csrfCookie();
       if (token) headers.set("X-XSRF-TOKEN", decodeURIComponent(token));
     }
     const response = await fetch(`${config.baseUrl}${path}`, {

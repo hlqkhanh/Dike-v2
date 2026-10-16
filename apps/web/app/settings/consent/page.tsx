@@ -1,7 +1,14 @@
 "use client";
 
-import { Button, Card } from "@dike/web-ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Check,
+  ChevronRight,
+  Clock3,
+  ExternalLink,
+  FileCheck2,
+  ShieldCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -9,7 +16,7 @@ import { authApi } from "../../../src/auth/api";
 import { onboardingDestination } from "../../../src/auth/onboarding-destination";
 import { useAuthFailure } from "../../../src/auth/use-auth-failure";
 import { profileApi } from "../../../src/profile/api";
-import { ErrorState, LoadingState, PageHeader } from "../../components/app-ui";
+import { ErrorState, LoadingState } from "../../components/app-ui";
 
 const labels: Record<string, string> = {
   TERMS: "Điều khoản sử dụng",
@@ -64,13 +71,42 @@ export default function ConsentPage() {
   }, [allRequiredConsentsAccepted, client, router]);
 
   return (
-    <main className="settings-page">
-      <PageHeader
-        eyebrow="Minh bạch"
-        title="Đồng ý và tài liệu"
-        description="Mỗi quyết định được lưu theo đúng phiên bản tài liệu để bạn có thể kiểm tra lại."
-      />
-      <div className="settings-grid">
+    <main className="settings-page consent-page">
+      <header className="consent-hero">
+        <div>
+          <p>Minh bạch và an toàn</p>
+          <h1>Đồng ý và tài liệu</h1>
+          <span>
+            Mỗi quyết định được lưu theo đúng phiên bản để bạn luôn kiểm soát dữ
+            liệu của mình.
+          </span>
+        </div>
+        <span aria-hidden="true">
+          <ShieldCheck size={43} />
+        </span>
+      </header>
+      {summary.data ? (
+        <section className="consent-progress">
+          <div>
+            <strong>
+              {summary.data.requirements.filter((item) => item.accepted).length}
+              /{summary.data.requirements.length} tài liệu đã hoàn tất
+            </strong>
+            <span>
+              {allRequiredConsentsAccepted
+                ? "Bạn đã hoàn thành tất cả yêu cầu."
+                : "Hoàn thành các mục còn lại để tiếp tục."}
+            </span>
+          </div>
+          <progress
+            max={summary.data.requirements.length}
+            value={
+              summary.data.requirements.filter((item) => item.accepted).length
+            }
+          />
+        </section>
+      ) : null}
+      <div className="consent-document-grid">
         {summary.isPending ? (
           <LoadingState label="Đang tải tài liệu đồng ý" />
         ) : summary.isError ? (
@@ -80,40 +116,46 @@ export default function ConsentPage() {
           />
         ) : (
           summary.data.requirements.map((requirement) => (
-            <Card
-              className="settings-card"
+            <article
+              className={`consent-document-card${requirement.accepted ? " is-accepted" : ""}`}
               key={`${requirement.type}-${requirement.version}`}
             >
-              <p className="eyebrow">Phiên bản {requirement.version}</p>
-              <h2>{labels[requirement.type] ?? requirement.type}</h2>
-              <p>
-                {requirement.accepted
-                  ? "Bạn đã chấp nhận phiên bản hiện tại."
-                  : "Cần xem và chấp nhận để tiếp tục sử dụng đầy đủ tính năng."}
-              </p>
+              <span className="consent-document-icon">
+                <FileCheck2 size={24} />
+              </span>
+              <div className="consent-document-copy">
+                <small>Phiên bản {requirement.version}</small>
+                <h2>{labels[requirement.type] ?? requirement.type}</h2>
+                <p>
+                  {requirement.accepted
+                    ? "Bạn đã chấp nhận phiên bản hiện tại."
+                    : "Cần xem và chấp nhận để tiếp tục sử dụng đầy đủ tính năng."}
+                </p>
+              </div>
               {requirement.documentUrl ? (
                 <a
                   href={requirement.documentUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Đọc tài liệu
+                  Đọc tài liệu <ExternalLink size={14} />
                 </a>
               ) : null}
               {!requirement.accepted ? (
-                <Button
+                <button
+                  className="consent-accept-button"
                   type="button"
                   disabled={accept.isPending}
                   onClick={() => accept.mutate(requirement.type)}
                 >
-                  Tôi đồng ý
-                </Button>
+                  Tôi đồng ý <ChevronRight size={15} />
+                </button>
               ) : (
-                <span className="dike-status dike-status--success">
-                  Đã ghi nhận
+                <span className="consent-accepted">
+                  <Check size={15} /> Đã ghi nhận
                 </span>
               )}
-            </Card>
+            </article>
           ))
         )}
       </div>
@@ -123,8 +165,10 @@ export default function ConsentPage() {
         </p>
       ) : null}
       {summary.data?.receipts.length ? (
-        <section className="receipt-list">
-          <h2>Lịch sử gần đây</h2>
+        <section className="receipt-list consent-receipts">
+          <h2>
+            <Clock3 size={19} /> Lịch sử gần đây
+          </h2>
           {summary.data.receipts.map((receipt) => (
             <p key={receipt.id}>
               {labels[receipt.type] ?? receipt.type} · {receipt.decision} ·{" "}

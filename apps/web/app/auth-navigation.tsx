@@ -37,7 +37,7 @@ export function AuthNavigation() {
           Tài xế thử nghiệm
         </Link>
       ) : null}
-      <Link href="/feed">Đi cùng</Link>
+      <Link href="/home">Đi cùng</Link>
       <Link href="/schedules">Lịch trình</Link>
       <Link href="/trips/new">Tạo chuyến</Link>
       <Link href="/friends">Bạn bè</Link>

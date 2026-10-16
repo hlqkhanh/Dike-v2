@@ -484,7 +484,7 @@ test("feed provides unavailable state and never retains a denied post after refr
       },
     }),
   );
-  await page.goto("/feed");
+  await page.goto("/home");
   await expect(
     page.getByText("Tính năng tạo chuyến đang được chuẩn bị."),
   ).toBeVisible();

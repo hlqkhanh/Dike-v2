@@ -117,6 +117,7 @@ export function UnifiedRideFlow({
   const [responsePost, setResponsePost] = useState<RidePostView>();
   const [responseMessage, setResponseMessage] = useState("");
   const [sent, setSent] = useState<string>();
+  const [sentPostIds, setSentPostIds] = useState<Set<string>>(() => new Set());
   const [publishingStarted, setPublishingStarted] = useState(false);
   const generation = useRef({ origin: 0, destination: 0, route: 0 });
   const publication = useRef<Publication | undefined>(undefined);
@@ -182,6 +183,8 @@ export function UnifiedRideFlow({
     mutationFn: () =>
       rideApi.createPostResponse(responsePost!.id, responseMessage),
     onSuccess: () => {
+      const postId = responsePost!.id;
+      setSentPostIds((current) => new Set(current).add(postId));
       setSent("Đã gửi đề nghị chở. Bài đang soạn của bạn chưa được đăng.");
       setResponsePost(undefined);
     },
@@ -840,69 +843,98 @@ export function UnifiedRideFlow({
                   {discovery.data.items.length} gợi ý phù hợp · Kiểm tra lại
                   điểm đón khi gửi yêu cầu
                 </p>
-                {discovery.data.items.map((item) => (
-                  <article className="ride-discovery-card" key={item.post.id}>
-                    <header>
-                      <MemberAvatar
-                        className="ride-compose-avatar"
-                        name={item.post.ownerDisplayName}
-                        avatarUrl={item.post.ownerAvatarUrl}
-                        size={44}
-                      />
-                      <div>
-                        <strong>{item.post.ownerDisplayName}</strong>
-                        <small>
-                          {dateLabel(item.post.departureAt)} ·{" "}
-                          {item.post.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
-                        </small>
+                {discovery.data.items.map((item) => {
+                  const sentForPost = sentPostIds.has(item.post.id);
+                  return (
+                    <article
+                      className={`ride-discovery-card ${item.post.type === "OFFER_RIDE" ? "is-offer" : "is-need"}`}
+                      key={item.post.id}
+                    >
+                      <header>
+                        <MemberAvatar
+                          className="ride-compose-avatar"
+                          name={item.post.ownerDisplayName}
+                          avatarUrl={item.post.ownerAvatarUrl}
+                          size={44}
+                        />
+                        <div>
+                          <strong>{item.post.ownerDisplayName}</strong>
+                          <small>
+                            Hành trình công khai ·{" "}
+                            {dateLabel(item.post.departureAt)}
+                            {" · "}
+                            {item.post.vehicleType === "CAR"
+                              ? "Ô tô"
+                              : "Xe máy"}
+                          </small>
+                        </div>
+                        <span>
+                          {item.timeDifferenceMinutes === 0
+                            ? "Cùng giờ"
+                            : `${Math.abs(item.timeDifferenceMinutes)} phút ${item.timeDifferenceMinutes > 0 ? "sau" : "trước"}`}
+                        </span>
+                      </header>
+                      <div className="ride-draft-route">
+                        <p>
+                          <i />
+                          <span>
+                            <small>Điểm đi</small>
+                            <strong>{item.post.originLabel}</strong>
+                          </span>
+                        </p>
+                        <p>
+                          <i />
+                          <span>
+                            <small>Điểm đến</small>
+                            <strong>{item.post.destinationLabel}</strong>
+                          </span>
+                        </p>
                       </div>
-                      <span>
-                        {item.timeDifferenceMinutes === 0
-                          ? "Cùng giờ"
-                          : `${Math.abs(item.timeDifferenceMinutes)} phút ${item.timeDifferenceMinutes > 0 ? "sau" : "trước"}`}
-                      </span>
-                    </header>
-                    <div className="ride-draft-route">
-                      <p>
-                        <i />
-                        <span>{item.post.originLabel}</span>
-                      </p>
-                      <p>
-                        <i />
-                        <span>{item.post.destinationLabel}</span>
-                      </p>
-                    </div>
-                    {item.post.note && (
-                      <p className="ride-match-note">{item.post.note}</p>
-                    )}
-                    <div className="ride-match-distances">
-                      <span>
-                        Điểm đón cách tuyến ~
-                        {distance(item.pickupDistanceMeters)}
-                      </span>
-                      <span>
-                        Điểm đến cách tuyến ~
-                        {distance(item.destinationDistanceMeters)}
-                      </span>
-                    </div>
-                    <footer>
-                      <Link href={`/feed/${encodeURIComponent(item.post.id)}`}>
-                        Xem chi tiết
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          offer.reset();
-                          setResponseMessage("");
-                          setResponsePost(item.post);
-                        }}
-                      >
-                        {mode === "driver" ? "Đề nghị chở" : "Yêu cầu đi ké"}
-                        <ArrowRight size={16} />
-                      </button>
-                    </footer>
-                  </article>
-                ))}
+                      {item.post.note && (
+                        <p className="ride-match-note">{item.post.note}</p>
+                      )}
+                      <div className="ride-match-distances">
+                        <span>
+                          Điểm đón cách tuyến ~
+                          {distance(item.pickupDistanceMeters)}
+                        </span>
+                        <span>
+                          Điểm đến cách tuyến ~
+                          {distance(item.destinationDistanceMeters)}
+                        </span>
+                      </div>
+                      <footer>
+                        <Link
+                          href={`/feed/${encodeURIComponent(item.post.id)}`}
+                        >
+                          Xem chi tiết
+                        </Link>
+                        <button
+                          type="button"
+                          className={sentForPost ? "is-sent" : undefined}
+                          disabled={sentForPost}
+                          onClick={() => {
+                            if (sentForPost) return;
+                            offer.reset();
+                            setResponseMessage("");
+                            setResponsePost(item.post);
+                          }}
+                        >
+                          {sentForPost
+                            ? "Đã gửi yêu cầu"
+                            : mode === "driver"
+                              ? "Đề nghị chở"
+                              : "Yêu cầu đi ké"}
+                          {sentForPost ? (
+                            <Check size={16} />
+                          ) : (
+                            <ArrowRight size={16} />
+                          )}
+                        </button>
+                      </footer>
+                    </article>
+                  );
+                })}
               </>
             ) : (
               <div className="ride-discovery-empty">
@@ -926,11 +958,12 @@ export function UnifiedRideFlow({
           initialJourney={route}
           initialMessage={note}
           onClose={() => setResponsePost(undefined)}
-          onSent={() =>
+          onSent={() => {
+            setSentPostIds((current) => new Set(current).add(responsePost.id));
             setSent(
               "Đã gửi yêu cầu đi ké. Bài đang soạn của bạn chưa được đăng.",
-            )
-          }
+            );
+          }}
         />
       ) : responsePost ? (
         <div
