@@ -64,7 +64,8 @@ class MessagingServiceTest {
                 1,
                 "Owner",
                 null,
-                true))
+                true,
+                null))
         .when(service)
         .direct("viewer", "owner");
   }

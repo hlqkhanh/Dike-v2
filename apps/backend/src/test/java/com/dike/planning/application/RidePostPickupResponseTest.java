@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.dike.messaging.*;
 import com.dike.shared.api.ApiException;
+import com.mongodb.client.result.UpdateResult;
 import java.time.*;
 import java.util.Date;
 import org.bson.Document;
@@ -104,5 +105,57 @@ class RidePostPickupResponseTest {
     assertThatThrownBy(() -> responses.decide("attacker", "request", 0, "ACCEPTED"))
         .isInstanceOf(ApiException.class);
     verify(pickups, times(1)).require("passenger", "post", "expired");
+  }
+
+  @Test
+  void acceptedRequestProgressCanOnlyBeAdvancedByTheDriver() {
+    var accepted =
+        new Document("_id", "request")
+            .append("ownerId", "driver")
+            .append("requesterId", "passenger")
+            .append("postId", "post")
+            .append("action", "REQUEST_RIDE")
+            .append("status", "ACCEPTED")
+            .append("version", 1L)
+            .append("message", "")
+            .append("createdAt", Date.from(now))
+            .append("updatedAt", Date.from(now));
+    var started = new Document(accepted);
+    started.put("status", "DRIVER_STARTED");
+    started.put("version", 2L);
+    when(mongo.findById("request", Document.class, "ride_post_responses"))
+        .thenReturn(accepted, started);
+    when(mongo.updateFirst(any(Query.class), any(Update.class), eq("ride_post_responses")))
+        .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+    var result = responses.decide("driver", "request", 1, "DRIVER_STARTED");
+
+    assertThat(result.status()).isEqualTo("DRIVER_STARTED");
+    assertThat(result.version()).isEqualTo(2L);
+    verify(notifications)
+        .notify(
+            eq("passenger"),
+            eq("RIDE_POST_RESPONSE_DRIVER_STARTED"),
+            anyString(),
+            anyString(),
+            anyMap());
+    verifyNoInteractions(conversations);
+  }
+
+  @Test
+  void passengerCannotAdvanceAnAcceptedRequest() {
+    when(mongo.findById("request", Document.class, "ride_post_responses"))
+        .thenReturn(
+            new Document("ownerId", "driver")
+                .append("requesterId", "passenger")
+                .append("postId", "post")
+                .append("action", "REQUEST_RIDE")
+                .append("status", "ACCEPTED")
+                .append("version", 1L));
+
+    assertThatThrownBy(() -> responses.decide("passenger", "request", 1, "DRIVER_STARTED"))
+        .isInstanceOf(ApiException.class);
+    verify(mongo, never())
+        .updateFirst(any(Query.class), any(Update.class), eq("ride_post_responses"));
   }
 }

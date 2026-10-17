@@ -71,10 +71,6 @@ public class RidePostResponseService {
       throw new ApiException(
           HttpStatus.CONFLICT, "SELF_POST_RESPONSE", "Bạn không thể phản hồi bài đăng của mình");
     }
-    var pickupCheck =
-        "OFFER_RIDE".equals(post.getString("type"))
-            ? pickups.require(actor, postId, pickupCheckId)
-            : null;
     Document existing =
         mongo.findOne(
             Query.query(
@@ -83,9 +79,14 @@ public class RidePostResponseService {
                     .and("requesterId")
                     .is(actor)
                     .and("status")
-                    .is("PENDING")),
+                    .in("PENDING", "ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED")),
             Document.class,
             "ride_post_responses");
+    if (existing != null && !"PENDING".equals(existing.getString("status"))) return view(existing);
+    var pickupCheck =
+        "OFFER_RIDE".equals(post.getString("type"))
+            ? pickups.require(actor, postId, pickupCheckId)
+            : null;
     if (existing != null
         && java.util.Objects.equals(
             pickupCheck == null ? null : pickupCheck.id(), existing.getString("pickupCheckId")))
@@ -170,13 +171,33 @@ public class RidePostResponseService {
   }
 
   public View decide(String actor, String id, long version, String decision) {
-    if (!List.of("ACCEPTED", "REJECTED", "WITHDRAWN").contains(decision)) throw missing();
+    if (!List.of(
+            "ACCEPTED", "REJECTED", "WITHDRAWN", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED")
+        .contains(decision)) throw missing();
     Document current = mongo.findById(id, Document.class, "ride_post_responses");
-    if (current == null || !"PENDING".equals(current.getString("status"))) throw changed();
+    if (current == null) throw changed();
+    String currentStatus = current.getString("status");
     boolean withdraw = "WITHDRAWN".equals(decision);
-    String expectedActor =
-        withdraw ? current.getString("requesterId") : current.getString("ownerId");
+    boolean progress = List.of("DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED").contains(decision);
+    String expectedActor;
+    if (progress) {
+      expectedActor =
+          "REQUEST_RIDE".equals(current.getString("action"))
+              ? current.getString("ownerId")
+              : current.getString("requesterId");
+    } else {
+      expectedActor = withdraw ? current.getString("requesterId") : current.getString("ownerId");
+    }
     if (!actor.equals(expectedActor)) throw missing();
+    String requiredStatus =
+        switch (decision) {
+          case "ACCEPTED", "REJECTED", "WITHDRAWN" -> "PENDING";
+          case "DRIVER_STARTED" -> "ACCEPTED";
+          case "DRIVER_ARRIVED" -> "DRIVER_STARTED";
+          case "COMPLETED" -> "DRIVER_ARRIVED";
+          default -> throw changed();
+        };
+    if (!requiredStatus.equals(currentStatus)) throw changed();
     if ("ACCEPTED".equals(decision) && "REQUEST_RIDE".equals(current.getString("action"))) {
       pickups.require(
           current.getString("requesterId"),
@@ -192,7 +213,7 @@ public class RidePostResponseService {
                     .and("version")
                     .is(version)
                     .and("status")
-                    .is("PENDING")),
+                    .is(requiredStatus)),
             new Update()
                 .set("status", decision)
                 .set("updatedAt", clock.instant())
@@ -210,7 +231,18 @@ public class RidePostResponseService {
           "ride_post_responses");
       updated = mongo.findById(id, Document.class, "ride_post_responses");
     }
-    String target = withdraw ? updated.getString("ownerId") : updated.getString("requesterId");
+    String driverId =
+        "REQUEST_RIDE".equals(updated.getString("action"))
+            ? updated.getString("ownerId")
+            : updated.getString("requesterId");
+    String passengerId =
+        driverId.equals(updated.getString("ownerId"))
+            ? updated.getString("requesterId")
+            : updated.getString("ownerId");
+    String target =
+        progress
+            ? passengerId
+            : withdraw ? updated.getString("ownerId") : updated.getString("requesterId");
     Map<String, String> notificationData =
         conversationId == null
             ? Map.of("postId", updated.getString("postId"), "responseId", id)
@@ -224,10 +256,20 @@ public class RidePostResponseService {
     notifications.notify(
         target,
         "RIDE_POST_RESPONSE_" + decision,
-        decision.equals("ACCEPTED") ? "Yêu cầu đã được xác nhận" : "Yêu cầu đã được cập nhật",
-        decision.equals("ACCEPTED")
-            ? "Hai bên có thể bắt đầu trao đổi chi tiết cho hành trình."
-            : "Trạng thái yêu cầu kết nối hành trình vừa thay đổi.",
+        switch (decision) {
+          case "ACCEPTED" -> "Yêu cầu đã được xác nhận";
+          case "DRIVER_STARTED" -> "Người chở đã bắt đầu di chuyển";
+          case "DRIVER_ARRIVED" -> "Người chở đã đến điểm đón";
+          case "COMPLETED" -> "Chuyến đi đã hoàn thành";
+          default -> "Yêu cầu đã được cập nhật";
+        },
+        switch (decision) {
+          case "ACCEPTED" -> "Hai bên có thể bắt đầu trao đổi chi tiết cho hành trình.";
+          case "DRIVER_STARTED" -> "Hãy chuẩn bị để có mặt tại điểm đón đúng lúc.";
+          case "DRIVER_ARRIVED" -> "Người chở đang chờ bạn tại điểm đón.";
+          case "COMPLETED" -> "Hành trình đồng hành đã được đánh dấu hoàn thành.";
+          default -> "Trạng thái yêu cầu kết nối hành trình vừa thay đổi.";
+        },
         notificationData);
     return view(updated);
   }

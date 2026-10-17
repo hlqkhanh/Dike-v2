@@ -58,7 +58,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
       long version,
       String recipientDisplayName,
       String recipientAvatarUrl,
-      boolean canSend) {}
+      boolean canSend,
+      String postId) {}
 
   public record MessageView(
       String id,
@@ -428,6 +429,16 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
   private ConversationView view(Conversation value, String actor) {
     ConversationRead read = mongo.findById(readId(value.id(), actor), ConversationRead.class);
     long unread = Math.max(0, value.nextSequence() - (read == null ? 0 : read.lastReadSequence()));
+    var response =
+        mongo.findOne(
+            Query.query(
+                    Criteria.where("conversationId")
+                        .is(value.id())
+                        .and("status")
+                        .in("ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED"))
+                .with(Sort.by(Sort.Direction.DESC, "updatedAt")),
+            org.bson.Document.class,
+            "ride_post_responses");
     return new ConversationView(
         value.id(),
         value.type().name(),
@@ -443,7 +454,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
             && (value.state() != Conversation.State.REQUEST_PENDING
                 || actor.equals(value.requesterId()))
             && !social.blocked(actor, value.other(actor))
-            && (!identities.require(actor).locked() || value.type() == Conversation.Type.BOOKING));
+            && (!identities.require(actor).locked() || value.type() == Conversation.Type.BOOKING),
+        response == null ? null : response.getString("postId"));
   }
 
   private MessageView view(ChatMessage value) {

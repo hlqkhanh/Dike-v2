@@ -245,38 +245,42 @@ class PickupCompatibilityServiceTest {
   }
 
   @Test
-  void rejectsExpiredPassengerRouteBeforeCallingDirections() {
+  void acceptsPreviouslyCalculatedPassengerRouteRegardlessOfItsExpiry() {
     var own = mock(RouteSnapshot.class);
+    when(own.origin()).thenReturn(a);
+    when(own.destination()).thenReturn(c);
+    when(own.vehicleMode()).thenReturn(VehicleMode.CAR);
     when(own.expiresAt()).thenReturn(now.minusSeconds(1));
     when(routes.ownedSnapshot("passenger", "expired-route")).thenReturn(own);
-    assertThatThrownBy(
-            () ->
-                service.check(
+    assertThat(
+            service
+                .check(
                     "passenger",
                     "post",
-                    new PickupCompatibilityService.Input(null, null, null, "expired-route")))
-        .isInstanceOf(ApiException.class);
+                    new PickupCompatibilityService.Input(null, null, null, "expired-route"))
+                .compatible())
+        .isTrue();
     verifyNoInteractions(provider, places);
   }
 
   @Test
-  void distanceTimeAndWaitingLimitsAreAllEnforced() {
+  void onlyDistanceLimitAffectsPickupCompatibility() {
     trip.put("detourMeters", 400L);
     assertThat(check().reason()).isEqualTo("DETOUR_EXCEEDED");
     trip.put("detourMeters", 1000L);
     trip.put("detourSeconds", 199L);
-    assertThat(check().compatible()).isFalse();
+    assertThat(check().compatible()).isTrue();
     trip.put("detourSeconds", 300L);
     var waiting =
         service.check(
             "passenger", "post", input(departure.plusSeconds(700), departure.plusSeconds(3600)));
     assertThat(waiting.extraSeconds()).isEqualTo(500);
-    assertThat(waiting.compatible()).isFalse();
+    assertThat(waiting.compatible()).isTrue();
     assertThat(
             service
                 .check("passenger", "post", input(departure, departure.plusSeconds(399)))
                 .reason())
-        .isEqualTo("PICKUP_TOO_LATE");
+        .isEqualTo("COMPATIBLE");
   }
 
   @Test
@@ -302,7 +306,7 @@ class PickupCompatibilityServiceTest {
   }
 
   @Test
-  void sendingAndAcceptingRecheckOwnershipExpirySeatsAndTripVersions() {
+  void sendingAndAcceptingRecheckOwnershipSeatsAndTripVersionsButNotTime() {
     var check = check();
     when(mongo.findById(check.id(), PickupCompatibilityService.View.class, "pickup_checks"))
         .thenReturn(check);
@@ -327,8 +331,7 @@ class PickupCompatibilityServiceTest {
             config,
             mongo,
             Clock.fixed(now.plusSeconds(301), ZoneOffset.UTC));
-    assertThatThrownBy(() -> later.require("passenger", "post", check.id()))
-        .isInstanceOf(ApiException.class);
+    assertThat(later.require("passenger", "post", check.id())).isEqualTo(check);
     assertThat(service.require("passenger", "post", null)).isNull();
   }
 

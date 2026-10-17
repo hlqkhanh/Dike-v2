@@ -119,24 +119,15 @@ public class PickupCompatibilityService {
             && !input.dropoffPlaceRef().matches("[A-Za-z0-9_-]{8,100}"))
         || input.readyAt() == null
         || input.latestPickupAt() == null
-        || input.latestPickupAt().isBefore(input.readyAt())
-        || input.latestPickupAt().isBefore(now)
-        || input.latestPickupAt().isAfter(now.plus(Duration.ofDays(8)))
-        || Duration.between(input.readyAt(), input.latestPickupAt()).compareTo(Duration.ofHours(4))
-            > 0)
+        || input.latestPickupAt().isBefore(input.readyAt()))
       throw error(
           HttpStatus.BAD_REQUEST,
           "INVALID_PICKUP",
-          "Chọn điểm đón và khoảng thời gian đón hợp lệ (tối đa 4 giờ).");
+          "Chọn điểm đón và khoảng thời gian đón hợp lệ.");
     var ownRoute =
         input.passengerRouteId() == null
             ? null
             : routes.ownedSnapshot(actor, input.passengerRouteId());
-    if (ownRoute != null && !ownRoute.expiresAt().isAfter(now))
-      throw error(
-          HttpStatus.CONFLICT,
-          "ROUTE_EXPIRED",
-          "Tuyến đường của bạn đã hết hạn. Vui lòng tính lại.");
     var base = routes.snapshot(actor, postId);
     if (ownRoute != null && ownRoute.vehicleMode() != base.vehicleMode())
       throw error(
@@ -215,12 +206,7 @@ public class PickupCompatibilityService {
     long extraSeconds = Math.max(0, seconds - base.durationSeconds());
     long maxMeters = number(trip, "detourMeters");
     long maxSeconds = number(trip, "detourSeconds");
-    String reason =
-        pickupAt.isAfter(input.latestPickupAt())
-            ? "PICKUP_TOO_LATE"
-            : extraMeters > maxMeters || extraSeconds > maxSeconds
-                ? "DETOUR_EXCEEDED"
-                : "COMPATIBLE";
+    String reason = extraMeters > maxMeters ? "DETOUR_EXCEEDED" : "COMPATIBLE";
     var result =
         new View(
             UUID.randomUUID().toString(),
@@ -266,13 +252,11 @@ public class PickupCompatibilityService {
     var post = posts.detail(actor, postId);
     var trip = available(post, actor);
     if (!check.compatible()
-        || !check.expiresAt().isAfter(clock.instant())
         || check.postVersion() != post.version()
         || check.tripVersion() != number(trip, "version")
         || check.tripRouteVersion() != number(trip, "routeVersion")
         || !check.routeId().equals(routes.snapshot(actor, postId).id())
-        || !check.tripId().equals(trip.getString("_id"))
-        || check.pickupAt().isBefore(clock.instant()))
+        || !check.tripId().equals(trip.getString("_id")))
       throw error(
           HttpStatus.CONFLICT,
           "PICKUP_CHECK_CHANGED",
@@ -294,10 +278,9 @@ public class PickupCompatibilityService {
     if (trip == null
         || !post.ownerId().equals(trip.getString("driverId"))
         || !"OPEN".equals(trip.getString("status"))
-        || number(trip, "remainingSeats") < 1
-        || !trip.getDate("departureAt").toInstant().isAfter(clock.instant()))
+        || number(trip, "remainingSeats") < 1)
       throw error(
-          HttpStatus.CONFLICT, "TRIP_NOT_AVAILABLE", "Chuyến đã hết chỗ hoặc đã khởi hành.");
+          HttpStatus.CONFLICT, "TRIP_NOT_AVAILABLE", "Chuyến đã hết chỗ hoặc không còn mở.");
     if (trip.get("stops") instanceof List<?> stops && !stops.isEmpty())
       throw error(
           HttpStatus.CONFLICT,

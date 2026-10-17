@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ArrowRight, CarFront, Route, Send, X } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CarFront,
+  MapPin,
+  Pin,
+  Route,
+  Send,
+  X,
+} from "lucide-react";
 import { authApi } from "../../src/auth/api";
 import { journeyApi } from "../../src/journey/api";
 import { rideApi } from "../../src/rides/api";
@@ -14,6 +23,10 @@ import {
   PageHeader,
 } from "../components/app-ui";
 import { MemberAvatar } from "../components/member-avatar";
+import {
+  isActiveResponse,
+  ResponseProgress,
+} from "../../src/rides/response-progress";
 
 const messageTimeZone = "Asia/Ho_Chi_Minh";
 const dayFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -127,6 +140,23 @@ export function ConversationContent({
     enabled: conversations.isSuccess && !listedConversation,
   });
   const conversation = listedConversation ?? info.data;
+  const pinnedPostId = conversation?.postId;
+  const pinnedPost = useQuery({
+    queryKey: ["feed", "detail", pinnedPostId],
+    queryFn: () => rideApi.post(pinnedPostId!),
+    enabled: Boolean(pinnedPostId),
+    retry: false,
+  });
+  const pinnedResponses = useQuery({
+    queryKey: ["feed", "responses", pinnedPostId],
+    queryFn: () => rideApi.postResponses(pinnedPostId!),
+    enabled: Boolean(pinnedPostId),
+    refetchInterval: pinnedPostId ? 15_000 : false,
+    retry: false,
+  });
+  const pinnedResponse = pinnedResponses.data?.find(
+    (item) => item.conversationId === id && isActiveResponse(item),
+  );
   const recipientId = conversation?.participantIds?.find(
     (participantId) => participantId !== session.data?.user.id,
   );
@@ -221,6 +251,60 @@ export function ConversationContent({
           ) : undefined
         }
       />
+      {pinnedPost.data ? (
+        <Link
+          className="conversation-pinned-trip"
+          href={`/feed/${encodeURIComponent(pinnedPost.data.id)}`}
+          aria-label={`Xem chi tiết chuyến đi từ ${pinnedPost.data.originLabel} đến ${pinnedPost.data.destinationLabel}`}
+        >
+          <header>
+            <span>
+              <Pin aria-hidden="true" size={19} /> Chuyến đi đã ghim
+            </span>
+          </header>
+          <div className="conversation-pinned-trip-body">
+            <div className="conversation-pinned-route">
+              <MapPin aria-hidden="true" size={19} />
+              <strong>{pinnedPost.data.originLabel}</strong>
+              <span
+                className="conversation-pinned-route-arrow"
+                aria-hidden="true"
+              >
+                <ArrowRight size={17} />
+              </span>
+              <strong>{pinnedPost.data.destinationLabel}</strong>
+            </div>
+            <div className="conversation-pinned-time">
+              <CalendarDays aria-hidden="true" size={19} />
+              <span>
+                <strong>
+                  {new Date(pinnedPost.data.departureAt).toLocaleDateString(
+                    "vi-VN",
+                    {
+                      timeZone: messageTimeZone,
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    },
+                  )}
+                </strong>
+                <small>
+                  {clockFormatter.format(new Date(pinnedPost.data.departureAt))}
+                </small>
+              </span>
+            </div>
+            {pinnedResponse && session.data?.user.id ? (
+              <ResponseProgress
+                compact
+                response={pinnedResponse}
+                currentUserId={session.data.user.id}
+                onUpdated={() => void pinnedResponses.refetch()}
+              />
+            ) : null}
+          </div>
+        </Link>
+      ) : null}
       <section
         ref={thread}
         className="settings-card message-thread message-thread--grouped"

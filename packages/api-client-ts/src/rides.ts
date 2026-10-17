@@ -47,7 +47,14 @@ export type RidePostResponse = {
   requesterAvatarUrl: string | null;
   ownerId: string;
   action: "REQUEST_RIDE" | "OFFER_RIDE";
-  status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+  status:
+    | "PENDING"
+    | "ACCEPTED"
+    | "DRIVER_STARTED"
+    | "DRIVER_ARRIVED"
+    | "COMPLETED"
+    | "REJECTED"
+    | "WITHDRAWN";
   message: string;
   conversationId: string | null;
   createdAt: string;
@@ -161,7 +168,13 @@ export function createRideApi(configuration: ApiClientConfiguration) {
     decidePostResponse: (
       responseId: string,
       version: number,
-      decision: "ACCEPTED" | "REJECTED" | "WITHDRAWN",
+      decision:
+        | "ACCEPTED"
+        | "REJECTED"
+        | "WITHDRAWN"
+        | "DRIVER_STARTED"
+        | "DRIVER_ARRIVED"
+        | "COMPLETED",
     ) =>
       request<RidePostResponse>(
         `/ride-post-responses/${id(responseId)}/decision`,

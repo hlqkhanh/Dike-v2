@@ -1,11 +1,17 @@
 "use client";
 
 import type { AuthSessionResponse, RidePostView } from "@dike/api-client-ts";
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   ArrowRight,
   CalendarDays,
   CarFront,
+  Check,
   ChevronDown,
   Clock3,
   EyeOff,
@@ -28,6 +34,10 @@ import { DikeLogo } from "./dike-logo";
 import { MemberAvatar } from "./member-avatar";
 import { PassengerRequest } from "../../src/rides/passenger-request";
 import { FeedRoutePreview } from "../../src/rides/feed-route-preview";
+import {
+  isActiveResponse,
+  ResponseProgress,
+} from "../../src/rides/response-progress";
 
 type FeedFilter = "ALL" | "OFFER_RIDE" | "NEED_RIDE";
 type FeedSort = "latest" | "oldest";
@@ -37,6 +47,7 @@ export function AuthenticatedHome({
 }: {
   session: AuthSessionResponse;
 }) {
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FeedFilter>("ALL");
   const [sort, setSort] = useState<FeedSort>("latest");
@@ -62,9 +73,12 @@ export function AuthenticatedHome({
   const responseMutation = useMutation({
     mutationFn: ({ postId, message }: { postId: string; message: string }) =>
       rideApi.createPostResponse(postId, message),
-    onSuccess: () => {
+    onSuccess: (response) => {
       setResponsePost(null);
       setResponseMessage("");
+      void queryClient.invalidateQueries({
+        queryKey: ["feed", "responses", response.postId],
+      });
       void list.refetch();
     },
   });
@@ -636,11 +650,37 @@ function HomeRideCard({
   onReport: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const menu = useRef<HTMLDivElement>(null);
   const isOffer = post.type === "OFFER_RIDE";
   const owner = post.ownerId === currentUserId;
   const ownerName = post.ownerDisplayName || "Thành viên Diké";
   const requestCount = post.pendingResponseCount ?? 0;
+  const progressWindow =
+    new Date(post.departureAt).getTime() <= currentTime + 60 * 60 * 1000;
+  const responses = useQuery({
+    queryKey: ["feed", "responses", post.id],
+    queryFn: () => rideApi.postResponses(post.id),
+    enabled: true,
+    refetchInterval: progressWindow ? 15_000 : false,
+    retry: false,
+  });
+  const activeResponse = responses.data?.find(
+    (response) =>
+      isActiveResponse(response) &&
+      (response.ownerId === currentUserId ||
+        response.requesterId === currentUserId),
+  );
+  const hasSentResponse = responses.data?.some(
+    (response) =>
+      response.requesterId === currentUserId &&
+      !["REJECTED", "WITHDRAWN"].includes(response.status),
+  );
+  useEffect(() => {
+    if (progressWindow) return;
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [progressWindow]);
   useEffect(() => {
     if (!menuOpen) return;
     const close = (event: PointerEvent) => {
@@ -777,17 +817,35 @@ function HomeRideCard({
               </span>
             ) : (
               <button
-                className="new-ride-response-link"
+                className={`new-ride-response-link ${hasSentResponse ? "is-sent" : ""}`}
                 type="button"
-                onClick={() => onRespond(post)}
+                disabled={hasSentResponse}
+                onClick={() => {
+                  if (!hasSentResponse) onRespond(post);
+                }}
               >
-                {isOffer ? "Đi ké ngay" : "Chở ngay"}
-                <ArrowRight aria-hidden="true" size={15} />
+                {hasSentResponse ? (
+                  <>
+                    <Check aria-hidden="true" size={15} /> Đã gửi yêu cầu
+                  </>
+                ) : (
+                  <>
+                    {isOffer ? "Đi ké ngay" : "Chở ngay"}
+                    <ArrowRight aria-hidden="true" size={15} />
+                  </>
+                )}
               </button>
             )}
           </footer>
         </div>
       </div>
+      {activeResponse ? (
+        <ResponseProgress
+          compact
+          response={activeResponse}
+          currentUserId={currentUserId}
+        />
+      ) : null}
     </article>
   );
 }

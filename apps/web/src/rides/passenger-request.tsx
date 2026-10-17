@@ -53,7 +53,6 @@ export function PickupSummary({
   passenger?: { name: string; avatarUrl?: string | null };
 }) {
   const [open, setOpen] = useState(false);
-  const [renderedAt] = useState(() => Date.now());
   const extraDistance = new Intl.NumberFormat("vi-VN", {
     maximumFractionDigits: 1,
   }).format(check.extraMeters / 1000);
@@ -63,7 +62,6 @@ export function PickupSummary({
     : check.reason === "PICKUP_TOO_LATE"
       ? "Không phù hợp giờ đón"
       : "Vượt mức ghé đón";
-  const expired = new Date(check.expiresAt).getTime() <= renderedAt;
   const savedRoute = useMemo(
     () => ({
       geometry: check.geometry,
@@ -209,9 +207,7 @@ export function PickupSummary({
                     <div className="pickup-detail-note">
                       <Info size={20} aria-hidden="true" />
                       <span>
-                        {expired
-                          ? "Kiểm tra điểm đón đã hết hạn. Người đi ké cần kiểm tra lại để bạn xác nhận."
-                          : `Kiểm tra điểm đón có hiệu lực đến ${formatTime(check.expiresAt)}.`}
+                        Tuyến đường và điểm đón đã được lưu cùng yêu cầu.
                       </span>
                     </div>
                   </div>
@@ -395,7 +391,6 @@ export function PassengerRequest({
   );
   const [message, setMessage] = useState(initialMessage.slice(0, 300));
   const [check, setCheck] = useState<PickupCheck>();
-  const [now, setNow] = useState(() => Date.now());
   const generation = useRef(0);
   const [destinationText, setDestinationText] = useState(
     initialJourney?.destination.displayLabel ?? "",
@@ -439,9 +434,7 @@ export function PassengerRequest({
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     document.getElementById("pickup-address")?.focus();
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
-      window.clearInterval(timer);
       previous?.focus();
     };
   }, []);
@@ -513,10 +506,7 @@ export function PassengerRequest({
         dropoff: destinationSelected,
       });
   }
-  const fresh =
-    check &&
-    check.postVersion === post.version &&
-    new Date(check.expiresAt).getTime() > now;
+  const current = check && check.postVersion === post.version;
   const route = useMemo(
     () =>
       check
@@ -692,7 +682,7 @@ export function PassengerRequest({
                   )}
                 </p>
               )}
-              {check && !fresh && (
+              {check && !current && (
                 <p className="passenger-hint" role="status">
                   Kết quả cần cập nhật.
                   <button
@@ -718,7 +708,7 @@ export function PassengerRequest({
               type="button"
               disabled={
                 !addressesReady ||
-                (!sameRoute && (!check?.compatible || !fresh || busy)) ||
+                (!sameRoute && (!check?.compatible || !current || busy)) ||
                 send.isPending
               }
               onClick={() => send.mutate()}

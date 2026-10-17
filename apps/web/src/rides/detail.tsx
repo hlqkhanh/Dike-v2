@@ -2,6 +2,7 @@
 import { MemberAvatar } from "../../app/components/member-avatar";
 import { PostRoute } from "./post-route";
 import { PassengerRequest } from "./passenger-request";
+import { isActiveResponse, ResponseProgress } from "./response-progress";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -43,14 +44,9 @@ import {
 import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
-  const [now, setNow] = useState(() => Date.now());
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(
     null,
   );
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 10000);
-    return () => window.clearInterval(timer);
-  }, []);
   const router = useRouter();
   const client = useQueryClient();
   const searchParams = useSearchParams();
@@ -85,6 +81,7 @@ export function PostDetail({ id }: { id: string }) {
   const selectedResponse = responses.data?.find(
     (item) => item.id === selectedResponseId && item.pickupCheck,
   );
+  const trackedResponse = responses.data?.find(isActiveResponse);
   useEffect(() => {
     if (!post.data || !session.data || owner || post.data.status !== "OPEN")
       return;
@@ -257,7 +254,7 @@ export function PostDetail({ id }: { id: string }) {
                   post.data.status === "OPEN" &&
                   (!myResponse ||
                     (post.data.type === "OFFER_RIDE" &&
-                      myResponse.status !== "ACCEPTED")) ? (
+                      !isActiveResponse(myResponse))) ? (
                     <button
                       className="is-primary feed-detail-connect-action"
                       type="button"
@@ -314,15 +311,15 @@ export function PostDetail({ id }: { id: string }) {
                       <strong>
                         {myResponse.status === "PENDING"
                           ? "Đang chờ người đăng xác nhận"
-                          : myResponse.status === "ACCEPTED"
+                          : isActiveResponse(myResponse)
                             ? "Người đăng đã xác nhận"
                             : myResponse.status === "REJECTED"
                               ? "Người đăng đã từ chối"
                               : "Bạn đã rút yêu cầu"}
                       </strong>
                       <small>
-                        {myResponse.status === "ACCEPTED"
-                          ? "Hai bên có thể trao đổi điểm đón và hoàn thiện booking."
+                        {isActiveResponse(myResponse)
+                          ? "Theo dõi tiến độ chuyến đi và các cập nhật từ người chở."
                           : "Trạng thái được cập nhật tự động mỗi 15 giây."}
                       </small>
                     </span>
@@ -344,18 +341,26 @@ export function PostDetail({ id }: { id: string }) {
                       >
                         Rút yêu cầu
                       </button>
-                    ) : myResponse.status === "ACCEPTED" ? (
+                    ) : isActiveResponse(myResponse) ? (
                       <Link
                         href={
                           myResponse.conversationId
-                            ? `/inbox/${myResponse.conversationId}`
-                            : "/inbox"
+                            ? `/friends?conversation=${encodeURIComponent(myResponse.conversationId)}`
+                            : "/friends"
                         }
                       >
                         Bắt đầu trao đổi
                       </Link>
                     ) : null}
                   </div>
+                ) : null}
+
+                {!owner && myResponse && isActiveResponse(myResponse) ? (
+                  <ResponseProgress
+                    response={myResponse}
+                    currentUserId={session.data?.user.id ?? ""}
+                    onUpdated={() => void responses.refetch()}
+                  />
                 ) : null}
 
                 {owner && responses.data?.length ? (
@@ -367,6 +372,22 @@ export function PostDetail({ id }: { id: string }) {
                       <p>Yêu cầu kết nối</p>
                       <h2 id="response-heading">Xác nhận người đồng hành</h2>
                     </div>
+                    {trackedResponse ? (
+                      <>
+                        <ResponseProgress
+                          response={trackedResponse}
+                          currentUserId={session.data?.user.id ?? ""}
+                          onUpdated={() => void responses.refetch()}
+                        />
+                        <div className="feed-response-progress-note">
+                          <ShieldCheck aria-hidden="true" size={17} />
+                          <span>
+                            Người đồng hành đã được xác nhận. Hệ thống sẽ cập
+                            nhật tiến trình chuyến đi theo thời gian thực.
+                          </span>
+                        </div>
+                      </>
+                    ) : null}
                     {responses.data.map((item) => (
                       <article
                         className={`feed-response-request is-${item.status.toLowerCase()} ${item.pickupCheck ? "has-pickup" : ""} ${selectedResponseId === item.id ? "is-map-selected" : ""}`}
@@ -450,14 +471,14 @@ export function PostDetail({ id }: { id: string }) {
                           <strong className="feed-response-status">
                             {item.status === "PENDING" ? (
                               <Clock3 aria-hidden="true" size={18} />
-                            ) : item.status === "ACCEPTED" ? (
+                            ) : isActiveResponse(item) ? (
                               <Check aria-hidden="true" size={18} />
                             ) : (
                               <XCircle aria-hidden="true" size={18} />
                             )}
                             {item.status === "PENDING"
                               ? "Đang chờ phản hồi"
-                              : item.status === "ACCEPTED"
+                              : isActiveResponse(item)
                                 ? "Đã xác nhận"
                                 : item.status === "REJECTED"
                                   ? "Đã từ chối"
@@ -486,15 +507,7 @@ export function PostDetail({ id }: { id: string }) {
                               <button
                                 className="is-accept"
                                 type="button"
-                                disabled={
-                                  responseCommand.isPending ||
-                                  Boolean(
-                                    item.pickupCheck &&
-                                      new Date(
-                                        item.pickupCheck.expiresAt,
-                                      ).getTime() <= now,
-                                  )
-                                }
+                                disabled={responseCommand.isPending}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   responseCommand.mutate({
@@ -511,8 +524,17 @@ export function PostDetail({ id }: { id: string }) {
                                 Xác nhận
                               </button>
                             </div>
-                          ) : item.status === "ACCEPTED" ? (
-                            <small>Đã trở thành người đồng hành của bạn.</small>
+                          ) : isActiveResponse(item) ? (
+                            <small className="feed-response-confirmed-copy">
+                              <Check aria-hidden="true" size={15} />
+                              {item.status === "COMPLETED"
+                                ? "Chuyến đi đã hoàn thành"
+                                : item.status === "DRIVER_ARRIVED"
+                                  ? "Người chở đã đến điểm đón"
+                                  : item.status === "DRIVER_STARTED"
+                                    ? "Người chở đang đến đón"
+                                    : "Đã trở thành người đồng hành"}
+                            </small>
                           ) : null}
                         </div>
                       </article>
