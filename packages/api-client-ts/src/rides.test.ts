@@ -31,7 +31,8 @@ it("initializes CSRF before the first ride mutation", async () => {
       return cookie;
     },
   });
-  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    void init;
     if (url === "/api/v1/auth/session") {
       cookie = "XSRF-TOKEN=initialized%2Btoken";
       return new Response(
