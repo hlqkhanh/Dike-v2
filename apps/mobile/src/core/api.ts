@@ -1,4 +1,10 @@
-import type { AuthSessionResponse } from "@dike/api-client-ts";
+import type {
+  AuthSessionResponse,
+  BookingPage,
+  JourneyConversation,
+  RidePostPage,
+  TripPage,
+} from "@dike/api-client-ts";
 
 export const API_BASE_URL = (
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080/api/v1"
@@ -43,10 +49,10 @@ export function createMobileApi(getToken: () => Promise<string | null>) {
 
   return {
     session: () => request<AuthSessionResponse>("/auth/session"),
-    feed: () => request<{ items: unknown[] }>("/ride-posts?tab=recent"),
-    trips: () => request<{ items: unknown[] }>("/trips"),
-    bookings: () => request<{ items: unknown[] }>("/bookings"),
-    conversations: () => request<unknown[]>("/conversations"),
+    feed: () => request<RidePostPage>("/ride-posts?tab=recent"),
+    trips: () => request<TripPage>("/trips"),
+    bookings: () => request<BookingPage>("/bookings"),
+    conversations: () => request<JourneyConversation[]>("/conversations"),
     notifications: () => request<unknown[]>("/notifications"),
   };
 }

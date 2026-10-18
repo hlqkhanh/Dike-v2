@@ -17,27 +17,36 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.inkMuted,
+        tabBarHideOnKeyboard: true,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopColor: "#dcebe5",
+          height: 68,
+          paddingBottom: 8,
+          paddingTop: 7,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Khám phá",
-          tabBarIcon: ({ color }) => icon("⌕", color),
+          title: "Trang chủ",
+          tabBarIcon: ({ color }) => icon("⌂", color),
         }}
       />
       <Tabs.Screen
         name="trips"
         options={{
-          title: "Chuyến",
-          tabBarIcon: ({ color }) => icon("↗", color),
+          title: "Chuyến đi",
+          tabBarIcon: ({ color }) => icon("⇢", color),
         }}
       />
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Hộp thư",
-          tabBarIcon: ({ color }) => icon("✉", color),
+          title: "Bạn bè",
+          tabBarIcon: ({ color }) => icon("♧", color),
         }}
       />
       <Tabs.Screen
