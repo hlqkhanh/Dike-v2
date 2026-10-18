@@ -1,5 +1,6 @@
 import type { JourneyConversation } from "@dike/api-client-ts";
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ImageStyle } from "react-native";
 
@@ -84,6 +85,9 @@ function ConversationCard({
   return (
     <Pressable
       accessibilityRole="button"
+      onPress={() =>
+        router.push({ pathname: "/chat/[id]", params: { id: conversation.id } })
+      }
       style={({ pressed }) => [styles.conversation, pressed && styles.pressed]}
     >
       {conversation.recipientAvatarUrl ? (

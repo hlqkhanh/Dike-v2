@@ -1,5 +1,6 @@
 import type { BookingView, TripView } from "@dike/api-client-ts";
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Screen, sharedStyles } from "@/components/Screen";
@@ -72,6 +73,9 @@ function TripCard({ trip }: { trip: TripView }) {
   const departure = new Date(trip.departureAt);
   return (
     <Pressable
+      onPress={() =>
+        router.push({ pathname: "/trip/[id]", params: { id: trip.id } })
+      }
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.cardTop}>

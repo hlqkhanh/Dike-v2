@@ -1,9 +1,16 @@
 import type {
   AuthSessionResponse,
   BookingPage,
+  JourneyMessage,
+  JourneyNotification,
   JourneyConversation,
+  PublicProfileResponse,
+  RidePostResponse,
+  RidePostView,
   RidePostPage,
+  ScheduleResponse,
   TripPage,
+  TripView,
 } from "@dike/api-client-ts";
 
 export const API_BASE_URL = (
@@ -51,8 +58,41 @@ export function createMobileApi(getToken: () => Promise<string | null>) {
     session: () => request<AuthSessionResponse>("/auth/session"),
     feed: () => request<RidePostPage>("/ride-posts?tab=recent"),
     trips: () => request<TripPage>("/trips"),
+    trip: (id: string) => request<TripView>(`/trips/${encodeURIComponent(id)}`),
     bookings: () => request<BookingPage>("/bookings"),
     conversations: () => request<JourneyConversation[]>("/conversations"),
-    notifications: () => request<unknown[]>("/notifications"),
+    conversation: (id: string) =>
+      request<JourneyConversation>(`/conversations/${encodeURIComponent(id)}`),
+    messages: (id: string) =>
+      request<JourneyMessage[]>(
+        `/conversations/${encodeURIComponent(id)}/messages`,
+      ),
+    sendMessage: (id: string, text: string) =>
+      request<JourneyMessage>(
+        `/conversations/${encodeURIComponent(id)}/messages`,
+        {
+          method: "POST",
+          body: JSON.stringify({ clientMessageId: crypto.randomUUID(), text }),
+        },
+      ),
+    notifications: () => request<JourneyNotification[]>("/notifications"),
+    readNotification: (id: string) =>
+      request<void>(`/notifications/${encodeURIComponent(id)}/read`, {
+        method: "PATCH",
+      }),
+    post: (id: string) =>
+      request<RidePostView>(`/ride-posts/${encodeURIComponent(id)}`),
+    postResponses: (id: string) =>
+      request<RidePostResponse[]>(
+        `/ride-posts/${encodeURIComponent(id)}/responses`,
+      ),
+    requestRide: (id: string, message: string) =>
+      request<RidePostResponse>(
+        `/ride-posts/${encodeURIComponent(id)}/responses`,
+        { method: "POST", body: JSON.stringify({ message }) },
+      ),
+    userProfile: (id: string) =>
+      request<PublicProfileResponse>(`/users/${encodeURIComponent(id)}`),
+    schedules: () => request<ScheduleResponse[]>("/schedules"),
   };
 }

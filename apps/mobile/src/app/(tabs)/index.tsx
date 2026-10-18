@@ -1,6 +1,7 @@
 import type { RidePostView } from "@dike/api-client-ts";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { router } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ImageStyle } from "react-native";
 
@@ -60,6 +61,12 @@ export default function Discover() {
           </Pressable>
         ))}
       </View>
+      <Pressable
+        onPress={() => router.push("/create-trip")}
+        style={styles.createButton}
+      >
+        <Text style={styles.createButtonText}>＋ Tạo chuyến đi</Text>
+      </Pressable>
       {query.isError ? (
         <Text accessibilityRole="alert" style={sharedStyles.empty}>
           Không tải được bảng feed. Kéo xuống để thử lại.
@@ -94,6 +101,9 @@ function RideCard({
     <Pressable
       accessibilityHint="Mở chi tiết bài đăng"
       accessibilityRole="button"
+      onPress={() =>
+        router.push({ pathname: "/posts/[id]", params: { id: post.id } })
+      }
       style={({ pressed }) => [
         styles.card,
         passenger && styles.passengerCard,
@@ -190,6 +200,15 @@ function RideCard({
 
 const styles = StyleSheet.create({
   filters: { flexDirection: "row", gap: 8, marginBottom: 2 },
+  createButton: {
+    alignItems: "center",
+    alignSelf: "flex-end",
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  createButtonText: { color: "#fff", fontSize: 13, fontWeight: "900" },
   filter: {
     backgroundColor: "#fff",
     borderColor: theme.colors.border,

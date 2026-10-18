@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ImageStyle } from "react-native";
+import { Link } from "expo-router";
 
 import { Screen, sharedStyles } from "@/components/Screen";
 import { useSession } from "@/core/session";
@@ -74,6 +75,22 @@ export default function Profile() {
           Quyền thử nghiệm đang được sử dụng trên môi trường phát triển.
         </Text>
       ) : null}
+      <View style={styles.quickLinks}>
+        {(
+          [
+            ["Thông báo", "/notifications"],
+            ["Lịch trình", "/schedules"],
+            ["Cài đặt", "/settings"],
+          ] as const
+        ).map(([label, href]) => (
+          <Link asChild href={href} key={href}>
+            <Pressable style={styles.quickLink}>
+              <Text style={styles.quickLinkText}>{label}</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </Link>
+        ))}
+      </View>
       <Pressable
         accessibilityRole="button"
         onPress={() => void signOut()}
@@ -185,6 +202,18 @@ const styles = StyleSheet.create({
   },
   chevron: { color: "#789087", fontSize: 25 },
   divider: { backgroundColor: "#e8efec", height: 1 },
+  quickLinks: { gap: 9 },
+  quickLink: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 15,
+  },
+  quickLinkText: { color: theme.colors.ink, fontSize: 14, fontWeight: "800" },
   warning: {
     backgroundColor: "#fff4ce",
     borderColor: "#efd68e",
