@@ -4,5 +4,8 @@ packages:
 
 minimumReleaseAge: 1440
 blockExoticSubdeps: true
+# Leave room for Android CMake paths on Windows.
+virtualStoreDir: .p
+virtualStoreDirMaxLength: 32
 allowBuilds:
   unrs-resolver: true

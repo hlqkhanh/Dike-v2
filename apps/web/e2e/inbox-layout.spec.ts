@@ -122,11 +122,33 @@ test("messages open inline, send, switch and preserve safety cards on other tabs
     exact: true,
   });
   await expect(detail.getByText("Chào bạn", { exact: true })).toBeVisible();
+  const toolbar = detail.locator(".conversation-toolbar");
+  await expect(toolbar.getByRole("heading")).toBeVisible();
+  await expect(
+    toolbar.getByRole("button", { name: "Gọi điện", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    toolbar.getByText("Đang trò chuyện", { exact: true }),
+  ).toHaveCount(0);
+  await toolbar.getByLabel("Tùy chọn hội thoại", { exact: true }).click();
+  await expect(
+    toolbar.getByRole("link", { name: "Xem hồ sơ", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    toolbar.getByRole("link", { name: "Xem hồ sơ", exact: true }),
+  ).not.toBeVisible();
   await expect(page).toHaveURL(/\/friends$/);
   if (!isMobile) {
     const left = await rows.boundingBox();
     const right = await detail.boundingBox();
     expect(right!.x).toBeGreaterThan(left!.x + left!.width);
+    expect(right!.y + right!.height).toBeLessThanOrEqual(
+      page.viewportSize()!.height + 120,
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollHeight),
+    ).toBeLessThanOrEqual(page.viewportSize()!.height + 121);
   } else {
     await expect(rows).not.toBeVisible();
   }
@@ -161,6 +183,11 @@ test("messages open inline, send, switch and preserve safety cards on other tabs
   await expect(
     detail.getByText("Điểm đón ở cổng trường", { exact: true }),
   ).toBeVisible();
+  await detail.getByLabel("Tùy chọn hội thoại", { exact: true }).click();
+  await expect(
+    detail.getByRole("link", { name: "Xem đặt chỗ" }),
+  ).toHaveAttribute("href", "/bookings/booking-1");
+  await page.keyboard.press("Escape");
   await expect(detail.getByText("Chào bạn", { exact: true })).not.toBeVisible();
   await expect(
     detail.getByRole("button", { name: "Gửi", exact: true }),

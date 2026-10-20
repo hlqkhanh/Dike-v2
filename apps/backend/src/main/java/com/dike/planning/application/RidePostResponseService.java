@@ -52,6 +52,7 @@ public class RidePostResponseService {
       String requesterId,
       String requesterDisplayName,
       String requesterAvatarUrl,
+      String companionPhone,
       String ownerId,
       String action,
       String status,
@@ -82,7 +83,8 @@ public class RidePostResponseService {
                     .in("PENDING", "ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED")),
             Document.class,
             "ride_post_responses");
-    if (existing != null && !"PENDING".equals(existing.getString("status"))) return view(existing);
+    if (existing != null && !"PENDING".equals(existing.getString("status")))
+      return view(existing, actor);
     var pickupCheck =
         "OFFER_RIDE".equals(post.getString("type"))
             ? pickups.require(actor, postId, pickupCheckId)
@@ -90,7 +92,7 @@ public class RidePostResponseService {
     if (existing != null
         && java.util.Objects.equals(
             pickupCheck == null ? null : pickupCheck.id(), existing.getString("pickupCheckId")))
-      return view(existing);
+      return view(existing, actor);
 
     Instant now = clock.instant();
     String safeMessage = message == null ? "" : message.trim();
@@ -126,7 +128,8 @@ public class RidePostResponseService {
           "Điểm đón đã được cập nhật",
           "Người đi ké vừa kiểm tra lại điểm đón và tuyến đường.",
           Map.of("postId", postId, "responseId", existing.getString("_id")));
-      return view(mongo.findById(existing.getString("_id"), Document.class, "ride_post_responses"));
+      return view(
+          mongo.findById(existing.getString("_id"), Document.class, "ride_post_responses"), actor);
     }
     String action = "OFFER_RIDE".equals(post.getString("type")) ? "REQUEST_RIDE" : "OFFER_RIDE";
     Document response =
@@ -149,7 +152,7 @@ public class RidePostResponseService {
         action.equals("REQUEST_RIDE") ? "Có người muốn đi ké" : "Có người muốn chở bạn",
         "Một thành viên vừa gửi yêu cầu cho hành trình của bạn.",
         Map.of("postId", postId, "responseId", response.getString("_id")));
-    return view(response);
+    return view(response, actor);
   }
 
   public List<View> list(String actor, String postId) {
@@ -166,7 +169,26 @@ public class RidePostResponseService {
             Document.class,
             "ride_post_responses")
         .stream()
-        .map(this::view)
+        .map(value -> view(value, actor))
+        .toList();
+  }
+
+  public List<View> active(String actor) {
+    var participant =
+        new Criteria()
+            .orOperator(
+                Criteria.where("ownerId").is(actor), Criteria.where("requesterId").is(actor));
+    var query =
+        Query.query(
+                new Criteria()
+                    .andOperator(
+                        participant,
+                        Criteria.where("status")
+                            .in("ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED")))
+            .with(Sort.by(Sort.Direction.DESC, "updatedAt"))
+            .limit(20);
+    return mongo.find(query, Document.class, "ride_post_responses").stream()
+        .map(value -> view(value, actor))
         .toList();
   }
 
@@ -271,19 +293,27 @@ public class RidePostResponseService {
           default -> "Trạng thái yêu cầu kết nối hành trình vừa thay đổi.";
         },
         notificationData);
-    return view(updated);
+    return view(updated, actor);
   }
 
-  private View view(Document value) {
+  private View view(Document value, String actor) {
+    String status = value.getString("status");
+    String ownerId = value.getString("ownerId");
+    String requesterId = value.getString("requesterId");
+    boolean participant = actor.equals(ownerId) || actor.equals(requesterId);
+    boolean matched =
+        List.of("ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED").contains(status);
+    String companionId = actor.equals(ownerId) ? requesterId : ownerId;
     return new View(
         value.getString("_id"),
         value.getString("postId"),
-        value.getString("requesterId"),
-        accounts.displayName(value.getString("requesterId")),
-        accounts.avatarUrl(value.getString("requesterId")),
-        value.getString("ownerId"),
+        requesterId,
+        accounts.displayName(requesterId),
+        accounts.avatarUrl(requesterId),
+        participant && matched ? accounts.phoneNumber(companionId) : null,
+        ownerId,
         value.getString("action"),
-        value.getString("status"),
+        status,
         value.getString("message"),
         value.getString("conversationId"),
         value.getDate("createdAt").toInstant(),

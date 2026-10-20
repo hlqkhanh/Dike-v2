@@ -29,6 +29,18 @@ final class AccountAuthenticationFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     HttpSession session = request.getSession(false);
     if (session != null) {
+      boolean mobile = Boolean.TRUE.equals(session.getAttribute(SessionAttributes.MOBILE));
+      if (mobile
+          ? !MobileSessionIdResolver.isAuthenticatedMobileRequest(request)
+          : MobileSessionIdResolver.hasAuthorizationHeader(request)) {
+        SecurityErrorWriter.write(
+            request,
+            response,
+            HttpServletResponse.SC_UNAUTHORIZED,
+            "AUTH_SESSION_TRANSPORT_INVALID",
+            "Phiên đăng nhập không hợp lệ");
+        return;
+      }
       String accountId = (String) session.getAttribute(SessionAttributes.ACCOUNT_ID);
       if (accountId != null) {
         var snapshot = access.require(accountId);

@@ -1,27 +1,39 @@
-import { Redirect } from "expo-router";
+﻿import { Redirect } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { API_BASE_URL } from "@/core/api";
+import { API_BASE_URL, MobileApiError, type LocalPersona } from "@/core/api";
 import { useSession } from "@/core/session";
 import { theme } from "@/core/theme";
 
+const personas: { value: LocalPersona; label: string }[] = [
+  { value: "member", label: "Thành viên" },
+  { value: "driver", label: "Tài xế" },
+  { value: "admin", label: "Quản trị viên" },
+];
+
 export default function SignIn() {
-  const { session, signInWithToken } = useSession();
-  const [token, setToken] = useState("");
+  const { session, signInLocally } = useSession();
   const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<LocalPersona | null>(null);
   if (session?.authenticated) return <Redirect href="/(tabs)" />;
 
-  const submit = async () => {
-    setPending(true);
+  const submit = async (persona: LocalPersona) => {
+    if (pending) return;
+    setPending(persona);
     setError("");
     try {
-      await signInWithToken(token);
-    } catch {
-      setError("Token không hợp lệ hoặc API chưa sẵn sàng.");
+      await signInLocally(persona);
+    } catch (cause) {
+      setError(
+        cause instanceof MobileApiError
+          ? cause.status === 404 || cause.status === 401
+            ? "Backend chưa bật đăng nhập local. Hãy chạy API với cấu hình local."
+            : cause.message
+          : "Không thể đăng nhập. Kiểm tra kết nối đến API rồi thử lại.",
+      );
     } finally {
-      setPending(false);
+      setPending(null);
     }
   };
 
@@ -32,38 +44,35 @@ export default function SignIn() {
       </Text>
       <Text style={styles.title}>Đi chung, nhẹ đường hơn.</Text>
       <Text style={styles.body}>
-        Mobile session exchange với Google sẽ dùng Development Build. Trong
-        local, nhập opaque token do backend cấp để kiểm thử.
+        {__DEV__
+          ? "Chọn tài khoản thử nghiệm để khám phá Dike. Chỉ dùng trong môi trường local."
+          : "Đăng nhập Google cho bản phát hành đang được hoàn thiện."}
       </Text>
-      <TextInput
-        accessibilityLabel="Opaque mobile token"
-        autoCapitalize="none"
-        onChangeText={setToken}
-        placeholder="Opaque mobile token"
-        secureTextEntry
-        style={styles.input}
-        value={token}
-      />
+      {__DEV__ &&
+        personas.map((persona) => (
+          <Pressable
+            key={persona.value}
+            accessibilityRole="button"
+            accessibilityLabel={`Đăng nhập ${persona.label}`}
+            disabled={pending !== null}
+            onPress={() => void submit(persona.value)}
+            style={({ pressed }) => [
+              styles.button,
+              pending !== null && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.buttonText}>
+              {pending === persona.value ? "Đang đăng nhập…" : persona.label}
+            </Text>
+          </Pressable>
+        ))}
       {error ? (
         <Text accessibilityRole="alert" style={styles.error}>
           {error}
         </Text>
       ) : null}
-      <Pressable
-        accessibilityRole="button"
-        disabled={!token.trim() || pending}
-        onPress={submit}
-        style={({ pressed }) => [
-          styles.button,
-          (!token.trim() || pending) && styles.disabled,
-          pressed && styles.pressed,
-        ]}
-      >
-        <Text style={styles.buttonText}>
-          {pending ? "Đang xác thực…" : "Tiếp tục"}
-        </Text>
-      </Pressable>
-      <Text style={styles.endpoint}>API: {API_BASE_URL}</Text>
+      {__DEV__ && <Text style={styles.endpoint}>API: {API_BASE_URL}</Text>}
     </View>
   );
 }
@@ -84,14 +93,6 @@ const styles = StyleSheet.create({
     lineHeight: 40,
   },
   body: { color: theme.colors.inkMuted, fontSize: 16, lineHeight: 24 },
-  input: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    color: theme.colors.ink,
-    padding: theme.spacing.md,
-  },
   button: {
     alignItems: "center",
     backgroundColor: theme.colors.primary,

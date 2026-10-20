@@ -108,6 +108,15 @@ thiết bị có thể truy cập, rồi chạy:
 pnpm dev:mobile
 ```
 
+Trong bản phát triển, màn hình đăng nhập cho phép chọn Thành viên, Tài xế hoặc
+Quản trị viên thử nghiệm. API phải chạy với profile `local` và
+`DIKE_DEV_AUTH_ENABLED=true` (mặc định của profile local). App tự xin opaque token
+tại `/api/v1/auth/dev/mobile`, xác minh phiên rồi lưu trong SecureStore. Token
+mobile dùng Bearer header; phiên web tiếp tục dùng cookie. Đăng xuất mobile thu
+hồi phiên trên backend khi có kết nối. Endpoint cấp token local không tồn tại
+trên staging/production; luồng Google cho mobile vẫn cần được hoàn thiện trước
+khi phát hành.
+
 Kiểm tra mobile bằng `pnpm --filter @dike/mobile typecheck`,
 `pnpm --filter @dike/mobile lint` và `pnpm mobile:doctor`. Expo Go không phải môi
 trường nghiệm thu cho secure storage, push hoặc background location; dùng Development

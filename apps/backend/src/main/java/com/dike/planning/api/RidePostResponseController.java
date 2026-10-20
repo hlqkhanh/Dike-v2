@@ -49,6 +49,11 @@ public class RidePostResponseController {
     return service.list(principal.getName(), postId);
   }
 
+  @GetMapping("/ride-post-responses/active")
+  List<RidePostResponseService.View> active(Principal principal) {
+    return service.active(principal.getName());
+  }
+
   @PostMapping("/ride-post-responses/{id}/decision")
   RidePostResponseService.View decide(
       Principal principal, @PathVariable String id, @RequestBody Decision body) {

@@ -8,6 +8,8 @@ import {
   CalendarDays,
   CarFront,
   MapPin,
+  MoreHorizontal,
+  Phone,
   Pin,
   Route,
   Send,
@@ -16,12 +18,7 @@ import {
 import { authApi } from "../../src/auth/api";
 import { journeyApi } from "../../src/journey/api";
 import { rideApi } from "../../src/rides/api";
-import {
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "../components/app-ui";
+import { EmptyState, ErrorState, LoadingState } from "../components/app-ui";
 import { MemberAvatar } from "../components/member-avatar";
 import {
   isActiveResponse,
@@ -98,6 +95,26 @@ export function ConversationContent({
   const client = useQueryClient();
   const thread = useRef<HTMLElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const moreActions = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!moreActions.current?.contains(event.target as Node)) {
+        moreActions.current?.removeAttribute("open");
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && moreActions.current?.open) {
+        moreActions.current.removeAttribute("open");
+        moreActions.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
   const [text, setText] = useState("");
   const [attachmentDraft, setAttachmentDraft] = useState({
     sourceId: initialPostId,
@@ -210,18 +227,9 @@ export function ConversationContent({
           : "settings-page conversation-page"
       }
     >
-      <PageHeader
-        backHref={embedded ? undefined : "/friends"}
-        backLabel="Tất cả tin nhắn"
-        eyebrow={
-          conversation?.state === "REQUEST_PENDING"
-            ? "Lời mời nhắn tin"
-            : conversation?.state === "OPEN"
-              ? "Đang trò chuyện"
-              : "Hội thoại"
-        }
-        title={
-          recipientId ? (
+      <header className="conversation-toolbar">
+        <h1>
+          {recipientId ? (
             <Link
               className="conversation-profile-link"
               href={`/profile/${encodeURIComponent(recipientId)}`}
@@ -231,26 +239,77 @@ export function ConversationContent({
                 name={recipientName}
                 avatarUrl={conversation?.recipientAvatarUrl}
                 className="conversation-header-avatar"
-                size={44}
+                size={36}
               />
               <span>{recipientName}</span>
             </Link>
           ) : (
-            recipientName
-          )
-        }
-        description="Chỉ chia sẻ thông tin cần thiết cho hành trình và không gửi dữ liệu nhạy cảm."
-        actions={
-          conversation?.bookingId ? (
-            <Link
-              className="app-button app-button--secondary"
-              href={`/bookings/${encodeURIComponent(conversation.bookingId)}`}
+            <span className="conversation-profile-link">
+              <MemberAvatar
+                name={recipientName}
+                avatarUrl={conversation?.recipientAvatarUrl}
+                className="conversation-header-avatar"
+                size={36}
+              />
+              <span>{recipientName}</span>
+            </span>
+          )}
+        </h1>
+        <div className="conversation-toolbar-actions">
+          {pinnedResponse?.companionPhone ? (
+            <a
+              className="conversation-icon-button"
+              href={`tel:${pinnedResponse.companionPhone}`}
+              aria-label={`Gọi cho ${recipientName}`}
+              title="Gọi điện"
             >
-              <Route aria-hidden="true" size={17} /> Xem đặt chỗ
-            </Link>
-          ) : undefined
-        }
-      />
+              <Phone aria-hidden="true" size={19} />
+            </a>
+          ) : (
+            <button
+              className="conversation-icon-button"
+              type="button"
+              disabled
+              aria-label="Gọi điện"
+              title="Chưa có số điện thoại được chia sẻ"
+            >
+              <Phone aria-hidden="true" size={19} />
+            </button>
+          )}
+          <details className="conversation-more" ref={moreActions}>
+            <summary
+              className="conversation-icon-button"
+              aria-label="Tùy chọn hội thoại"
+              title="Tùy chọn hội thoại"
+            >
+              <MoreHorizontal aria-hidden="true" size={21} />
+            </summary>
+            <nav
+              className="conversation-more-panel"
+              aria-label="Liên kết hội thoại"
+            >
+              {recipientId ? (
+                <Link href={`/profile/${encodeURIComponent(recipientId)}`}>
+                  Xem hồ sơ
+                </Link>
+              ) : null}
+              {conversation?.bookingId ? (
+                <Link
+                  href={`/bookings/${encodeURIComponent(conversation.bookingId)}`}
+                >
+                  <Route aria-hidden="true" size={16} /> Xem đặt chỗ
+                </Link>
+              ) : null}
+              {pinnedPostId ? (
+                <Link href={`/feed/${encodeURIComponent(pinnedPostId)}`}>
+                  <CarFront aria-hidden="true" size={16} /> Xem chuyến đi
+                </Link>
+              ) : null}
+              <Link href="/friends">Tất cả tin nhắn</Link>
+            </nav>
+          </details>
+        </div>
+      </header>
       {pinnedPost.data ? (
         <Link
           className="conversation-pinned-trip"

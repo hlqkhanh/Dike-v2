@@ -26,8 +26,10 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
+import org.springframework.session.web.http.CookieHttpSessionIdResolver;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
+import org.springframework.session.web.http.HttpSessionIdResolver;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -50,6 +52,13 @@ public class SecurityConfiguration {
     serializer.setSameSite(properties.cookie().sameSite());
     serializer.setCookieMaxAge((int) properties.session().absoluteLifetime().toSeconds());
     return serializer;
+  }
+
+  @Bean
+  HttpSessionIdResolver httpSessionIdResolver(CookieSerializer serializer) {
+    var cookies = new CookieHttpSessionIdResolver();
+    cookies.setCookieSerializer(serializer);
+    return new MobileSessionIdResolver(cookies);
   }
 
   @Bean
@@ -91,6 +100,7 @@ public class SecurityConfiguration {
                         "/api/openapi.json",
                         "/api/v1/auth/google",
                         "/api/v1/auth/dev",
+                        "/api/v1/auth/dev/mobile",
                         "/api/v1/auth/oauth2/authorization/**",
                         "/api/v1/auth/callback/**",
                         "/oauth2/**",
@@ -134,6 +144,7 @@ public class SecurityConfiguration {
         .csrf(
             csrfConfig ->
                 csrfConfig
+                    .ignoringRequestMatchers(MobileSessionIdResolver::isAuthenticatedMobileRequest)
                     .csrfTokenRepository(csrf)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
         .oauth2Login(

@@ -17,6 +17,8 @@ export const API_BASE_URL = (
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080/api/v1"
 ).replace(/\/$/u, "");
 
+export type LocalPersona = "member" | "driver" | "admin";
+
 export class MobileApiError extends Error {
   constructor(
     readonly status: number,
@@ -34,10 +36,13 @@ export function createMobileApi(getToken: () => Promise<string | null>) {
     if (init.body) headers.set("Content-Type", "application/json");
     const token = await getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    headers.set("X-Request-Id", crypto.randomUUID());
+    // The API generates a request ID when the native runtime has no Web Crypto.
+    const requestId = globalThis.crypto?.randomUUID?.();
+    if (requestId) headers.set("X-Request-Id", requestId);
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
+      credentials: "omit",
       headers,
     });
     if (!response.ok) {
@@ -55,8 +60,14 @@ export function createMobileApi(getToken: () => Promise<string | null>) {
   }
 
   return {
+    localLogin: (persona: LocalPersona) =>
+      request<{ token: string; expiresAt: string }>(
+        `/auth/dev/mobile?persona=${encodeURIComponent(persona)}`,
+        { headers: { "X-Dike-Client": "mobile" } },
+      ),
+    logout: () => request<void>("/auth/logout", { method: "POST" }),
     session: () => request<AuthSessionResponse>("/auth/session"),
-    feed: () => request<RidePostPage>("/ride-posts?tab=recent"),
+    feed: () => request<RidePostPage>("/ride-posts?tab=latest"),
     trips: () => request<TripPage>("/trips"),
     trip: (id: string) => request<TripView>(`/trips/${encodeURIComponent(id)}`),
     bookings: () => request<BookingPage>("/bookings"),

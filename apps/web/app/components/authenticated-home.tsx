@@ -1,11 +1,17 @@
 "use client";
 
-import type { AuthSessionResponse, RidePostView } from "@dike/api-client-ts";
+import type {
+  AuthSessionResponse,
+  BookingView,
+  RidePostResponse,
+  RidePostView,
+} from "@dike/api-client-ts";
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
+  useQueries,
 } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -14,11 +20,14 @@ import {
   Check,
   ChevronDown,
   Clock3,
+  Eye,
   EyeOff,
   Flag,
   Globe2,
   MapPin,
+  MessageCircle,
   MoreHorizontal,
+  Phone,
   Search,
   Send,
   Trash2,
@@ -29,15 +38,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { rideApi } from "../../src/rides/api";
+import { profileApi } from "../../src/profile/api";
 import { AppHeader } from "./app-header";
 import { DikeLogo } from "./dike-logo";
 import { MemberAvatar } from "./member-avatar";
 import { PassengerRequest } from "../../src/rides/passenger-request";
 import { FeedRoutePreview } from "../../src/rides/feed-route-preview";
-import {
-  isActiveResponse,
-  ResponseProgress,
-} from "../../src/rides/response-progress";
+import { isActiveResponse } from "../../src/rides/response-progress";
 
 type FeedFilter = "ALL" | "OFFER_RIDE" | "NEED_RIDE";
 type FeedSort = "latest" | "oldest";
@@ -69,6 +76,25 @@ export function AuthenticatedHome({
     queryFn: ({ pageParam }) => rideApi.feed("latest", pageParam),
     getNextPageParam: (last) => last.nextCursor || undefined,
     refetchInterval: 15_000,
+  });
+  const bookings = useQuery({
+    queryKey: ["rides", "bookings", "home"],
+    queryFn: () => rideApi.bookings(),
+    refetchInterval: 15_000,
+    retry: false,
+  });
+  const activeResponses = useQuery({
+    queryKey: ["rides", "active-post-responses"],
+    queryFn: rideApi.activePostResponses,
+    refetchInterval: 15_000,
+    retry: false,
+  });
+  const activePostResponse = activeResponses.data?.find(isActiveResponse);
+  const activeMatchedPost = useQuery({
+    queryKey: ["feed", "active-match", activePostResponse?.postId],
+    queryFn: () => rideApi.post(activePostResponse!.postId),
+    enabled: Boolean(activePostResponse),
+    retry: false,
   });
   const responseMutation = useMutation({
     mutationFn: ({ postId, message }: { postId: string; message: string }) =>
@@ -168,13 +194,39 @@ export function AuthenticatedHome({
     window.history.replaceState(null, "", next);
   }, [departureDate, filter, query, sort, urlReady]);
 
+  const feedPosts = useMemo(
+    () => list.data?.pages.flatMap((page) => page.items) ?? [],
+    [list.data],
+  );
+  const responseCandidates = useMemo(
+    () => feedPosts.filter((post) => post.status === "OPEN"),
+    [feedPosts],
+  );
+  const responseQueries = useQueries({
+    queries: responseCandidates.map((post) => ({
+      queryKey: ["feed", "responses", post.id],
+      queryFn: () => rideApi.postResponses(post.id),
+      refetchInterval: 15_000,
+      retry: false,
+    })),
+  });
+  const activePostMatch =
+    activePostResponse && activeMatchedPost.data
+      ? { post: activeMatchedPost.data, response: activePostResponse }
+      : undefined;
+  const activePostId = activePostMatch?.post.id;
+  const responsesByPostId = new Map(
+    responseCandidates.map((post, index) => [
+      post.id,
+      responseQueries[index]?.data ?? [],
+    ]),
+  );
   const posts = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("vi");
-    const values = (
-      list.data?.pages.flatMap((page) => page.items) ?? []
-    ).filter(
+    const values = feedPosts.filter(
       (post) =>
         post.status === "OPEN" &&
+        post.id !== activePostId &&
         !hiddenPostIds.includes(post.id) &&
         (filter === "ALL" || post.type === filter) &&
         (!departureDate || localDateKey(post.departureAt) === departureDate) &&
@@ -184,7 +236,31 @@ export function AuthenticatedHome({
             .includes(needle)),
     );
     return sort === "oldest" ? [...values].reverse() : values;
-  }, [departureDate, filter, hiddenPostIds, list.data, query, sort]);
+  }, [
+    activePostId,
+    departureDate,
+    feedPosts,
+    filter,
+    hiddenPostIds,
+    query,
+    sort,
+  ]);
+  const activeBooking = useMemo(() => {
+    const statusPriority: Record<string, number> = {
+      IN_PROGRESS: 0,
+      BOARDED: 1,
+      DRIVER_ARRIVED: 2,
+      CONFIRMED: 3,
+    };
+    return [...(bookings.data?.items ?? [])]
+      .filter((booking) => booking.status in statusPriority)
+      .sort(
+        (first, second) =>
+          statusPriority[first.status] - statusPriority[second.status] ||
+          new Date(first.pickupAt).getTime() -
+            new Date(second.pickupAt).getTime(),
+      )[0];
+  }, [bookings.data]);
 
   return (
     <div className="new-home-shell">
@@ -272,6 +348,18 @@ export function AuthenticatedHome({
             </Link>
           </div>
           <div className="new-feed-container">
+            {activePostMatch ? (
+              <MatchedRideCard
+                post={activePostMatch.post}
+                response={activePostMatch.response}
+                currentUserId={session.user.id}
+              />
+            ) : activeBooking ? (
+              <MatchedRideCard
+                booking={activeBooking}
+                currentUserId={session.user.id}
+              />
+            ) : null}
             <div className="new-feed-heading">
               <div>
                 <h2 id="feed-heading">Bảng feed</h2>
@@ -395,6 +483,7 @@ export function AuthenticatedHome({
                   <HomeRideCard
                     key={post.id}
                     post={post}
+                    responses={responsesByPostId.get(post.id) ?? []}
                     currentUserId={session.user.id}
                     onRespond={(selected) => {
                       responseMutation.reset();
@@ -636,6 +725,7 @@ export function AuthenticatedHome({
 
 function HomeRideCard({
   post,
+  responses,
   currentUserId,
   onRespond,
   onHide,
@@ -643,6 +733,7 @@ function HomeRideCard({
   onReport,
 }: {
   post: RidePostView;
+  responses: RidePostResponse[];
   currentUserId: string;
   onRespond: (post: RidePostView) => void;
   onHide: () => void;
@@ -650,37 +741,16 @@ function HomeRideCard({
   onReport: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const menu = useRef<HTMLDivElement>(null);
   const isOffer = post.type === "OFFER_RIDE";
   const owner = post.ownerId === currentUserId;
   const ownerName = post.ownerDisplayName || "Thành viên Diké";
   const requestCount = post.pendingResponseCount ?? 0;
-  const progressWindow =
-    new Date(post.departureAt).getTime() <= currentTime + 60 * 60 * 1000;
-  const responses = useQuery({
-    queryKey: ["feed", "responses", post.id],
-    queryFn: () => rideApi.postResponses(post.id),
-    enabled: true,
-    refetchInterval: progressWindow ? 15_000 : false,
-    retry: false,
-  });
-  const activeResponse = responses.data?.find(
-    (response) =>
-      isActiveResponse(response) &&
-      (response.ownerId === currentUserId ||
-        response.requesterId === currentUserId),
-  );
-  const hasSentResponse = responses.data?.some(
+  const hasSentResponse = responses.some(
     (response) =>
       response.requesterId === currentUserId &&
       !["REJECTED", "WITHDRAWN"].includes(response.status),
   );
-  useEffect(() => {
-    if (progressWindow) return;
-    const timer = window.setInterval(() => setCurrentTime(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, [progressWindow]);
   useEffect(() => {
     if (!menuOpen) return;
     const close = (event: PointerEvent) => {
@@ -839,13 +909,240 @@ function HomeRideCard({
           </footer>
         </div>
       </div>
-      {activeResponse ? (
-        <ResponseProgress
-          compact
-          response={activeResponse}
-          currentUserId={currentUserId}
-        />
-      ) : null}
+    </article>
+  );
+}
+
+function MatchedRideCard({
+  booking,
+  post,
+  response,
+  currentUserId,
+}: {
+  booking?: BookingView;
+  post?: RidePostView;
+  response?: RidePostResponse;
+  currentUserId: string;
+}) {
+  const trip = useQuery({
+    queryKey: ["rides", "trip", booking?.tripId],
+    queryFn: () => rideApi.trip(booking!.tripId),
+    enabled: Boolean(booking),
+    retry: false,
+  });
+  const companionId = response
+    ? response.ownerId === currentUserId
+      ? response.requesterId
+      : response.ownerId
+    : booking?.driverId === currentUserId
+      ? booking.passengerId
+      : booking?.driverId;
+  const companion = useQuery({
+    queryKey: ["profile", "public", companionId],
+    queryFn: () => profileApi.userProfile(companionId!),
+    enabled: Boolean(booking && companionId),
+    retry: false,
+  });
+  const departureValue = post?.departureAt ?? booking!.pickupAt;
+  const departure = new Date(departureValue);
+  const tripData = trip.data;
+  const status = response?.status ?? booking?.status ?? "ACCEPTED";
+  const stage =
+    {
+      ACCEPTED: 0,
+      CONFIRMED: 0,
+      DRIVER_STARTED: 1,
+      DRIVER_ARRIVED: 2,
+      BOARDED: 2,
+      IN_PROGRESS: 2,
+      COMPLETED: 3,
+    }[status] ?? 0;
+  const steps = ["Xác nhận", "Đến đón", "Điểm đón", "Hoàn thành"];
+  const companionName = response
+    ? response.ownerId === currentUserId
+      ? response.requesterDisplayName || "Bạn đồng hành"
+      : post?.ownerDisplayName || "Bạn đồng hành"
+    : companion.data?.displayName || "Bạn đồng hành";
+  const companionAvatar = response
+    ? response.ownerId === currentUserId
+      ? response.requesterAvatarUrl
+      : post?.ownerAvatarUrl
+    : companion.data?.avatarUrl;
+  const queryClient = useQueryClient();
+  const responseDriverId = response
+    ? response.action === "REQUEST_RIDE"
+      ? response.ownerId
+      : response.requesterId
+    : undefined;
+  const nextStatus = response
+    ? response.status === "ACCEPTED"
+      ? { value: "DRIVER_STARTED" as const, label: "Đến đón" }
+      : response.status === "DRIVER_STARTED"
+        ? { value: "DRIVER_ARRIVED" as const, label: "Đã đến điểm đón" }
+        : response.status === "DRIVER_ARRIVED"
+          ? { value: "COMPLETED" as const, label: "Hoàn thành chuyến" }
+          : null
+    : null;
+  const updateStatus = useMutation({
+    mutationFn: () =>
+      rideApi.decidePostResponse(
+        response!.id,
+        response!.version,
+        nextStatus!.value,
+      ),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<RidePostResponse[]>(
+        ["rides", "active-post-responses"],
+        (current) =>
+          current?.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ["rides", "active-post-responses"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["feed", "responses", updated.postId],
+      });
+    },
+  });
+  const canUpdateStatus =
+    Boolean(response && nextStatus) && responseDriverId === currentUserId;
+  const isDriver =
+    (response ? responseDriverId : booking?.driverId) === currentUserId;
+  return (
+    <article
+      className={`matched-ride-card${isDriver ? "" : " matched-ride-card--passenger"}`}
+      aria-labelledby="matched-ride-title"
+    >
+      <div className="matched-ride-card-art" aria-hidden="true" />
+      <div className="matched-ride-card-content">
+        <div className="matched-ride-summary">
+          <ol className="matched-ride-progress" aria-label="Tiến độ chuyến đi">
+            {steps.map((label, index) => (
+              <li
+                className={index <= stage ? "is-complete" : undefined}
+                aria-current={index === stage ? "step" : undefined}
+                key={label}
+              >
+                <span>{index === 0 ? <Check size={12} /> : index + 1}</span>
+                <strong>{label}</strong>
+              </li>
+            ))}
+          </ol>
+          <time className="matched-ride-departure" dateTime={departureValue}>
+            <Clock3 aria-hidden="true" size={17} />
+            <span>
+              <small>Khởi hành</small>
+              <strong>
+                {departure.toLocaleDateString("vi-VN")} ·{" "}
+                {departure.toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </strong>
+            </span>
+          </time>
+        </div>
+
+        <div className="matched-ride-body">
+          <div className="matched-ride-route">
+            <span className="matched-ride-route-line" aria-hidden="true">
+              <i />
+              <b />
+              <i />
+            </span>
+            <div className="matched-ride-route-points">
+              <div>
+                <small>Điểm đi</small>
+                <strong>
+                  {post?.originLabel ||
+                    tripData?.originLabel ||
+                    "Điểm đón của bạn"}
+                </strong>
+              </div>
+              <div>
+                <small>Điểm đến</small>
+                <strong>
+                  {post?.destinationLabel ||
+                    tripData?.destinationLabel ||
+                    "Điểm đến của chuyến đi"}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="matched-ride-companion">
+            <div className="matched-ride-person">
+              <MemberAvatar
+                name={companionName}
+                avatarUrl={companionAvatar}
+                className="matched-ride-avatar"
+                size={38}
+              />
+              <div className="matched-ride-copy">
+                <h2 id="matched-ride-title">{companionName}</h2>
+              </div>
+            </div>
+            <div className="matched-ride-actions">
+              <Link
+                aria-label="Nhắn tin"
+                href={
+                  response?.conversationId
+                    ? `/inbox/${encodeURIComponent(response.conversationId)}`
+                    : "/inbox"
+                }
+                title="Nhắn tin"
+              >
+                <MessageCircle aria-hidden="true" size={17} />
+              </Link>
+              {response?.companionPhone ? (
+                <a
+                  aria-label="Gọi điện qua SMS"
+                  href={`sms:${response.companionPhone}`}
+                  title="Gọi điện qua SMS"
+                >
+                  <Phone aria-hidden="true" size={17} />
+                </a>
+              ) : (
+                <button
+                  aria-label="Gọi điện qua SMS"
+                  disabled
+                  type="button"
+                  title="Chưa có số điện thoại"
+                >
+                  <Phone aria-hidden="true" size={17} />
+                </button>
+              )}
+              <Link
+                aria-label="Xem chi tiết"
+                href={
+                  post
+                    ? `/feed/${encodeURIComponent(post.id)}`
+                    : `/bookings/${encodeURIComponent(booking!.id)}`
+                }
+                title="Xem chi tiết"
+              >
+                <Eye aria-hidden="true" size={17} />
+              </Link>
+            </div>
+            <button
+              className="matched-ride-status-action"
+              type="button"
+              disabled={!canUpdateStatus || updateStatus.isPending}
+              onClick={() => updateStatus.mutate()}
+            >
+              {updateStatus.isPending
+                ? "Đang cập nhật…"
+                : nextStatus?.label || "Chuyến đi đã hoàn thành"}
+              {nextStatus ? <ArrowRight aria-hidden="true" size={17} /> : null}
+            </button>
+            {updateStatus.isError ? (
+              <p className="matched-ride-status-error" role="alert">
+                {updateStatus.error.message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </article>
   );
 }

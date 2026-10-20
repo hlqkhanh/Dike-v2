@@ -6,7 +6,10 @@ import com.dike.identity.application.IdentityProvisioningService;
 import com.dike.identity.domain.AccountRole;
 import com.dike.identity.domain.ConsentDecision;
 import com.dike.identity.domain.ConsentType;
+import com.dike.identity.infrastructure.security.MobileSessionIdResolver;
 import com.dike.identity.infrastructure.security.SessionAttributes;
+import com.dike.shared.api.ApiException;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -26,6 +29,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpStatus;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -69,6 +73,27 @@ public class LocalDevAuthController {
       HttpServletRequest request,
       HttpServletResponse response)
       throws IOException {
+    createSession(request, provisionPersona(persona), false);
+    response.sendRedirect(publicBaseUrl.resolve("/feed?devSession=true").toString());
+  }
+
+  @Hidden
+  @GetMapping(value = "/mobile", headers = "X-Dike-Client=mobile")
+  MobileLoginResponse mobile(
+      @RequestParam(defaultValue = "member") String persona, HttpServletRequest request) {
+    if (request.getHeader("Origin") != null || request.getHeader("Referer") != null) {
+      throw new ApiException(
+          HttpStatus.FORBIDDEN, "NATIVE_CLIENT_REQUIRED", "Chỉ dùng cho ứng dụng local");
+    }
+    HttpSession session = createSession(request, provisionPersona(persona), true);
+    return new MobileLoginResponse(
+        MobileSessionIdResolver.tokenFor(session),
+        (Instant) session.getAttribute(SessionAttributes.ABSOLUTE_EXPIRES_AT));
+  }
+
+  public record MobileLoginResponse(String token, Instant expiresAt) {}
+
+  private String provisionPersona(String persona) {
     String safePersona = persona.toLowerCase(Locale.ROOT);
     if (!Set.of("member", "driver", "admin").contains(safePersona)) safePersona = "member";
     var user =
@@ -104,8 +129,7 @@ public class LocalDevAuthController {
       consents.decide(user.id(), type, ConsentDecision.ACCEPTED, "vi");
     }
     ensureProfile(user.id(), user.displayName());
-    createSession(request, user.id());
-    response.sendRedirect(publicBaseUrl.resolve("/feed?devSession=true").toString());
+    return user.id();
   }
 
   private void ensureProfile(String userId, String displayName) {
@@ -130,7 +154,7 @@ public class LocalDevAuthController {
         "user_privacy_settings");
   }
 
-  private void createSession(HttpServletRequest request, String userId) {
+  private HttpSession createSession(HttpServletRequest request, String userId, boolean mobile) {
     Instant now = clock.instant();
     HttpSession existing = request.getSession(false);
     if (existing != null) existing.invalidate();
@@ -140,9 +164,13 @@ public class LocalDevAuthController {
     session.setAttribute(SessionAttributes.CREATED_AT, now);
     session.setAttribute(SessionAttributes.LAST_SEEN_AT, now);
     session.setAttribute(SessionAttributes.ABSOLUTE_EXPIRES_AT, now.plus(absoluteLifetime));
-    session.setAttribute(SessionAttributes.DEVICE_LABEL, "Trình duyệt phát triển local");
+    session.setAttribute(
+        SessionAttributes.DEVICE_LABEL,
+        mobile ? "Ứng dụng Dike local" : "Trình duyệt phát triển local");
+    session.setAttribute(SessionAttributes.MOBILE, mobile);
     session.setAttribute(SessionAttributes.ACCOUNT_ID, userId);
     session.setAttribute(SessionAttributes.GOOGLE_AUTHENTICATED_AT, now);
     session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, userId);
+    return session;
   }
 }

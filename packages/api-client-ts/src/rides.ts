@@ -45,6 +45,7 @@ export type RidePostResponse = {
   requesterId: string;
   requesterDisplayName: string;
   requesterAvatarUrl: string | null;
+  companionPhone?: string | null;
   ownerId: string;
   action: "REQUEST_RIDE" | "OFFER_RIDE";
   status:
@@ -150,6 +151,8 @@ export function createRideApi(configuration: ApiClientConfiguration) {
       request<RidePostRoute>(`/ride-posts/${id(postId)}/route`),
     postResponses: (postId: string) =>
       request<RidePostResponse[]>(`/ride-posts/${id(postId)}/responses`),
+    activePostResponses: () =>
+      request<RidePostResponse[]>("/ride-post-responses/active"),
     checkPickup: (postId: string, body: PickupCheckInput) =>
       request<PickupCheck>(
         `/ride-posts/${id(postId)}/pickup-checks`,

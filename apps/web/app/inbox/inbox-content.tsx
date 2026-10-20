@@ -3,7 +3,7 @@ import { useSearchParams } from "next/navigation";
 import { MemberAvatar } from "../components/member-avatar";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CarFront, ChevronRight, MessageCircle, Search } from "lucide-react";
 import { journeyApi } from "../../src/journey/api";
 import { EmptyState, ErrorState, LoadingState } from "../components/app-ui";
@@ -40,6 +40,25 @@ function InboxWorkspace({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversationId,
   );
+  const workspace = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const resize = () => {
+      const container = workspace.current;
+      if (!container) return;
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      container.style.setProperty(
+        "--inbox-height",
+        `${Math.max(0, height - (container.getBoundingClientRect().top + window.scrollY) - 16) + 330}px`,
+      );
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
+    };
+  }, []);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const conversations = useQuery({
@@ -68,6 +87,7 @@ function InboxWorkspace({
   }, [conversations.data, filter, search]);
   return (
     <div
+      ref={workspace}
       className={`inbox-workspace inbox-layout inbox-split${selectedId ? " has-selection" : ""}`}
     >
       <div className="inbox-sidebar">

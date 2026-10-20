@@ -9,5 +9,7 @@ public interface PostAccounts {
 
   String avatarUrl(String userId);
 
+  String phoneNumber(String userId);
+
   void fence(String userId);
 }

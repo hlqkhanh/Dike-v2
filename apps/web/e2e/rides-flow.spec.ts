@@ -326,6 +326,182 @@ test("home feed scrolls over the stationary banner without scrolling the documen
   await expect(roleCards).not.toHaveAttribute("inert", "");
 });
 
+test("shows a matched post response above the feed and removes its post card", async ({
+  page,
+}) => {
+  const post = {
+    id: "matched-post",
+    ownerId: "driver-other",
+    ownerDisplayName: "Quốc Khánh Hồ Lê",
+    type: "OFFER_RIDE",
+    status: "MATCHED",
+    visibility: "PUBLIC",
+    communityId: null,
+    originLabel: "Đại học FPT Quy Nhơn",
+    destinationLabel: "Quy Nhơn, Bình Định",
+    vehicleType: "MOTORCYCLE",
+    departureAt: "2026-10-22T00:30:00Z",
+    expiresAt: "2026-10-22T01:30:00Z",
+    note: "Đi cùng",
+    version: 0,
+    termsVersion: 0,
+    remainingSeats: 1,
+    contributionPerKm: 500,
+  };
+  await page.route("**/api/v1/bookings**", (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        nextCursor: null,
+      },
+    }),
+  );
+  await page.route("**/api/v1/trips/trip-home", (route) =>
+    route.fulfill({
+      json: {
+        id: "trip-home",
+        driverId: "driver-other",
+        status: "OPEN",
+        vehicleType: "MOTORCYCLE",
+        originLabel: "Đại học FPT Quy Nhơn",
+        destinationLabel: "Quy Nhơn, Bình Định",
+        departureAt: "2026-10-22T00:30:00Z",
+        arrivalAt: "2026-10-22T01:15:00Z",
+        offeredSeats: 4,
+        remainingSeats: 1,
+        contributionPerKm: 500,
+        visibility: "PUBLIC",
+        communityId: null,
+        version: 0,
+        termsVersion: 0,
+        routeVersion: 0,
+      },
+    }),
+  );
+  await page.route("**/api/v1/users/driver-other", (route) =>
+    route.fulfill({
+      json: {
+        userId: "driver-other",
+        displayName: "Quốc Khánh Hồ Lê",
+        bio: "",
+        avatarUrl: "",
+        verified: true,
+      },
+    }),
+  );
+  await page.route("**/api/v1/ride-posts?**", (route) =>
+    route.fulfill({ json: { items: [post], nextCursor: null } }),
+  );
+  await page.route("**/api/v1/ride-posts/matched-post", (route) =>
+    route.fulfill({ json: post }),
+  );
+  await page.route("**/api/v1/ride-post-responses/active", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: "accepted-response",
+          postId: post.id,
+          requesterId: "passenger",
+          requesterDisplayName: "Khách thử nghiệm",
+          requesterAvatarUrl: null,
+          companionPhone: "+84901234567",
+          ownerId: post.ownerId,
+          action: "OFFER_RIDE",
+          status: "ACCEPTED",
+          message: "",
+          conversationId: "conversation-home",
+          createdAt: "2026-10-19T00:00:00Z",
+          updatedAt: "2026-10-19T00:00:00Z",
+          version: 1,
+        },
+      ],
+    }),
+  );
+  await page.route("**/api/v1/ride-posts/matched-post/responses", (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: "accepted-response",
+          postId: post.id,
+          requesterId: "passenger",
+          requesterDisplayName: "Khách thử nghiệm",
+          requesterAvatarUrl: null,
+          companionPhone: "+84901234567",
+          ownerId: post.ownerId,
+          action: "OFFER_RIDE",
+          status: "ACCEPTED",
+          message: "",
+          conversationId: "conversation-home",
+          createdAt: "2026-10-19T00:00:00Z",
+          updatedAt: "2026-10-19T00:00:00Z",
+          version: 1,
+        },
+      ],
+    }),
+  );
+  let nextDecision: unknown;
+  await page.route(
+    "**/api/v1/ride-post-responses/accepted-response/decision",
+    async (route) => {
+      nextDecision = route.request().postDataJSON();
+      await route.fulfill({
+        json: {
+          id: "accepted-response",
+          postId: post.id,
+          requesterId: "passenger",
+          requesterDisplayName: "Khách thử nghiệm",
+          requesterAvatarUrl: null,
+          companionPhone: "+84901234567",
+          ownerId: post.ownerId,
+          action: "OFFER_RIDE",
+          status: "DRIVER_STARTED",
+          message: "",
+          conversationId: "conversation-home",
+          createdAt: "2026-10-19T00:00:00Z",
+          updatedAt: "2026-10-19T00:01:00Z",
+          version: 2,
+        },
+      });
+    },
+  );
+
+  await page.goto("/home");
+  const matchedCard = page.locator(".matched-ride-card");
+  await expect(matchedCard).toBeVisible();
+  await expect(
+    matchedCard.getByRole("heading", { name: "Quốc Khánh Hồ Lê" }),
+  ).toBeVisible();
+  await expect(
+    matchedCard.getByText("Khởi hành", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    matchedCard.getByRole("link", { name: /Xem chi tiết/ }),
+  ).toHaveAttribute("href", "/feed/matched-post");
+  await expect(
+    matchedCard.getByRole("link", { name: "Gọi điện qua SMS" }),
+  ).toHaveAttribute("href", "sms:+84901234567");
+  await matchedCard.getByRole("button", { name: "Đến đón" }).click();
+  await expect
+    .poll(() => nextDecision)
+    .toEqual({
+      version: 1,
+      decision: "DRIVER_STARTED",
+    });
+  await expect(page.locator(".new-ride-card")).toHaveCount(0);
+  await expect(page.locator(".matched-ride-card-art")).toHaveCSS(
+    "background-image",
+    /complete_ride_card\.png/,
+  );
+
+  const roleCards = await page.locator(".new-home-cards-row").boundingBox();
+  const matchBounds = await matchedCard.boundingBox();
+  const feedHeading = await page
+    .getByRole("heading", { name: "Bảng feed" })
+    .boundingBox();
+  expect(matchBounds!.y).toBeGreaterThan(roleCards!.y + roleCards!.height);
+  expect(feedHeading!.y).toBeGreaterThan(matchBounds!.y + matchBounds!.height);
+});
+
 test("confirms an offer to carry before sending it to the post owner", async ({
   page,
 }) => {

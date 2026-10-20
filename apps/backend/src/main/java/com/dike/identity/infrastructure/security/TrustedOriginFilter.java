@@ -26,7 +26,8 @@ final class TrustedOriginFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    if (isSafe(request.getMethod())) {
+    if (isSafe(request.getMethod())
+        || MobileSessionIdResolver.isAuthenticatedMobileRequest(request)) {
       filterChain.doFilter(request, response);
       return;
     }

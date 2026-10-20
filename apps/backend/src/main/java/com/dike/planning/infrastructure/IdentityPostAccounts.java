@@ -34,6 +34,10 @@ class IdentityPostAccounts implements PostAccounts {
     return accounts.avatarUrl(id);
   }
 
+  public String phoneNumber(String id) {
+    return accounts.verifiedPhoneNumber(id);
+  }
+
   public void fence(String id) {
     guard.fence(id);
   }

@@ -8,8 +8,10 @@ import com.dike.shared.api.ApiException;
 import com.mongodb.client.result.UpdateResult;
 import java.time.*;
 import java.util.Date;
+import java.util.List;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.*;
@@ -21,6 +23,7 @@ class RidePostPickupResponseTest {
   final NotificationPublisher notifications = mock(NotificationPublisher.class);
   final ConfirmedConversationPublisher conversations = mock(ConfirmedConversationPublisher.class);
   final PickupCompatibilityService pickups = mock(PickupCompatibilityService.class);
+  final com.dike.planning.PostAccounts accounts = mock(com.dike.planning.PostAccounts.class);
   final Instant now = Instant.parse("2026-10-14T00:00:00Z");
   final RidePostResponseService responses =
       new RidePostResponseService(
@@ -28,9 +31,40 @@ class RidePostPickupResponseTest {
           posts,
           notifications,
           conversations,
-          mock(com.dike.planning.PostAccounts.class),
+          accounts,
           Clock.fixed(now, ZoneOffset.UTC),
           pickups);
+
+  @Test
+  void activeResponsesReturnCurrentUsersConfirmedMatches() {
+    var accepted =
+        new Document("_id", "request")
+            .append("ownerId", "driver")
+            .append("requesterId", "passenger")
+            .append("postId", "post")
+            .append("action", "REQUEST_RIDE")
+            .append("status", "ACCEPTED")
+            .append("version", 1L)
+            .append("message", "")
+            .append("conversationId", "conversation")
+            .append("createdAt", Date.from(now.minusSeconds(60)))
+            .append("updatedAt", Date.from(now));
+    when(mongo.find(any(Query.class), eq(Document.class), eq("ride_post_responses")))
+        .thenReturn(List.of(accepted));
+    when(accounts.displayName("passenger")).thenReturn("Khách thử nghiệm");
+    when(accounts.phoneNumber("driver")).thenReturn("+84901234567");
+
+    var result = responses.active("passenger");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().status()).isEqualTo("ACCEPTED");
+    assertThat(result.getFirst().postId()).isEqualTo("post");
+    assertThat(result.getFirst().companionPhone()).isEqualTo("+84901234567");
+    var query = ArgumentCaptor.forClass(Query.class);
+    verify(mongo).find(query.capture(), eq(Document.class), eq("ride_post_responses"));
+    assertThat(query.getValue().getQueryObject().toJson())
+        .contains("passenger", "ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED");
+  }
 
   @Test
   void sameRouteRequestCanBeSentWithoutPickupEvidenceOrMessage() {
@@ -43,6 +77,7 @@ class RidePostPickupResponseTest {
     assertThat(result.status()).isEqualTo("PENDING");
     assertThat(result.message()).isEmpty();
     assertThat(result.pickupCheck()).isNull();
+    assertThat(result.companionPhone()).isNull();
     verify(pickups).require("passenger", "post", null);
     verifyNoInteractions(conversations);
   }

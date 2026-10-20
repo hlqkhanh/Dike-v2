@@ -5,6 +5,7 @@ import com.dike.identity.application.AccountAuthority;
 import com.dike.identity.application.IdentityStore;
 import com.dike.identity.application.ProfileDataStore;
 import com.dike.identity.domain.AccountStatus;
+import com.dike.identity.domain.PhoneStatus;
 import org.springframework.stereotype.Service;
 
 /** Public identity-module facade for authorization decisions in other modules. */
@@ -52,6 +53,15 @@ public class IdentityAccess {
                     .map(account -> account.avatarUrl())
                     .filter(url -> !url.isBlank())
                     .orElse(null));
+  }
+
+  public String verifiedPhoneNumber(String userId) {
+    return identities
+        .findUserById(userId)
+        .filter(account -> account.phoneStatus() == PhoneStatus.VERIFIED)
+        .map(account -> account.phoneE164())
+        .filter(phone -> phone != null && !phone.isBlank())
+        .orElse(null);
   }
 
   public Access require(String userId) {

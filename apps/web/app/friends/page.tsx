@@ -93,7 +93,9 @@ export default function FriendsPage() {
   };
 
   return (
-    <main className="friends-redesign-page">
+    <main
+      className={`friends-redesign-page${tab === "messages" ? " is-messages" : ""}`}
+    >
       <section className="friends-hero">
         <div className="friends-hero-inner">
           <div className="friends-hero-copy">
