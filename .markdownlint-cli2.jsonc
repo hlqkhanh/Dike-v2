@@ -9,6 +9,10 @@
   },
   "ignores": [
     ".tmp/**",
+    ".p/**",
+    "apps/mobile/.expo/**",
+    "apps/mobile/android/**",
+    "apps/mobile/ios/**",
     "**/node_modules/**",
     "**/target/**",
     "**/dist/**",
