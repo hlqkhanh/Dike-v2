@@ -5,10 +5,10 @@ import com.dike.identity.api.AuthResponses.SessionListResponse;
 import com.dike.identity.application.AuthTelemetry;
 import com.dike.identity.application.DikePrincipal;
 import com.dike.identity.application.LoginRateLimiter;
+import com.dike.identity.application.MobileSessionTokens;
 import com.dike.identity.application.OtpOperations;
 import com.dike.identity.application.PhoneOnboardingService;
 import com.dike.identity.application.SessionApplicationService;
-import com.dike.identity.infrastructure.security.MobileSessionIdResolver;
 import com.dike.shared.api.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -76,7 +76,7 @@ public class AuthController {
       @AuthenticationPrincipal DikePrincipal principal,
       HttpServletRequest request,
       CsrfToken csrfToken) {
-    if (!MobileSessionIdResolver.isAuthenticatedMobileRequest(request)) csrfToken.getToken();
+    if (!MobileSessionTokens.isAuthenticatedMobileRequest(request)) csrfToken.getToken();
     return sessions.current(principal, request.getSession());
   }
 

@@ -3,10 +3,10 @@ package com.dike.identity.api;
 import com.dike.identity.application.ConsentService;
 import com.dike.identity.application.GoogleIdentityClaims;
 import com.dike.identity.application.IdentityProvisioningService;
+import com.dike.identity.application.MobileSessionTokens;
 import com.dike.identity.domain.AccountRole;
 import com.dike.identity.domain.ConsentDecision;
 import com.dike.identity.domain.ConsentType;
-import com.dike.identity.infrastructure.security.MobileSessionIdResolver;
 import com.dike.identity.infrastructure.security.SessionAttributes;
 import com.dike.shared.api.ApiException;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -87,7 +87,7 @@ public class LocalDevAuthController {
     }
     HttpSession session = createSession(request, provisionPersona(persona), true);
     return new MobileLoginResponse(
-        MobileSessionIdResolver.tokenFor(session),
+        MobileSessionTokens.tokenFor(session),
         (Instant) session.getAttribute(SessionAttributes.ABSOLUTE_EXPIRES_AT));
   }
 
