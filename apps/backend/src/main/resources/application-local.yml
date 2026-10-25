@@ -6,5 +6,9 @@ dike:
     simulated-full-access-enabled: ${DIKE_SIMULATED_FULL_ACCESS_ENABLED:true}
   auth:
     dev-login-enabled: ${DIKE_DEV_AUTH_ENABLED:true}
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:8081
+      - http://localhost:19006
   migrations:
     enabled: true

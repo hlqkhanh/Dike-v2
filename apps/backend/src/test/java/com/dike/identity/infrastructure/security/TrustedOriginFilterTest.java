@@ -15,6 +15,33 @@ class TrustedOriginFilterTest {
   private final TrustedOriginFilter filter = new TrustedOriginFilter(properties());
 
   @Test
+  void acceptsExplicitMobileCredentialWithoutBrowserOrigin() throws Exception {
+    var request = new MockHttpServletRequest("POST", "/api/v1/auth/logout");
+    var session = new org.springframework.mock.web.MockHttpSession(null, "00000000-0000-0000-0000-000000000000");
+    session.setAttribute(SessionAttributes.MOBILE, true);
+    session.setAttribute(SessionAttributes.ACCOUNT_ID, "member");
+    request.setSession(session);
+    request.addHeader("Authorization", "Bearer dike-mobile." + session.getId());
+    var chain = new MockFilterChain();
+    filter.doFilter(request, new MockHttpServletResponse(), chain);
+    assertThat(chain.getRequest()).isNotNull();
+  }
+
+  @Test
+  void onlyHandoffExchangeSkipsOriginCheckWithoutCredential() throws Exception {
+    var request = new MockHttpServletRequest("POST", "/api/v1/auth/mobile/exchange");
+    var chain = new MockFilterChain();
+    filter.doFilter(request, new MockHttpServletResponse(), chain);
+    assertThat(chain.getRequest()).isNotNull();
+
+    var mutation = new MockHttpServletRequest("POST", "/api/v1/auth/logout");
+    mutation.addHeader("Authorization", "Bearer bad");
+    var response = new MockHttpServletResponse();
+    filter.doFilter(mutation, response, new MockFilterChain());
+    assertThat(response.getStatus()).isEqualTo(403);
+  }
+
+  @Test
   void acceptsConfiguredOriginForMutation() throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/logout");
     request.addHeader("Origin", "http://localhost:3000");

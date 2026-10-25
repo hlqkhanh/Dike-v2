@@ -593,6 +593,17 @@ public class PostService implements PostAccess {
     return p;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostDraftSource")
+  public record DraftSource(String id, long version, String status) {}
+
+  public DraftSource draftSource(String actor, String id, long version) {
+    active(actor);
+    var post = owned(actor, id, version);
+    if (post.status() != Status.DRAFT || post.type() != Type.OFFER_RIDE) throw conflict();
+    var trip = trips.offer(post.sourceId()).orElseThrow(PostService::missing);
+    return new DraftSource(trip.id(), trip.version(), trip.status());
+  }
+
   private void validate(String visibility, String community, String note, String actor) {
     if (visibility == null
         || !List.of("PUBLIC", "FRIENDS", "COMMUNITY").contains(visibility)

@@ -1,15 +1,19 @@
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
+  Pressable,
+  Image,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { PropsWithChildren } from "react";
 
 import { theme } from "@/core/theme";
+import { router } from "expo-router";
+import { Text, Icon, LoadingCards } from "./ui";
+import { ArtHeader } from "./ArtHeader";
+import { homeAssets, type PageArt } from "@/core/assets";
 
 type ScreenProps = PropsWithChildren<{
   title: string;
@@ -17,6 +21,9 @@ type ScreenProps = PropsWithChildren<{
   loading?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
+  art?: PageArt;
+  hideHeader?: boolean;
+  backgroundColor?: string;
 }>;
 
 export function Screen({
@@ -26,10 +33,17 @@ export function Screen({
   refreshing,
   onRefresh,
   children,
+  art,
+  hideHeader,
+  backgroundColor,
 }: ScreenProps) {
   return (
-    <SafeAreaView edges={["top"]} style={styles.page}>
+    <SafeAreaView
+      edges={["top"]}
+      style={[styles.page, backgroundColor ? { backgroundColor } : null]}
+    >
       <ScrollView
+        style={backgroundColor ? { backgroundColor } : undefined}
         contentContainerStyle={styles.content}
         refreshControl={
           onRefresh ? (
@@ -44,27 +58,33 @@ export function Screen({
       >
         <View style={styles.brandRow}>
           <View style={styles.brandMark}>
-            <Text style={styles.brandMarkText}>Di</Text>
+            <Image
+              source={homeAssets.logo}
+              accessibilityLabel="Logo Diké"
+              style={{ width: 38, height: 38 }}
+            />
           </View>
           <Text style={styles.brandName}>Diké</Text>
-          <View style={styles.notification}>
-            <Text style={styles.notificationText}>●</Text>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Thông báo"
+            onPress={() => router.push("/notifications")}
+            style={styles.notification}
+          >
+            <Icon name="notifications-outline" />
+          </Pressable>
         </View>
-        <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
-        {loading ? (
-          <ActivityIndicator
-            accessibilityLabel="Đang tải"
-            color={theme.colors.primary}
-          />
+        {hideHeader ? null : art ? (
+          <ArtHeader title={title} subtitle={subtitle} art={art} />
         ) : (
-          children
+          <View style={styles.header}>
+            <Text accessibilityRole="header" style={styles.title}>
+              {title}
+            </Text>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          </View>
         )}
+        {loading ? <LoadingCards /> : children}
       </ScrollView>
     </SafeAreaView>
   );
@@ -95,8 +115,8 @@ const styles = StyleSheet.create({
   page: { backgroundColor: theme.colors.canvas, flex: 1 },
   content: {
     gap: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: 44,
+    paddingHorizontal: 20,
+    paddingBottom: 120,
   },
   brandRow: {
     alignItems: "center",
@@ -105,7 +125,7 @@ const styles = StyleSheet.create({
   },
   brandMark: {
     alignItems: "center",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "transparent",
     borderRadius: 12,
     height: 38,
     justifyContent: "center",
@@ -124,10 +144,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: 18,
     borderWidth: 1,
-    height: 36,
+    height: 48,
     justifyContent: "center",
     marginLeft: "auto",
-    width: 36,
+    width: 48,
   },
   notificationText: { color: "#ef4444", fontSize: 10 },
   header: { gap: theme.spacing.xs, paddingBottom: 10, paddingTop: 4 },

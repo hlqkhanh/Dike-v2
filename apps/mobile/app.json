@@ -23,7 +23,9 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_BACKGROUND_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -33,10 +35,21 @@
       [
         "expo-location",
         {
+          "locationWhenInUsePermission": "Diké dùng vị trí khi bạn chọn để xác định điểm đi và điểm đón.",
           "locationAlwaysAndWhenInUsePermission": "Dike chỉ dùng vị trí trong chuyến đang hoạt động khi bạn đồng ý."
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-font"
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "26047d96-e5e6-48aa-bc18-8a4f7398e292"
+      }
+    }
   }
 }

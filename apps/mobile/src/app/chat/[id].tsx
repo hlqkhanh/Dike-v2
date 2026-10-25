@@ -1,169 +1,283 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-
-import { DetailPage, detailStyles } from "@/components/DetailPage";
-import { createMobileApi } from "@/core/api";
+import { useEffect, useRef, useState } from "react";
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { randomUUID } from "expo-crypto";
+import type { JourneyMessage } from "@dike/api-client-ts";
+import {
+  Avatar,
+  Button,
+  Card,
+  EmptyState,
+  ErrorText,
+  Field,
+  Icon,
+  Text,
+  ui,
+} from "@/components/ui";
+import { useMobileApi, dateTime } from "@/core/hooks";
 import { useSession } from "@/core/session";
-import { theme } from "@/core/theme";
-
+import { useReducedMotion } from "@/core/accessibility";
 export default function Chat() {
+  const reducedMotion = useReducedMotion();
   const { id = "" } = useLocalSearchParams<{ id: string }>();
-  const { token, session } = useSession();
-  const api = createMobileApi(() => Promise.resolve(token));
+  const api = useMobileApi();
+  const { session } = useSession();
+  const client = useQueryClient();
+  const [text, setText] = useState("");
+  const list = useRef<FlatList<JourneyMessage>>(null);
+  const seen = useRef(0);
   const info = useQuery({
     queryKey: ["mobile-conversation", id],
     queryFn: () => api.conversation(id),
-    enabled: Boolean(id),
+    refetchInterval: 10000,
   });
   const messages = useQuery({
     queryKey: ["mobile-messages", id],
     queryFn: () => api.messages(id),
-    enabled: Boolean(id),
-    refetchInterval: 5_000,
+    refetchInterval: 4000,
   });
-  const post = useQuery({
-    queryKey: ["mobile-chat-post", info.data?.postId],
-    queryFn: () => api.post(info.data!.postId!),
-    enabled: Boolean(info.data?.postId),
-  });
-  const [text, setText] = useState("");
   const send = useMutation({
-    mutationFn: () => api.sendMessage(id, text.trim()),
-    onSuccess: () => {
-      setText("");
+    mutationFn: (value: { text: string; clientMessageId: string }) =>
+      api.sendMessage(id, value.text, value.clientMessageId),
+    onSuccess: (_, value) => {
+      setText((current) => (current === value.text ? "" : current));
       void messages.refetch();
+      void client.invalidateQueries({ queryKey: ["mobile-conversations"] });
     },
   });
+  const decide = useMutation({
+    mutationFn: (accept: boolean) =>
+      api.call(
+        `/message-requests/${id}/${accept ? "accept" : "reject"}`,
+        "POST",
+        { version: info.data!.version },
+      ),
+    onSuccess: () => void info.refetch(),
+  });
+  const sorted = [...(messages.data ?? [])].sort(
+    (a, b) => a.sequence - b.sequence,
+  );
+  const last = sorted.at(-1)?.sequence ?? 0;
+  useEffect(() => {
+    if (last <= seen.current) return;
+    let cancelled = false;
+    void api
+      .call(`/conversations/${id}/read`, "POST", { sequence: last })
+      .then(() => {
+        if (!cancelled) {
+          seen.current = last;
+          void client.invalidateQueries({ queryKey: ["mobile-conversations"] });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [api, id, last, client]);
   return (
-    <DetailPage
-      loading={info.isLoading}
-      subtitle="Đang trò chuyện"
-      title={info.data?.recipientDisplayName || "Tin nhắn"}
-    >
-      {post.data ? (
-        <Link
-          asChild
-          href={{ pathname: "/posts/[id]", params: { id: post.data.id } }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3faf7" }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View
+          style={[
+            ui.row,
+            {
+              padding: 16,
+              borderBottomWidth: 1,
+              borderColor: "#deece5",
+              backgroundColor: "#f7fcf9",
+              paddingVertical: 18,
+            },
+          ]}
         >
-          <Pressable style={styles.pinned}>
-            <Text style={detailStyles.eyebrow}>📌 CHUYẾN ĐI ĐÃ GHIM</Text>
-            <View style={styles.pinnedRoute}>
-              <Text numberOfLines={1} style={styles.pinnedPlace}>
-                {post.data.originLabel}
-              </Text>
-              <Text style={styles.routeArrow}>→</Text>
-              <Text numberOfLines={1} style={styles.pinnedPlace}>
-                {post.data.destinationLabel}
-              </Text>
-            </View>
-            <Text style={detailStyles.muted}>
-              ▣ {new Date(post.data.departureAt).toLocaleString("vi-VN")}
-            </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Quay lại"
+            style={ui.iconButton}
+            onPress={() =>
+              router.canGoBack()
+                ? router.back()
+                : router.replace("/(tabs)/inbox")
+            }
+          >
+            <Icon name="arrow-back" />
           </Pressable>
-        </Link>
-      ) : null}
-      <View style={styles.thread}>
-        {(messages.data ?? []).map((message) => {
-          const own = message.senderId === session?.user.id;
-          return (
-            <View
-              key={message.id}
-              style={[styles.bubble, own ? styles.own : styles.other]}
-            >
-              <Text style={[styles.message, own && styles.ownText]}>
-                {message.text}
-              </Text>
-              <Text style={[styles.time, own && styles.ownTime]}>
-                {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </View>
-          );
-        })}
-        {messages.data?.length === 0 ? (
-          <Text style={detailStyles.muted}>
-            Hãy gửi lời chào để bắt đầu trao đổi.
-          </Text>
+          <Avatar
+            size={48}
+            name={info.data?.recipientDisplayName}
+            uri={info.data?.recipientAvatarUrl}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "800" }}>
+              {info.data?.recipientDisplayName || "Tin nhắn"}
+            </Text>
+            <Text style={[ui.muted, { fontSize: 11 }]}>Người cùng đường</Text>
+          </View>
+        </View>
+        {info.isError ? (
+          <EmptyState
+            title="Chưa tải được hội thoại"
+            onRetry={() => void info.refetch()}
+          />
         ) : null}
-      </View>
-      <View style={styles.composer}>
-        <TextInput
-          onChangeText={setText}
-          placeholder="Nhập tin nhắn..."
-          style={[detailStyles.field, styles.input]}
-          value={text}
+        {info.data?.state === "REQUEST_PENDING" &&
+        info.data.canSend === false ? (
+          <Card>
+            <Text style={ui.muted}>
+              Bạn có muốn nhận lời mời trò chuyện này?
+            </Text>
+            <Button
+              label="Chấp nhận"
+              pending={decide.isPending}
+              onPress={() => decide.mutate(true)}
+            />
+            <Button
+              label="Từ chối"
+              variant="secondary"
+              pending={decide.isPending}
+              onPress={() => decide.mutate(false)}
+            />
+            <ErrorText error={decide.error} />
+          </Card>
+        ) : null}
+        <FlatList
+          ref={list}
+          data={sorted}
+          keyExtractor={(m) => m.id}
+          contentContainerStyle={{ padding: 20, gap: 12, flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() =>
+            list.current?.scrollToEnd({ animated: !reducedMotion })
+          }
+          ListEmptyComponent={
+            <EmptyState
+              title={
+                messages.isLoading
+                  ? "Đang tải tin nhắn…"
+                  : "Bắt đầu bằng một lời chào"
+              }
+              description="Trao đổi điểm đón và thời gian với người cùng đi."
+              icon="chatbubbles-outline"
+            />
+          }
+          ListHeaderComponent={
+            messages.isError ? (
+              <EmptyState
+                title="Chưa tải được tin nhắn"
+                onRetry={() => void messages.refetch()}
+              />
+            ) : null
+          }
+          renderItem={({ item: m }) => {
+            const own = m.senderId === session?.user.id;
+            return (
+              <View
+                style={{
+                  alignSelf: own ? "flex-end" : "flex-start",
+                  maxWidth: "88%",
+                  backgroundColor: own ? "#087d61" : "#fff",
+                  padding: 14,
+                  borderRadius: 20,
+                  borderBottomRightRadius: own ? 5 : 20,
+                  borderBottomLeftRadius: own ? 20 : 5,
+                  gap: 7,
+                }}
+              >
+                {m.ridePost && !m.hidden ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/posts/[id]",
+                        params: { id: m.ridePost!.postId },
+                      })
+                    }
+                  >
+                    <Text
+                      style={{
+                        color: own ? "#fff" : "#087d61",
+                        fontSize: 14,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {m.ridePost.originLabel} · {m.ridePost.destinationLabel}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                <Text
+                  style={{
+                    fontSize: 15,
+                    lineHeight: 23,
+                    color: own ? "#fff" : "#12342d",
+                  }}
+                >
+                  {m.hidden ? "Tin nhắn đã được ẩn" : m.text}
+                </Text>
+                <Text
+                  style={{ fontSize: 10, color: own ? "#e6fff2" : "#526e62" }}
+                >
+                  {dateTime(m.createdAt)}
+                </Text>
+              </View>
+            );
+          }}
         />
-        <Pressable
-          disabled={!text.trim() || send.isPending}
-          onPress={() => send.mutate()}
-          style={styles.send}
+        {send.isError ? (
+          <View style={{ padding: 16, gap: 8 }}>
+            <ErrorText error={send.error} />
+            <Button
+              label="Gửi lại tin nhắn"
+              variant="secondary"
+              pending={send.isPending}
+              onPress={() => send.variables && send.mutate(send.variables)}
+            />
+          </View>
+        ) : null}
+        <View
+          style={{
+            padding: 16,
+            backgroundColor: "#fff",
+            borderTopWidth: 1,
+            borderColor: "#deece5",
+            gap: 12,
+          }}
         >
-          <Text style={styles.sendText}>➤</Text>
-        </Pressable>
-      </View>
-    </DetailPage>
+          <Field
+            label="Tin nhắn"
+            value={text}
+            onChangeText={setText}
+            placeholder={
+              info.data?.canSend === false
+                ? "Chờ lời mời được chấp nhận"
+                : "Nhập lời nhắn…"
+            }
+            editable={info.data?.canSend !== false && !send.isError}
+            multiline
+            maxLength={2000}
+          />
+          <Button
+            label="Gửi tin nhắn"
+            icon="send-outline"
+            disabled={
+              !text.trim() || info.data?.canSend === false || send.isError
+            }
+            pending={send.isPending}
+            onPress={() =>
+              send.mutate({ text: text.trim(), clientMessageId: randomUUID() })
+            }
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  pinned: {
-    ...theme.shadow.card,
-    backgroundColor: "#fff",
-    borderColor: "#bfe3d6",
-    borderRadius: 17,
-    borderWidth: 1,
-    gap: 9,
-    padding: 15,
-  },
-  pinnedRoute: { alignItems: "center", flexDirection: "row", gap: 9 },
-  pinnedPlace: {
-    color: theme.colors.ink,
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  routeArrow: {
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    borderRadius: 15,
-    color: "#fff",
-    fontWeight: "900",
-    overflow: "hidden",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  thread: {
-    backgroundColor: "#f8fcfa",
-    borderRadius: 18,
-    gap: 9,
-    minHeight: 300,
-    padding: 14,
-  },
-  bubble: {
-    borderRadius: 15,
-    maxWidth: "82%",
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-  },
-  own: { alignSelf: "flex-end", backgroundColor: theme.colors.primary },
-  other: { alignSelf: "flex-start", backgroundColor: "#eaf3ef" },
-  message: { color: theme.colors.ink, fontSize: 14 },
-  ownText: { color: "#fff" },
-  time: { color: "#81938c", fontSize: 9, marginTop: 4 },
-  ownTime: { color: "#c9eee1" },
-  composer: { alignItems: "center", flexDirection: "row", gap: 9 },
-  input: { flex: 1 },
-  send: {
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    borderRadius: 24,
-    height: 48,
-    justifyContent: "center",
-    width: 48,
-  },
-  sendText: { color: "#fff", fontSize: 20 },
-});

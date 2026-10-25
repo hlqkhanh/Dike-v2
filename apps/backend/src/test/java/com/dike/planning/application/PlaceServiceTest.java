@@ -119,11 +119,38 @@ class PlaceServiceTest {
       }
 
       @Override
+      public PlaceSnapshot reverse(double latitude, double longitude, Instant resolvedAt) {
+        return new PlaceSnapshot(
+            "FAKE", "private-provider-id", "School", "District", longitude, latitude, resolvedAt);
+      }
+
+      @Override
       public RouteResult route(
           PlaceSnapshot origin, PlaceSnapshot destination, VehicleMode vehicleMode) {
         throw new UnsupportedOperationException();
       }
     };
+  }
+
+  @Test
+  void reverseStoresOwnedReferenceAndPreservesTheChosenCoordinates() {
+    var result = service.reverse("user-1", 10.77, 106.7, "127.0.0.1");
+    assertThat(result.placeRef()).startsWith("generated-");
+    assertThat(result.placeRef()).doesNotContain("private-provider-id");
+    assertThat(result.place().latitude()).isEqualTo(10.77);
+    assertThat(resolved.get("user-1:" + result.placeRef())).isEqualTo(result.place());
+    assertThat(resolved.get("user-2:" + result.placeRef())).isNull();
+  }
+
+  @Test
+  void reverseRejectsInvalidCoordinatesBeforeStoringAReference() {
+    for (double latitude : new double[] {Double.NaN, Double.POSITIVE_INFINITY, 90.1, -90.1}) {
+      assertThatThrownBy(() -> service.reverse("user-1", latitude, 106.7, "127.0.0.1"))
+          .isInstanceOf(PlaceService.InvalidPlaceRequestException.class);
+    }
+    assertThatThrownBy(() -> service.reverse("user-1", 10.77, 181, "127.0.0.1"))
+        .isInstanceOf(PlaceService.InvalidPlaceRequestException.class);
+    assertThat(resolved).isEmpty();
   }
 
   private static final class MemorySessions implements PlaceSessionStore {

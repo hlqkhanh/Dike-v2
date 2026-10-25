@@ -68,7 +68,7 @@ public class DemoDataService implements ApplicationRunner {
     seedRides(actor, now);
     seedMessaging(actor, now);
     seedTrust(actor, now);
-    return new DemoSummary(actor, 3, 4, 2, 3, 2, 2, 3);
+    return new DemoSummary(actor, 3, 10, 2, 3, 2, 2, 3);
   }
 
   private void seedPeople(Instant now) {
@@ -190,6 +190,34 @@ public class DemoDataService implements ApplicationRunner {
             "Hai Bà Trưng, Hà Nội",
             105.8431,
             21.0055,
+            now);
+    Document airport =
+        place(
+            "Sân bay Nội Bài, Sóc Sơn, Hà Nội",
+            "Sóc Sơn, Hà Nội",
+            105.8078,
+            21.2187,
+            now);
+    Document oldQuarter =
+        place(
+            "Hồ Gươm, Hoàn Kiếm, Hà Nội",
+            "Hoàn Kiếm, Hà Nội",
+            105.8525,
+            21.0288,
+            now);
+    Document myDinh =
+        place(
+            "Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội",
+            "Nam Từ Liêm, Hà Nội",
+            105.7782,
+            21.0285,
+            now);
+    Document tayHo =
+        place(
+            "Công viên nước Hồ Tây, Tây Hồ, Hà Nội",
+            "Tây Hồ, Hà Nội",
+            105.8184,
+            21.0691,
             now);
 
     String scheduleId = id(actor, "schedule-work");
@@ -314,6 +342,72 @@ public class DemoDataService implements ApplicationRunner {
                 now.plus(Duration.ofHours(4)),
                 "Tan làm mình về Hà Đông, có thể lệch tuyến khoảng 10 phút.",
                 now.minusSeconds(5200)),
+            post(
+                "demo-post-airport-offer",
+                LINH,
+                "OFFER_RIDE",
+                "demo-source-airport-offer",
+                oldQuarter,
+                airport,
+                "CAR",
+                now.plus(Duration.ofHours(7)),
+                "Mình ra sân bay, còn 2 chỗ và có thể đón quanh quận Hoàn Kiếm.",
+                now.minusSeconds(600)),
+            post(
+                "demo-post-airport-need",
+                MAI,
+                "NEED_RIDE",
+                "demo-source-airport-need",
+                airport,
+                myDinh,
+                "CAR",
+                now.plus(Duration.ofHours(10)),
+                "Một vali nhỏ, mình có thể chờ thêm 15 phút nếu cần.",
+                now.minusSeconds(1100)),
+            post(
+                "demo-post-tayho-offer",
+                MINH,
+                "OFFER_RIDE",
+                "demo-source-tayho-offer",
+                university,
+                tayHo,
+                "MOTORCYCLE",
+                now.plus(Duration.ofHours(3)),
+                "Đi qua Xã Đàn và Kim Mã, mình còn 1 mũ bảo hiểm.",
+                now.minusSeconds(1400)),
+            post(
+                "demo-post-office-need",
+                LINH,
+                "NEED_RIDE",
+                "demo-source-office-need",
+                home,
+                office,
+                "MOTORCYCLE",
+                now.plus(Duration.ofDays(1)).plus(Duration.ofHours(2)),
+                "Cần đi đúng giờ để kịp cuộc họp buổi sáng.",
+                now.minusSeconds(1900)),
+            post(
+                "demo-post-oldquarter-offer",
+                MAI,
+                "OFFER_RIDE",
+                "demo-source-oldquarter-offer",
+                myDinh,
+                oldQuarter,
+                "CAR",
+                now.plus(Duration.ofHours(26)),
+                "Xe còn 3 chỗ, ưu tiên đón tại các điểm gần đường Phạm Hùng.",
+                now.minusSeconds(2600)),
+            post(
+                "demo-post-weekend-need",
+                MINH,
+                "NEED_RIDE",
+                "demo-source-weekend-need",
+                tayHo,
+                home,
+                "MOTORCYCLE",
+                now.plus(Duration.ofDays(2)),
+                "Mình mang ít đồ, muốn ghép chuyến về Hà Đông cuối tuần.",
+                now.minusSeconds(3200)),
             post(
                 "demo-post-completed",
                 MAI,
@@ -496,6 +590,40 @@ public class DemoDataService implements ApplicationRunner {
             now.plus(Duration.ofHours(4)),
             "Nhà riêng · Hà Đông, Hà Nội",
             "Keangnam Landmark 72, Nam Từ Liêm, Hà Nội"),
+        "trips");
+
+    saveFeedSampleOnce(
+        trip(
+            "demo-source-airport-offer",
+            LINH,
+            "OPEN",
+            3,
+            2,
+            now.plus(Duration.ofHours(7)),
+            "Hồ Gươm, Hoàn Kiếm, Hà Nội",
+            "Sân bay Nội Bài, Sóc Sơn, Hà Nội"),
+        "trips");
+    saveFeedSampleOnce(
+        trip(
+            "demo-source-tayho-offer",
+            MINH,
+            "OPEN",
+            2,
+            1,
+            now.plus(Duration.ofHours(3)),
+            "Đại học Bách Khoa Hà Nội, Hai Bà Trưng, Hà Nội",
+            "Công viên nước Hồ Tây, Tây Hồ, Hà Nội"),
+        "trips");
+    saveFeedSampleOnce(
+        trip(
+            "demo-source-oldquarter-offer",
+            MAI,
+            "OPEN",
+            4,
+            3,
+            now.plus(Duration.ofHours(26)),
+            "Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội",
+            "Hồ Gươm, Hoàn Kiếm, Hà Nội"),
         "trips");
 
     String incomingIntent = id(actor, "proposal-intent-incoming");

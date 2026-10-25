@@ -205,7 +205,7 @@ export function createRideApi(configuration: ApiClientConfiguration) {
         "/reports",
         "POST",
         {
-          targetType: "RIDE_POST",
+          targetType: "POST",
           targetId: body.postId,
           reason: body.reason,
           note: body.note,

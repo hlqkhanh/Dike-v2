@@ -23,6 +23,7 @@ class OpenApiContractTest {
         java.util.List.of(
             com.dike.planning.api.PostController.class,
             com.dike.planning.api.PostSourceController.class,
+            com.dike.planning.api.RoutingController.class,
             com.dike.ride.api.RideController.class,
             com.dike.ride.api.RideCapabilitiesController.class,
             com.dike.trust.api.ModerationController.class)) {

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Text } from "react-native";
+import {} from "react-native";
+import { Text } from "@/components/ui";
 
 import { Screen, sharedStyles } from "./Screen";
 import { createMobileApi } from "@/core/api";

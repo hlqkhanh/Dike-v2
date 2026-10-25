@@ -49,12 +49,14 @@ public class LocalDevAuthController {
   private final URI publicBaseUrl;
   private final Duration idleTimeout;
   private final Duration absoluteLifetime;
+  private final Set<String> allowedOrigins;
 
   public LocalDevAuthController(
       IdentityProvisioningService identities,
       ConsentService consents,
       MongoTemplate mongo,
       Clock clock,
+      @Value("${dike.auth.allowed-origins:http://localhost:3000}") List<URI> allowedOrigins,
       @Value("${dike.auth.public-base-url:http://localhost:3000}") URI publicBaseUrl,
       @Value("${dike.auth.session.idle-timeout:24h}") Duration idleTimeout,
       @Value("${dike.auth.session.absolute-lifetime:30d}") Duration absoluteLifetime) {
@@ -62,6 +64,10 @@ public class LocalDevAuthController {
     this.consents = consents;
     this.mongo = mongo;
     this.clock = clock;
+    this.allowedOrigins =
+        allowedOrigins.stream()
+            .map(LocalDevAuthController::origin)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
     this.publicBaseUrl = publicBaseUrl;
     this.idleTimeout = idleTimeout;
     this.absoluteLifetime = absoluteLifetime;
@@ -81,7 +87,11 @@ public class LocalDevAuthController {
   @GetMapping(value = "/mobile", headers = "X-Dike-Client=mobile")
   MobileLoginResponse mobile(
       @RequestParam(defaultValue = "member") String persona, HttpServletRequest request) {
-    if (request.getHeader("Origin") != null || request.getHeader("Referer") != null) {
+    String browserOrigin = request.getHeader("Origin");
+    if (browserOrigin == null || browserOrigin.isBlank()) {
+      browserOrigin = request.getHeader("Referer");
+    }
+    if (browserOrigin != null && !allowedOrigin(browserOrigin)) {
       throw new ApiException(
           HttpStatus.FORBIDDEN, "NATIVE_CLIENT_REQUIRED", "Chỉ dùng cho ứng dụng local");
     }
@@ -172,5 +182,21 @@ public class LocalDevAuthController {
     session.setAttribute(SessionAttributes.GOOGLE_AUTHENTICATED_AT, now);
     session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, userId);
     return session;
+  }
+
+  private boolean allowedOrigin(String candidate) {
+    try {
+      return allowedOrigins.contains(origin(URI.create(candidate)));
+    } catch (IllegalArgumentException exception) {
+      return false;
+    }
+  }
+
+  private static String origin(URI uri) {
+    if (uri.getScheme() == null || uri.getHost() == null) throw new IllegalArgumentException();
+    return uri.getScheme()
+        + "://"
+        + uri.getHost()
+        + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
   }
 }

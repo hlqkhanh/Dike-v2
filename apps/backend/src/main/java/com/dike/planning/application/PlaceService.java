@@ -114,6 +114,26 @@ public class PlaceService {
     return place;
   }
 
+  public record ResolvedView(String placeRef, PlaceSnapshot place) {}
+
+  public ResolvedView reverse(
+      String userId, double latitude, double longitude, String clientAddress) {
+    requireMember(userId);
+    if (!Double.isFinite(latitude)
+        || !Double.isFinite(longitude)
+        || latitude < -85
+        || latitude > 85
+        || longitude < -180
+        || longitude > 180) {
+      throw new InvalidPlaceRequestException();
+    }
+    acquire("place-reverse", userId, clientAddress, 30, Duration.ofMinutes(1));
+    PlaceSnapshot place = provider.reverse(latitude, longitude, clock.instant());
+    String reference = identifiers.get();
+    resolvedPlaces.save(userId, reference, place, properties.cacheTtl());
+    return new ResolvedView(reference, place);
+  }
+
   private void acquire(
       String action, String userId, String clientAddress, long limit, Duration window) {
     if (!rateLimiter.tryAcquire(action, userId, clientAddress, limit, window)) {

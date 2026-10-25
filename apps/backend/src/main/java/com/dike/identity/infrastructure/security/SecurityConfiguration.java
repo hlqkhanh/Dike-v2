@@ -7,6 +7,7 @@ import com.dike.identity.application.LoginRateLimiter;
 import com.dike.identity.infrastructure.otp.OtpProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Clock;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,9 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.session.web.http.CookieHttpSessionIdResolver;
@@ -36,6 +40,21 @@ import org.springframework.session.web.http.HttpSessionIdResolver;
 @EnableConfigurationProperties(IdentityProperties.class)
 @EnableMethodSecurity
 public class SecurityConfiguration {
+
+  @Bean
+  CorsConfigurationSource corsConfigurationSource(IdentityProperties properties) {
+    var configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(
+        properties.allowedOrigins().stream().map(java.net.URI::toString).toList());
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(
+        List.of("Authorization", "Content-Type", "Idempotency-Key", "X-Dike-Client", "X-Request-Id"));
+    configuration.setExposedHeaders(List.of("X-Request-Id"));
+    configuration.setAllowCredentials(false);
+    var source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/api/**", configuration);
+    return source;
+  }
 
   @Bean
   SecurityContextRepository securityContextRepository() {
@@ -92,13 +111,16 @@ public class SecurityConfiguration {
         new OidcLoginSuccessHandler(
             provisioning, access, properties, authorizedClients, clock, sessions, telemetry);
 
-    http.authorizeHttpRequests(
+    http.cors(Customizer.withDefaults())
+        .authorizeHttpRequests(
             requests ->
                 requests
                     .requestMatchers(
                         "/actuator/health/**",
                         "/api/openapi.json",
                         "/api/v1/auth/google",
+                        "/api/v1/auth/mobile/google",
+                        "/api/v1/auth/mobile/exchange",
                         "/api/v1/auth/dev",
                         "/api/v1/auth/dev/mobile",
                         "/api/v1/auth/oauth2/authorization/**",
@@ -144,7 +166,8 @@ public class SecurityConfiguration {
         .csrf(
             csrfConfig ->
                 csrfConfig
-                    .ignoringRequestMatchers(MobileSessionIdResolver::isAuthenticatedMobileRequest)
+                    .ignoringRequestMatchers(MobileSessionIdResolver::isAuthenticatedMobileRequest,
+                        request -> "POST".equals(request.getMethod()) && "/api/v1/auth/mobile/exchange".equals(request.getRequestURI()))
                     .csrfTokenRepository(csrf)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
         .oauth2Login(

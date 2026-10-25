@@ -1,145 +1,210 @@
-import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
-
-import { DetailPage, detailStyles } from "@/components/DetailPage";
-import { createMobileApi } from "@/core/api";
+import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { randomUUID } from "expo-crypto";
+import type { TripStops, TripView } from "@dike/api-client-ts";
+import { View } from "react-native";
+import { DetailPage } from "@/components/DetailPage";
+import { ResourceState } from "@/components/ResourceState";
+import { JourneyTicket } from "@/components/JourneyTicket";
+import {
+  BottomSheet,
+  Button,
+  Card,
+  ErrorText,
+  Field,
+  Icon,
+  RouteCard,
+  Text,
+  ui,
+} from "@/components/ui";
+import { useMobileApi, dateTime, statusLabel } from "@/core/hooks";
 import { useSession } from "@/core/session";
-import { theme } from "@/core/theme";
-
-const stages = ["Đã xác nhận", "Đang đến đón", "Đã đến điểm đón", "Hoàn thành"];
-export default function TripDetail() {
+export default function Trip() {
   const { id = "" } = useLocalSearchParams<{ id: string }>();
-  const { token } = useSession();
-  const query = useQuery({
+  const api = useMobileApi();
+  const client = useQueryClient();
+  const { session } = useSession();
+  const [action, setAction] = useState("");
+  const [reason, setReason] = useState("");
+  const trip = useQuery({
     queryKey: ["mobile-trip", id],
-    queryFn: () => createMobileApi(() => Promise.resolve(token)).trip(id),
-    enabled: Boolean(id),
-    refetchInterval: 15_000,
+    queryFn: () => api.trip(id),
+    refetchInterval: 10000,
   });
-  const trip = query.data;
-  const step =
-    trip?.status === "COMPLETED" ? 4 : trip?.status === "ACTIVE" ? 2 : 1;
+  const stops = useQuery({
+    queryKey: ["mobile-trip-stops", id],
+    queryFn: () => api.call<TripStops>(`/trips/${id}/stops`),
+    refetchInterval: 10000,
+  });
+  const change = useMutation({
+    mutationFn: () =>
+      api.call<TripView>(
+        `/trips/${id}/${action === "open" ? "open" : "actions"}`,
+        "POST",
+        action === "open"
+          ? { version: trip.data!.version }
+          : { version: trip.data!.version, action, reason },
+        randomUUID(),
+      ),
+    onSuccess: () => {
+      setAction("");
+      void trip.refetch();
+      void client.invalidateQueries({ queryKey: ["mobile-trips"] });
+    },
+  });
+  const t = trip.data;
+  const own = t?.driverId === session?.user.id;
+  const stage =
+    t?.status === "COMPLETED"
+      ? 3
+      : t?.status === "IN_PROGRESS"
+        ? 2
+        : ["OPEN", "FULL"].includes(t?.status || "")
+          ? 1
+          : 0;
   return (
     <DetailPage
-      loading={query.isLoading}
-      subtitle="Theo dõi trạng thái theo thời gian thực"
       title="Chi tiết chuyến đi"
+      subtitle="Mỗi bước đều được cập nhật"
+      art="route"
+      onRefresh={() => {
+        void trip.refetch();
+        void stops.refetch();
+      }}
+      refreshing={trip.isRefetching}
     >
-      {trip ? (
-        <>
-          <View style={detailStyles.card}>
-            <Text style={detailStyles.eyebrow}>TUYẾN ĐƯỜNG</Text>
-            <View style={styles.route}>
-              <Text style={styles.label}>Điểm đón</Text>
-              <Text style={styles.place}>{trip.originLabel}</Text>
-              <Text style={styles.arrow}>↓</Text>
-              <Text style={styles.label}>Điểm đến</Text>
-              <Text style={styles.place}>{trip.destinationLabel}</Text>
-            </View>
-            <Text style={detailStyles.muted}>
-              ▣ {new Date(trip.departureAt).toLocaleString("vi-VN")} ·{" "}
-              {trip.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
-            </Text>
-          </View>
-          <View style={detailStyles.card}>
-            <Text style={detailStyles.eyebrow}>TIẾN ĐỘ CHUYẾN ĐI</Text>
-            {stages.map((label, index) => (
-              <View key={label} style={styles.stage}>
-                <View
-                  style={[styles.stageDot, index < step && styles.stageDone]}
-                >
+      <ResourceState query={trip}>
+        {t ? (
+          <>
+            <JourneyTicket
+              status={statusLabel(t.status)}
+              label={own ? "Chuyến của bạn" : "Hành trình cùng đi"}
+            >
+              <RouteCard
+                origin={t.originLabel}
+                destination={t.destinationLabel}
+              />
+              <Text style={ui.muted}>
+                {dateTime(t.departureAt)} ·{" "}
+                {t.vehicleType === "CAR" ? "Ô tô" : "Xe máy"} ·{" "}
+                {t.remainingSeats} chỗ trống
+              </Text>
+            </JourneyTicket>
+            <Card>
+              <Text style={ui.sectionTitle}>Tiến trình chuyến đi</Text>
+              {[
+                "Đã tạo",
+                "Mở nhận người đi",
+                "Đang di chuyển",
+                "Hoàn thành",
+              ].map((label, i) => (
+                <View key={label} style={[ui.row, { minHeight: 44 }]}>
+                  <Icon
+                    name={i <= stage ? "checkmark-circle" : "ellipse-outline"}
+                    color={i <= stage ? "#087d61" : "#b4c9be"}
+                  />
                   <Text
-                    style={[styles.check, index < step && styles.checkDone]}
-                  >
-                    {index < step ? "✓" : index + 1}
-                  </Text>
-                </View>
-                <View style={styles.stageCopy}>
-                  <Text
-                    style={[
-                      styles.stageLabel,
-                      index < step && styles.stageLabelDone,
-                    ]}
+                    style={{
+                      fontSize: 14,
+                      color: i <= stage ? "#12342d" : "#8aa096",
+                    }}
                   >
                     {label}
                   </Text>
-                  {index < stages.length - 1 ? (
-                    <View
-                      style={[
-                        styles.stageLine,
-                        index + 1 < step && styles.stageLineDone,
-                      ]}
+                </View>
+              ))}
+              {["CANCELLED", "EXPIRED"].includes(t.status) ? (
+                <Text style={ui.muted}>
+                  Chuyến đã kết thúc: {statusLabel(t.status)}.
+                </Text>
+              ) : null}
+            </Card>
+            <ResourceState query={stops}>
+              {stops.data?.items.map((s) => (
+                <Card key={s.id}>
+                  <View style={ui.row}>
+                    <Icon name="location-outline" />
+                    <Text style={[ui.sectionTitle, { fontSize: 16 }]}>
+                      {s.kind === "PICKUP" ? "Đón khách" : "Trả khách"}
+                    </Text>
+                  </View>
+                  <Text style={ui.muted}>
+                    {s.publicLabel} · {dateTime(s.eta)}
+                  </Text>
+                  {s.bookingId ? (
+                    <Button
+                      label="Xem thành viên và kết nối"
+                      variant="secondary"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/booking/[id]",
+                          params: { id: s.bookingId },
+                        })
+                      }
                     />
                   ) : null}
-                </View>
-              </View>
-            ))}
-            <Text style={styles.notice}>
-              Tiến độ được đồng bộ cho cả người chở và người đi ké.
-            </Text>
-          </View>
-        </>
-      ) : query.isError ? (
-        <Text style={detailStyles.muted}>Không tải được chuyến đi.</Text>
-      ) : null}
+                </Card>
+              ))}
+            </ResourceState>
+            {own ? (
+              <>
+                <Text style={ui.sectionTitle}>Quản lý hành trình</Text>
+                {t.status === "DRAFT" ? (
+                  <Button label="Mở chuyến" onPress={() => setAction("open")} />
+                ) : null}
+                {["OPEN", "FULL"].includes(t.status) ? (
+                  <Button
+                    label="Bắt đầu chuyến"
+                    disabled={
+                      Date.now() < Date.parse(t.departureAt) - 15 * 60000
+                    }
+                    onPress={() => setAction("start")}
+                  />
+                ) : null}
+                {t.status === "IN_PROGRESS" ? (
+                  <Button
+                    label="Hoàn thành chuyến"
+                    onPress={() => setAction("complete")}
+                  />
+                ) : null}
+                {["DRAFT", "OPEN", "FULL"].includes(t.status) ? (
+                  <Button
+                    label="Hủy chuyến"
+                    variant="secondary"
+                    onPress={() => setAction("cancel")}
+                  />
+                ) : null}
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </ResourceState>
+      <BottomSheet
+        visible={!!action}
+        title="Xác nhận thay đổi chuyến"
+        onClose={() => setAction("")}
+      >
+        <Text style={ui.muted}>
+          Trạng thái được cập nhật cho các thành viên trong chuyến.
+        </Text>
+        {action === "cancel" ? (
+          <Field
+            label="Lý do hủy"
+            value={reason}
+            onChangeText={setReason}
+            multiline
+            maxLength={500}
+          />
+        ) : null}
+        <ErrorText error={change.error} />
+        <Button
+          label="Xác nhận"
+          pending={change.isPending}
+          disabled={action === "cancel" && !reason.trim()}
+          onPress={() => change.mutate()}
+        />
+      </BottomSheet>
     </DetailPage>
   );
 }
-const styles = StyleSheet.create({
-  route: { backgroundColor: "#f1faf7", borderRadius: 14, padding: 15 },
-  label: { color: "#82948e", fontSize: 11 },
-  place: {
-    color: theme.colors.ink,
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 3,
-  },
-  arrow: {
-    color: theme.colors.primary,
-    fontSize: 20,
-    fontWeight: "900",
-    marginVertical: 5,
-  },
-  stage: { flexDirection: "row", gap: 12 },
-  stageDot: {
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderColor: "#cbded7",
-    borderRadius: 16,
-    borderWidth: 2,
-    height: 32,
-    justifyContent: "center",
-    width: 32,
-  },
-  stageDone: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  check: { color: "#8aa098", fontSize: 11, fontWeight: "800" },
-  checkDone: { color: "#fff" },
-  stageCopy: { flex: 1 },
-  stageLabel: {
-    color: "#84968f",
-    fontSize: 14,
-    fontWeight: "700",
-    paddingTop: 6,
-  },
-  stageLabelDone: { color: theme.colors.primary },
-  stageLine: {
-    backgroundColor: "#d9e7e2",
-    height: 24,
-    marginLeft: -28,
-    marginTop: 8,
-    width: 2,
-  },
-  stageLineDone: { backgroundColor: theme.colors.primary },
-  notice: {
-    backgroundColor: "#edf8f4",
-    borderRadius: 11,
-    color: "#52766b",
-    fontSize: 11,
-    marginTop: 2,
-    padding: 11,
-  },
-});

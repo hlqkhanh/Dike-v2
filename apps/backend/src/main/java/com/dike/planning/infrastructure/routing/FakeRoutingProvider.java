@@ -40,6 +40,18 @@ class FakeRoutingProvider implements RoutingProvider {
   }
 
   @Override
+  public PlaceSnapshot reverse(double latitude, double longitude, Instant resolvedAt) {
+    return new PlaceSnapshot(
+        "FAKE",
+        "fake:" + latitude + ":" + longitude,
+        "Địa điểm thử nghiệm",
+        "Quận 1, Thành phố Hồ Chí Minh",
+        longitude,
+        latitude,
+        resolvedAt);
+  }
+
+  @Override
   public RouteResult route(
       PlaceSnapshot origin, PlaceSnapshot destination, VehicleMode vehicleMode) {
     double lat = destination.latitude() - origin.latitude();

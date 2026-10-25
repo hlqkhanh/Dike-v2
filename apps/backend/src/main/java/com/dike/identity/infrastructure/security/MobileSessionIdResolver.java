@@ -21,7 +21,11 @@ public final class MobileSessionIdResolver implements HttpSessionIdResolver {
   @Override
   public List<String> resolveSessionIds(HttpServletRequest request) {
     // Starting a local native session must not replace a browser's existing session.
-    if ("/api/v1/auth/dev/mobile".equals(request.getRequestURI())) return List.of();
+    if ("/api/v1/auth/dev/mobile".equals(request.getRequestURI())
+        || "/api/v1/auth/mobile/google".equals(request.getRequestURI())
+        || "/api/v1/auth/mobile/exchange".equals(request.getRequestURI())) {
+      return List.of();
+    }
     if (hasAuthorizationHeader(request)) {
       String id = MobileSessionTokens.bearerSessionId(request);
       return id == null ? List.of() : List.of(id);

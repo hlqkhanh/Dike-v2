@@ -59,7 +59,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
       String recipientDisplayName,
       String recipientAvatarUrl,
       boolean canSend,
-      String postId) {}
+      String postId,
+      String lastMessageText) {}
 
   public record MessageView(
       String id,
@@ -429,6 +430,10 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
   private ConversationView view(Conversation value, String actor) {
     ConversationRead read = mongo.findById(readId(value.id(), actor), ConversationRead.class);
     long unread = Math.max(0, value.nextSequence() - (read == null ? 0 : read.lastReadSequence()));
+    ChatMessage lastMessage =
+        value.lastMessageId() == null
+            ? null
+            : mongo.findById(value.lastMessageId(), ChatMessage.class);
     var response =
         mongo.findOne(
             Query.query(
@@ -455,7 +460,8 @@ public class MessagingService implements NotificationPublisher, ConfirmedConvers
                 || actor.equals(value.requesterId()))
             && !social.blocked(actor, value.other(actor))
             && (!identities.require(actor).locked() || value.type() == Conversation.Type.BOOKING),
-        response == null ? null : response.getString("postId"));
+        response == null ? null : response.getString("postId"),
+        lastMessage == null ? null : lastMessage.text());
   }
 
   private MessageView view(ChatMessage value) {

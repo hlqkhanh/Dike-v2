@@ -4,7 +4,7 @@ packages:
 
 minimumReleaseAge: 1440
 blockExoticSubdeps: true
-# Leave room for Android CMake paths on Windows.
+# Keep dependencies inside the workspace for Turbopack's hermetic resolver.
 virtualStoreDir: .p
 virtualStoreDirMaxLength: 32
 allowBuilds:

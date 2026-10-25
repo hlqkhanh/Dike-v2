@@ -29,10 +29,13 @@ import type {
   ReadMarker,
   RequestDecision,
   ResolvePlace,
+  ReversePlace,
   RideDiscoveryInput,
   RideDiscoveryResults,
   RidePostCreate,
+  RidePostDraftSource,
   RidePostEdit,
+  RidePostInboxPage,
   RidePostRoute,
   RideVersion,
   RuleRequest,
@@ -1020,3 +1023,24 @@ export const discussPostOperation = {
 } as const;
 export type DiscussPostOperationRequest = DiscussPostRequest;
 export type DiscussPostOperationResponse = ConversationView;
+
+export const getRidePostDraftSourceOperation = {
+  method: "GET",
+  path: "/ride-posts/{id}/draft-source",
+} as const;
+export type GetRidePostDraftSourceOperationRequest = never;
+export type GetRidePostDraftSourceOperationResponse = RidePostDraftSource;
+
+export const listRidePostResponseInboxOperation = {
+  method: "GET",
+  path: "/ride-post-responses",
+} as const;
+export type ListRidePostResponseInboxOperationRequest = never;
+export type ListRidePostResponseInboxOperationResponse = RidePostInboxPage;
+
+export const reversePlaceOperation = {
+  method: "POST",
+  path: "/routing/places/reverse",
+} as const;
+export type ReversePlaceOperationRequest = ReversePlace;
+export type ReversePlaceOperationResponse = void;

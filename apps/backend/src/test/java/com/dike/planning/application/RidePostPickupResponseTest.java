@@ -67,6 +67,60 @@ class RidePostPickupResponseTest {
   }
 
   @Test
+  void inboxIsParticipantScopedAndHasStablePagination() {
+    var first = responseRow("b");
+    var second = responseRow("a");
+    when(mongo.find(any(Query.class), eq(Document.class), eq("ride_post_responses")))
+        .thenReturn(List.of(first, second));
+    var page = responses.inbox("passenger", "sent", null, 1);
+    assertThat(page.items()).hasSize(1);
+    assertThat(page.nextCursor()).isEqualTo("b");
+    var query = ArgumentCaptor.forClass(Query.class);
+    verify(mongo).find(query.capture(), eq(Document.class), eq("ride_post_responses"));
+    assertThat(query.getValue().getQueryObject().getString("requesterId")).isEqualTo("passenger");
+    assertThat(query.getValue().getLimit()).isEqualTo(2);
+    assertThat(query.getValue().getSortObject().toJson()).contains("createdAt", "_id");
+    verify(posts).requireReadable("passenger", "post");
+  }
+
+  @Test
+  void receivedInboxRechecksAccessAndKeepsCursorPastHiddenRows() {
+    when(mongo.find(any(Query.class), eq(Document.class), eq("ride_post_responses")))
+        .thenReturn(List.of(responseRow("b"), responseRow("a")));
+    doThrow(new ApiException(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "Missing"))
+        .when(posts)
+        .requireReadable("driver", "post");
+    var page = responses.inbox("driver", "received", null, 1);
+    assertThat(page.items()).isEmpty();
+    assertThat(page.nextCursor()).isEqualTo("b");
+    var query = ArgumentCaptor.forClass(Query.class);
+    verify(mongo).find(query.capture(), eq(Document.class), eq("ride_post_responses"));
+    assertThat(query.getValue().getQueryObject().getString("ownerId")).isEqualTo("driver");
+  }
+
+  @Test
+  void inboxRejectsUnknownDirectionAndForeignCursor() {
+    assertThatThrownBy(() -> responses.inbox("passenger", "all", null, 20))
+        .isInstanceOf(ApiException.class);
+    assertThatThrownBy(() -> responses.inbox("passenger", "sent", "foreign", 20))
+        .isInstanceOf(ApiException.class);
+    verify(mongo, never()).find(any(Query.class), eq(Document.class), eq("ride_post_responses"));
+  }
+
+  private Document responseRow(String id) {
+    return new Document("_id", id)
+        .append("ownerId", "driver")
+        .append("requesterId", "passenger")
+        .append("postId", "post")
+        .append("action", "REQUEST_RIDE")
+        .append("status", "PENDING")
+        .append("version", 0L)
+        .append("message", "")
+        .append("createdAt", Date.from(now))
+        .append("updatedAt", Date.from(now));
+  }
+
+  @Test
   void sameRouteRequestCanBeSentWithoutPickupEvidenceOrMessage() {
     when(mongo.findById("post", Document.class, "ride_posts"))
         .thenReturn(

@@ -74,6 +74,60 @@ class PostServiceTest {
   }
 
   @Test
+  void draftSourceRequiresOwnerVersionAndOfferDraft() {
+    var base = post(RidePost.Status.DRAFT, null);
+    var draft =
+        new RidePost(
+            base.id(),
+            base.ownerId(),
+            RidePost.Type.OFFER_RIDE,
+            "trip",
+            2,
+            base.status(),
+            base.visibility(),
+            base.communityId(),
+            base.originLabel(),
+            base.destinationLabel(),
+            base.vehicleType(),
+            base.routeId(),
+            base.departureAt(),
+            base.expiresAt(),
+            base.note(),
+            base.version(),
+            base.termsVersion(),
+            null,
+            base.publishedAt());
+    when(store.find("p")).thenReturn(Optional.of(draft));
+    when(trips.offer("trip"))
+        .thenReturn(
+            Optional.of(
+                new TripSource.Offer(
+                    "trip",
+                    "owner",
+                    "DRAFT",
+                    3,
+                    0,
+                    "PUBLIC",
+                    null,
+                    "A",
+                    "B",
+                    now.plusSeconds(3600),
+                    1,
+                    1000,
+                    "CAR",
+                    "r")));
+    assertThatThrownBy(() -> service.draftSource("viewer", "p", 0))
+        .isInstanceOf(ApiException.class);
+    assertThatThrownBy(() -> service.draftSource("owner", "p", 9)).isInstanceOf(ApiException.class);
+    var source = service.draftSource("owner", "p", 0);
+    assertThat(source.id()).isEqualTo("trip");
+    assertThat(source.version()).isEqualTo(3);
+    assertThat(source.status()).isEqualTo("DRAFT");
+    when(store.find("p")).thenReturn(Optional.of(base));
+    assertThatThrownBy(() -> service.draftSource("owner", "p", 0)).isInstanceOf(ApiException.class);
+  }
+
+  @Test
   void ownerCanReadDraftButOtherUsersCannot() {
     var p = post(RidePost.Status.DRAFT, null);
     when(store.find("p")).thenReturn(Optional.of(p));

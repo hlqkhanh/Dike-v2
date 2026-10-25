@@ -1,87 +1,114 @@
-import { StyleSheet, Text, View } from "react-native";
-import { DetailPage, detailStyles } from "@/components/DetailPage";
+import { router } from "expo-router";
+import { View } from "react-native";
+import { DetailPage } from "@/components/DetailPage";
+import { Badge, Button, Card, Icon, Text, ui } from "@/components/ui";
 import { useSession } from "@/core/session";
-import { theme } from "@/core/theme";
 export default function Verification() {
-  const user = useSession().session?.user;
-  const items = [
-    { title: "Google", state: "Đã liên kết", done: true },
-    {
-      title: "Số điện thoại",
-      state: user?.phoneStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh",
-      done: user?.phoneStatus === "VERIFIED",
-    },
-    { title: "eKYC", state: "Tạm hoãn", done: false },
-    {
-      title: "Quyền tài xế",
-      state: user?.driverApprovalEvidence ? "Đã xác minh" : "Chưa xác minh",
-      done: Boolean(user?.driverApprovalEvidence),
-    },
-    { title: "Phương tiện", state: "Kiểm tra phương tiện", done: false },
-  ];
-  const done = items.filter((item) => item.done).length;
+  const { session, refresh, loading } = useSession();
+  const user = session?.user;
+  const verified = user?.phoneStatus === "VERIFIED";
+  const simulated = user?.accessMode === "SIMULATED";
+  const driverEnabled = user?.authorities?.includes("APPROVED_DRIVER") ?? false;
   return (
     <DetailPage
-      subtitle="Kiểm tra mức xác minh và quyền hiện tại"
-      title="Xác minh"
+      title="Xác minh tài khoản"
+      subtitle="Minh bạch trạng thái, an tâm kết nối"
+      onRefresh={() => void refresh()}
+      refreshing={loading}
     >
-      <View style={styles.progress}>
-        <Text style={detailStyles.heading}>
-          Tiến độ thiết lập {done}/5 bước
-        </Text>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${done * 20}%` }]} />
+      <View
+        style={{
+          padding: 22,
+          borderRadius: 26,
+          backgroundColor: "#e3f4eb",
+          gap: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="shield-checkmark-outline" size={32} />
         </View>
-        <Text style={detailStyles.muted}>
-          Hoàn thiện hồ sơ giúp cộng đồng tin tưởng và kết nối an toàn hơn.
+        <Text style={{ fontSize: 25, fontWeight: "800", lineHeight: 34 }}>
+          An tâm từ sự rõ ràng
+        </Text>
+        <Text style={ui.muted}>
+          Thông tin xác minh giúp người cùng đường hiểu và tin tưởng nhau hơn.
         </Text>
       </View>
-      {items.map((item) => (
-        <View key={item.title} style={detailStyles.card}>
-          <View style={styles.row}>
-            <View style={styles.icon}>
-              <Text style={styles.iconText}>{item.done ? "✓" : "○"}</Text>
-            </View>
-            <View>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={[styles.state, item.done && styles.done]}>
-                {item.state}
-              </Text>
-            </View>
+      <Card>
+        <Text style={ui.sectionTitle}>Xin chào, {user?.displayName}</Text>
+        <Text style={ui.muted}>
+          Mức xác minh phản ánh dữ liệu hiện tại của tài khoản.
+        </Text>
+        {simulated ? (
+          <Badge label="Quyền thử nghiệm · Chưa xác minh thật" gold />
+        ) : null}
+      </Card>
+      {[
+        {
+          title: "Tài khoản Google",
+          text: user?.email || "Đăng nhập để xem",
+          done: !!user?.email,
+        },
+        {
+          title: "Số điện thoại",
+          text: verified
+            ? "Đã xác minh bằng OTP"
+            : user?.phoneMasked || "Chưa xác minh",
+          done: verified,
+        },
+        {
+          title: "Danh tính",
+          text:
+            user?.verificationEvidence === "REAL"
+              ? "Đã xác minh danh tính"
+              : user?.verificationEvidence === "SIMULATED"
+                ? "Danh tính thử nghiệm · Chưa xác minh thật"
+                : "Chưa có bằng chứng xác minh danh tính",
+          done: user?.verificationEvidence === "REAL",
+        },
+        {
+          title: "Quyền tài xế",
+          text: !driverEnabled
+            ? "Chưa được cấp quyền tài xế"
+            : user?.driverApprovalEvidence === "REAL"
+              ? "Đã được cấp quyền tài xế với bằng chứng duyệt thật"
+              : user?.driverApprovalEvidence === "SIMULATED" || simulated
+                ? "Đã mở quyền tài xế thử nghiệm · Chưa duyệt thật"
+                : "Đã có quyền tài xế · Chưa có bằng chứng duyệt thật",
+          done: driverEnabled && user?.driverApprovalEvidence === "REAL",
+        },
+      ].map((item) => (
+        <Card key={item.title}>
+          <View style={ui.row}>
+            <Icon name={item.done ? "checkmark-circle" : "ellipse-outline"} />
+            <Text style={ui.sectionTitle}>{item.title}</Text>
           </View>
-        </View>
+          <Text style={ui.muted}>{item.text}</Text>
+        </Card>
       ))}
+      <Text style={ui.muted}>
+        Quyền tài xế không đồng nghĩa phương tiện đã được duyệt. Khả năng tạo
+        chuyến phụ thuộc phương tiện và quyền hiện tại do hệ thống kiểm tra.
+      </Text>
+      {!verified ? (
+        <Button
+          label="Xác minh số điện thoại"
+          onPress={() => router.push("/onboarding/phone")}
+        />
+      ) : null}
+      <Text style={ui.muted}>
+        eKYC và duyệt giấy tờ trực tiếp chưa được backend hỗ trợ. Trạng thái thử
+        nghiệm không thay thế xác minh danh tính.
+      </Text>
     </DetailPage>
   );
 }
-const styles = StyleSheet.create({
-  progress: {
-    ...theme.shadow.card,
-    backgroundColor: "#fff",
-    borderColor: theme.colors.border,
-    borderRadius: 19,
-    borderWidth: 1,
-    gap: 12,
-    padding: 17,
-  },
-  track: {
-    backgroundColor: "#dcebe5",
-    borderRadius: 4,
-    height: 8,
-    overflow: "hidden",
-  },
-  fill: { backgroundColor: theme.colors.primary, borderRadius: 4, height: 8 },
-  row: { alignItems: "center", flexDirection: "row", gap: 12 },
-  icon: {
-    alignItems: "center",
-    backgroundColor: "#e5f6ef",
-    borderRadius: 14,
-    height: 46,
-    justifyContent: "center",
-    width: 46,
-  },
-  iconText: { color: theme.colors.primary, fontSize: 20, fontWeight: "900" },
-  title: { color: theme.colors.ink, fontSize: 15, fontWeight: "800" },
-  state: { color: "#a06f08", fontSize: 12, marginTop: 3 },
-  done: { color: theme.colors.primary },
-});

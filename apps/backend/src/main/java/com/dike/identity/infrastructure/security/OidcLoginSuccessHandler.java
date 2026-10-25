@@ -120,7 +120,10 @@ final class OidcLoginSuccessHandler implements AuthenticationSuccessHandler {
         oauth.getAuthorizedClientRegistrationId(), oauth, request, response);
     telemetry.login("success");
 
-    response.sendRedirect(properties.publicBaseUrl().resolve("/auth/complete").toString());
+    response.sendRedirect(
+        session.getAttribute(MobileLoginController.CHALLENGE) != null
+            ? "/api/v1/auth/mobile/complete"
+            : properties.publicBaseUrl().resolve("/auth/complete").toString());
   }
 
   private String deviceLabel(String userAgent) {

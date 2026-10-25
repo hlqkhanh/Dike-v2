@@ -35,7 +35,8 @@ const forbiddenDirectories = new Set([
 ]);
 
 function isExampleEnvironmentFile(file) {
-  return file === ".env.example" || /^\.env\.[^/]+\.example$/.test(file);
+  const name = file.split("/").at(-1) ?? file;
+  return name === ".env.example" || /^\.env\.[^/]+\.example$/.test(name);
 }
 
 function isForbidden(file) {

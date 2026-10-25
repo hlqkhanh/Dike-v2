@@ -2,6 +2,26 @@ import { afterEach, expect, it, vi } from "vitest";
 import { createRideApi } from "./rides";
 import { ApiError } from "./auth";
 afterEach(() => vi.unstubAllGlobals());
+it("reports posts using the moderation POST target type", async () => {
+  vi.stubGlobal("document", { cookie: "XSRF-TOKEN=csrf" });
+  const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  await createRideApi({ baseUrl: "/api/v1" }).report(
+    { postId: "post-1", reason: "UNSAFE", note: "Check this post" },
+    "report-key",
+  );
+  const [url, init] = fetchMock.mock.calls[0] as unknown as [
+    string,
+    RequestInit,
+  ];
+  expect(url).toBe("/api/v1/reports");
+  expect(JSON.parse(init.body as string)).toEqual({
+    targetType: "POST",
+    targetId: "post-1",
+    reason: "UNSAFE",
+    note: "Check this post",
+  });
+});
 it("keeps the acceptance key across retries and sends CSRF without caching", async () => {
   vi.stubGlobal("document", { cookie: "XSRF-TOKEN=csrf%2Btoken" });
   const fetchMock = vi

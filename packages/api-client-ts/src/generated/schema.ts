@@ -548,6 +548,8 @@ export type ConversationView = {
   recipientDisplayName?: string;
   recipientAvatarUrl?: string;
   canSend: boolean;
+  postId?: string;
+  lastMessageText?: string;
 };
 
 export type DeletionResponse = {
@@ -987,4 +989,38 @@ export type ErrorBody = {
 
 export type ErrorResponse = {
   error: ErrorBody;
+};
+
+export type RidePostDraftSource = {
+  id: string;
+  version: number;
+  status: string;
+};
+
+export type RidePostInboxItem = {
+  id: string;
+  postId: string;
+  requesterId: string;
+  requesterDisplayName: string;
+  requesterAvatarUrl?: string;
+  companionPhone?: string;
+  ownerId: string;
+  action: string;
+  status: string;
+  message: string;
+  conversationId?: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+  pickupCheck?: PickupCheck;
+};
+
+export type RidePostInboxPage = {
+  items: RidePostInboxItem[];
+  nextCursor?: string;
+};
+
+export type ReversePlace = {
+  latitude: number;
+  longitude: number;
 };

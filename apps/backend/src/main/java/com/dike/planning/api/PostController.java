@@ -74,6 +74,13 @@ public class PostController {
     return routes.get(p.getName(), id);
   }
 
+  @GetMapping("/ride-posts/{id}/draft-source")
+  @Operation(operationId = "getRidePostDraftSource")
+  public PostService.DraftSource draftSource(
+      Principal p, @PathVariable String id, @RequestParam long version) {
+    return service.draftSource(p.getName(), id, version);
+  }
+
   @GetMapping("/ride-posts")
   @Operation(operationId = "listRidePosts")
   public PostService.Page feed(

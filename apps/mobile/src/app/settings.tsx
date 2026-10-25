@@ -1,82 +1,87 @@
-import { Link } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { DetailPage, detailStyles } from "@/components/DetailPage";
-import { theme } from "@/core/theme";
-const sections = [
-  { icon: "♙", title: "Tài khoản", text: "Thông tin cá nhân và liên hệ" },
-  { icon: "◉", title: "Quyền riêng tư", text: "Hiển thị hồ sơ và tin nhắn" },
+import { router, type Href } from "expo-router";
+import { Pressable, View } from "react-native";
+import { DetailPage } from "@/components/DetailPage";
+import { Card, Icon, Text, ui, type IconName } from "@/components/ui";
+const items: { title: string; text: string; icon: IconName; href: Href }[] = [
   {
-    icon: "✓",
-    title: "Xác minh",
-    text: "Trạng thái tài khoản",
-    href: "/verification" as const,
+    title: "Thông tin cá nhân",
+    text: "Tên hiển thị và giới thiệu",
+    icon: "person-outline",
+    href: "/settings/profile",
   },
-  { icon: "▤", title: "Tài liệu", text: "Điều khoản và sự đồng ý" },
-  { icon: "⚿", title: "Bảo mật", text: "Phiên đăng nhập và thiết bị" },
+  {
+    title: "Quyền riêng tư",
+    text: "Ai có thể tìm và liên hệ với bạn",
+    icon: "lock-closed-outline",
+    href: "/settings/privacy",
+  },
+  {
+    title: "Xác minh tài khoản",
+    text: "Điện thoại và quyền truy cập",
+    icon: "shield-checkmark-outline",
+    href: "/verification",
+  },
+  {
+    title: "Thông báo",
+    text: "Quyền thông báo trên thiết bị",
+    icon: "notifications-outline",
+    href: "/settings/notifications",
+  },
+  {
+    title: "Điều khoản và đồng ý",
+    text: "Tài liệu và lịch sử chấp thuận",
+    icon: "document-text-outline",
+    href: "/settings/consent",
+  },
+  {
+    title: "Bảo mật và thiết bị",
+    text: "Quản lý các phiên đăng nhập",
+    icon: "key-outline",
+    href: "/settings/security",
+  },
 ];
 export default function Settings() {
   return (
-    <DetailPage subtitle="Quản lý mọi thiết lập tại một nơi" title="Cài đặt">
-      {sections.map((item) =>
-        item.href ? (
-          <Link asChild href={item.href} key={item.title}>
-            <Pressable style={styles.row}>
-              <Content {...item} />
-            </Pressable>
-          </Link>
-        ) : (
-          <View key={item.title} style={styles.row}>
-            <Content {...item} />
-          </View>
-        ),
-      )}
+    <DetailPage title="Cài đặt" subtitle="Dike theo cách của bạn">
+      {[
+        { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(0, 3) },
+        { title: "ỨNG DỤNG VÀ BẢO MẬT", rows: items.slice(3) },
+      ].map((group) => (
+        <View key={group.title} style={{ gap: 12 }}>
+          <Text style={[ui.eyebrow, { paddingHorizontal: 4 }]}>
+            {group.title}
+          </Text>
+          <Card>
+            {group.rows.map((item, i) => (
+              <Pressable
+                key={item.title}
+                accessibilityRole="button"
+                onPress={() => router.push(item.href)}
+                style={[
+                  ui.row,
+                  {
+                    minHeight: 76,
+                    borderBottomWidth: i === group.rows.length - 1 ? 0 : 1,
+                    borderBottomColor: "#edf4ef",
+                    paddingVertical: 12,
+                  },
+                ]}
+              >
+                <View style={ui.emptyIcon}>
+                  <Icon name={item.icon} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700" }}>
+                    {item.title}
+                  </Text>
+                  <Text style={ui.muted}>{item.text}</Text>
+                </View>
+                <Icon name="chevron-forward" size={18} />
+              </Pressable>
+            ))}
+          </Card>
+        </View>
+      ))}
     </DetailPage>
   );
 }
-function Content({
-  icon,
-  title,
-  text,
-}: {
-  icon: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <>
-      <View style={styles.icon}>
-        <Text style={styles.iconText}>{icon}</Text>
-      </View>
-      <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={detailStyles.muted}>{text}</Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </>
-  );
-}
-const styles = StyleSheet.create({
-  row: {
-    ...theme.shadow.card,
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderColor: theme.colors.border,
-    borderRadius: 17,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    padding: 15,
-  },
-  icon: {
-    alignItems: "center",
-    backgroundColor: "#e5f6ef",
-    borderRadius: 13,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-  },
-  iconText: { color: theme.colors.primary, fontSize: 18, fontWeight: "900" },
-  copy: { flex: 1 },
-  title: { color: theme.colors.ink, fontSize: 15, fontWeight: "800" },
-  chevron: { color: "#789087", fontSize: 26 },
-});

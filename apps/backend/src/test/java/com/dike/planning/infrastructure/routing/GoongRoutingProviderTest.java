@@ -81,6 +81,29 @@ class GoongRoutingProviderTest {
   }
 
   @Test
+  void reverseUsesProviderAddressButKeepsExactPickupPin() {
+    server
+        .expect(
+            request -> {
+              assertThat(request.getURI().getPath()).isEqualTo("/Geocode");
+              assertThat(request.getURI().getQuery()).contains("latlng=10.77,106.7");
+            })
+        .andRespond(
+            withSuccess(
+                """
+        {"results":[{"place_id":"school", "formatted_address":"School gate, District, City",
+        "geometry":{"location":{"lat":10.78,"lng":106.71}}}]}
+        """,
+                MediaType.APPLICATION_JSON));
+    var place = provider.reverse(10.77, 106.7, NOW);
+    assertThat(place.displayLabel()).isEqualTo("School gate, District, City");
+    assertThat(place.publicAreaLabel()).isEqualTo("District, City");
+    assertThat(place.latitude()).isEqualTo(10.77);
+    assertThat(place.longitude()).isEqualTo(106.7);
+    server.verify();
+  }
+
+  @Test
   void mapsMotorbikeRouteAndDecodesGeometry() {
     server
         .expect(

@@ -1,0 +1,142 @@
+[
+  {
+    "name": "01-home",
+    "route": "/",
+    "files": ["01-home.png"]
+  },
+  {
+    "name": "02-chuyen-di",
+    "route": "/trips",
+    "files": ["02-chuyen-di.png"]
+  },
+  {
+    "name": "03-tin-nhan",
+    "route": "/inbox",
+    "files": ["03-tin-nhan.png"]
+  },
+  {
+    "name": "04-ho-so",
+    "route": "/profile",
+    "files": ["04-ho-so.png"]
+  },
+  {
+    "name": "05-thong-bao",
+    "route": "/notifications",
+    "files": ["05-thong-bao.png"]
+  },
+  {
+    "name": "06-chi-tiet-bai-dang",
+    "route": "/posts/post-1",
+    "files": ["06-chi-tiet-bai-dang.png"]
+  },
+  {
+    "name": "07-chi-tiet-chuyen",
+    "route": "/trip/trip-1",
+    "files": ["07-chi-tiet-chuyen.png"]
+  },
+  {
+    "name": "08-chi-tiet-dat-cho",
+    "route": "/booking/booking-1",
+    "files": ["08-chi-tiet-dat-cho.png"]
+  },
+  {
+    "name": "09-tro-chuyen",
+    "route": "/chat/conversation-1",
+    "files": ["09-tro-chuyen.png"]
+  },
+  {
+    "name": "10-ho-so-nguoi-khac",
+    "route": "/user/other",
+    "files": ["10-ho-so-nguoi-khac.png"]
+  },
+  {
+    "name": "11-lich-trinh",
+    "route": "/schedules",
+    "files": ["11-lich-trinh.png"]
+  },
+  {
+    "name": "12-tao-lich",
+    "route": "/schedules/edit",
+    "files": ["12-tao-lich.png"]
+  },
+  {
+    "name": "13-sua-lich",
+    "route": "/schedules/edit?id=schedule-1",
+    "files": ["13-sua-lich.png"]
+  },
+  {
+    "name": "14-cai-dat",
+    "route": "/settings",
+    "files": ["14-cai-dat.png"]
+  },
+  {
+    "name": "15-sua-ho-so",
+    "route": "/settings/profile",
+    "files": ["15-sua-ho-so.png"]
+  },
+  {
+    "name": "16-quyen-rieng-tu",
+    "route": "/settings/privacy",
+    "files": ["16-quyen-rieng-tu.png"]
+  },
+  {
+    "name": "17-bao-mat",
+    "route": "/settings/security",
+    "files": ["17-bao-mat.png"]
+  },
+  {
+    "name": "18-dieu-khoan",
+    "route": "/settings/consent",
+    "files": ["18-dieu-khoan.png"]
+  },
+  {
+    "name": "19-cai-dat-thong-bao",
+    "route": "/settings/notifications",
+    "files": ["19-cai-dat-thong-bao.png"]
+  },
+  {
+    "name": "20-xac-minh",
+    "route": "/verification",
+    "files": ["20-xac-minh.png"]
+  },
+  {
+    "name": "21-so-dien-thoai",
+    "route": "/onboarding/phone",
+    "files": ["21-so-dien-thoai.png"]
+  },
+  {
+    "name": "22-thu-vien-ui",
+    "route": "/ui-gallery",
+    "files": ["22-thu-vien-ui.png"]
+  },
+  {
+    "name": "23-tao-chuyen-buoc-1",
+    "route": "/create-trip",
+    "files": ["23-tao-chuyen-buoc-1.png"]
+  },
+  {
+    "name": "24-tao-chuyen-buoc-2",
+    "route": "/create-trip#step-2",
+    "files": ["24-tao-chuyen-buoc-2.png"]
+  },
+  {
+    "name": "25-tao-chuyen-buoc-3",
+    "route": "/create-trip#step-3",
+    "files": ["25-tao-chuyen-buoc-3.png"]
+  },
+  {
+    "name": "26-xac-nhan-dang-chuyen",
+    "route": "/create-trip#confirm",
+    "files": ["26-xac-nhan-dang-chuyen.png"]
+  },
+  {
+    "name": "27-nhap-otp",
+    "route": "/onboarding/phone#otp",
+    "files": ["27-nhap-otp.png"]
+  },
+  {
+    "name": "28-dang-nhap",
+    "route": "/sign-in",
+    "files": ["28-dang-nhap.png"]
+  }
+]

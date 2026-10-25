@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -66,6 +67,7 @@ class LocalDevAuthControllerTest {
             mock(ConsentService.class),
             mongo,
             Clock.fixed(now, ZoneOffset.UTC),
+            List.of(URI.create("http://localhost:8081")),
             URI.create("http://localhost:3000"),
             Duration.ofHours(24),
             Duration.ofDays(30));

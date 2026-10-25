@@ -13,6 +13,8 @@ public interface RoutingProvider {
 
   PlaceSnapshot resolve(String providerPlaceId, String sessionToken, Instant resolvedAt);
 
+  PlaceSnapshot reverse(double latitude, double longitude, Instant resolvedAt);
+
   RouteResult route(PlaceSnapshot origin, PlaceSnapshot destination, VehicleMode vehicleMode);
 
   record PlaceSuggestion(

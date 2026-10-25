@@ -46,6 +46,7 @@ public class RidePostResponseService {
     this.pickups = pickups;
   }
 
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostInboxItem")
   public record View(
       String id,
       String postId,
@@ -190,6 +191,63 @@ public class RidePostResponseService {
     return mongo.find(query, Document.class, "ride_post_responses").stream()
         .map(value -> view(value, actor))
         .toList();
+  }
+
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RidePostInboxPage")
+  public record Page(List<View> items, String nextCursor) {}
+
+  public Page inbox(String actor, String direction, String cursor, int limit) {
+    if (!List.of("sent", "received").contains(direction))
+      throw new ApiException(
+          HttpStatus.BAD_REQUEST, "INVALID_RESPONSE_DIRECTION", "Bộ lọc không hợp lệ");
+    String participantField = "sent".equals(direction) ? "requesterId" : "ownerId";
+    var criteria = Criteria.where(participantField).is(actor);
+    if (cursor != null && !cursor.isBlank()) {
+      var anchor =
+          mongo.findOne(
+              Query.query(Criteria.where("_id").is(cursor).and(participantField).is(actor)),
+              Document.class,
+              "ride_post_responses");
+      if (anchor == null)
+        throw new ApiException(
+            HttpStatus.BAD_REQUEST, "INVALID_RESPONSE_CURSOR", "Hãy tải lại danh sách yêu cầu");
+      criteria =
+          new Criteria()
+              .andOperator(
+                  criteria,
+                  new Criteria()
+                      .orOperator(
+                          Criteria.where("createdAt").lt(anchor.getDate("createdAt")),
+                          Criteria.where("createdAt")
+                              .is(anchor.getDate("createdAt"))
+                              .and("_id")
+                              .lt(cursor)));
+    }
+    int size = Math.clamp(limit, 1, 50);
+    var rows =
+        mongo.find(
+            Query.query(criteria)
+                .with(Sort.by(Sort.Direction.DESC, "createdAt", "_id"))
+                .limit(size + 1),
+            Document.class,
+            "ride_post_responses");
+    boolean more = rows.size() > size;
+    var visible = rows.stream().limit(size).toList();
+    return new Page(
+        visible.stream()
+            .filter(value -> readableResponse(actor, value))
+            .map(value -> view(value, actor))
+            .toList(),
+        more ? visible.getLast().getString("_id") : null);
+  }
+
+  private boolean readableResponse(String actor, Document response) {
+    try {
+      posts.requireReadable(actor, response.getString("postId"));
+      return true;
+    } catch (ApiException denied) {
+      return false;
+    }
   }
 
   public View decide(String actor, String id, long version, String decision) {

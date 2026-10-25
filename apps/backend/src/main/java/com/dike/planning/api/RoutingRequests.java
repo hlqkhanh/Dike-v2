@@ -20,6 +20,8 @@ final class RoutingRequests {
       @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{8,100}") String destinationPlaceRef,
       @NotNull VehicleMode vehicleMode) {}
 
+  record ReversePlace(@NotNull Double latitude, @NotNull Double longitude) {}
+
   record CreateEstimate(
       @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{8,100}") String routeSnapshotId,
       @Min(1) long sharedDistanceMeters,

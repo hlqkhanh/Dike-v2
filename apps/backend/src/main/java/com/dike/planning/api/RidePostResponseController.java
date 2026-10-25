@@ -54,6 +54,16 @@ public class RidePostResponseController {
     return service.active(principal.getName());
   }
 
+  @GetMapping("/ride-post-responses")
+  @Operation(operationId = "listRidePostResponseInbox")
+  public RidePostResponseService.Page inbox(
+      Principal principal,
+      @RequestParam(defaultValue = "sent") String direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") int limit) {
+    return service.inbox(principal.getName(), direction, cursor, limit);
+  }
+
   @PostMapping("/ride-post-responses/{id}/decision")
   RidePostResponseService.View decide(
       Principal principal, @PathVariable String id, @RequestBody Decision body) {

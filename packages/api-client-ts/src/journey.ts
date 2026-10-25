@@ -17,6 +17,7 @@ export type JourneyConversation = {
   recipientAvatarUrl?: string;
   canSend?: boolean;
   postId?: string;
+  lastMessageText?: string;
 };
 export type JourneyRidePostAttachment = {
   postId: string;

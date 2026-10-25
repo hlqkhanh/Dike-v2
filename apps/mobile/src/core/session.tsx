@@ -1,6 +1,6 @@
 import type { AuthSessionResponse } from "@dike/api-client-ts";
 import { useQueryClient } from "@tanstack/react-query";
-import * as SecureStore from "expo-secure-store";
+import { sessionStorage as SecureStore } from "./session-storage";
 import {
   createContext,
   useCallback,
@@ -11,7 +11,13 @@ import {
   type PropsWithChildren,
 } from "react";
 
-import { createMobileApi, type LocalPersona } from "./api";
+import {
+  type LocalPersona,
+  createMobileApi,
+  MobileApiError,
+  setSessionExpiredHandler,
+} from "./api";
+import { googleLogin } from "./google-login";
 
 const TOKEN_KEY = "dike.mobile.session";
 
@@ -19,8 +25,9 @@ type SessionContextValue = {
   loading: boolean;
   session: AuthSessionResponse | null;
   token: string | null;
-  signInWithToken: (token: string) => Promise<void>;
+  sessionError: string | null;
   signInLocally: (persona: LocalPersona) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -32,8 +39,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [session, setSession] = useState<AuthSessionResponse | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    setSessionError(null);
     const stored = await SecureStore.getItemAsync(TOKEN_KEY);
     setToken(stored);
     if (!stored) {
@@ -45,56 +54,80 @@ export function SessionProvider({ children }: PropsWithChildren) {
       setSession(
         await createMobileApi(() => Promise.resolve(stored)).session(),
       );
-    } catch {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      queryClient.clear();
-      setToken(null);
-      setSession(null);
+    } catch (error) {
+      setSessionError(
+        error instanceof Error
+          ? error.message
+          : "Không thể khôi phục phiên. Hãy thử lại.",
+      );
+      if (error instanceof MobileApiError && error.status === 401) {
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        setToken(null);
+        setSession(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [queryClient]);
-
-  const signInWithToken = useCallback(
-    async (nextToken: string) => {
-      const normalized = nextToken.trim();
-      if (!normalized) throw new Error("Thiếu phiên đăng nhập.");
-      const nextSession = await createMobileApi(() =>
-        Promise.resolve(normalized),
-      ).session();
-      if (!nextSession.authenticated)
-        throw new Error("Phiên đăng nhập không hợp lệ.");
-      await SecureStore.setItemAsync(TOKEN_KEY, normalized);
-      queryClient.clear();
-      setToken(normalized);
-      setSession(nextSession);
-      setLoading(false);
-    },
-    [queryClient],
-  );
+  }, []);
 
   useEffect(() => void refresh(), [refresh]);
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      void SecureStore.deleteItemAsync(TOKEN_KEY);
+      queryClient.clear();
+      setToken(null);
+      setSession(null);
+      setSessionError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    });
+    return () => setSessionExpiredHandler(undefined);
+  }, [queryClient]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
       loading,
       session,
       token,
+      sessionError,
       refresh,
-      signInWithToken,
       signInLocally: async (persona) => {
         if (!__DEV__)
-          throw new Error("Đăng nhập local chỉ dùng trong bản phát triển.");
+          throw new Error("Local login is only available in development.");
         const result = await createMobileApi(() =>
           Promise.resolve(null),
         ).localLogin(persona);
-        await signInWithToken(result.token);
+        const authenticated = await createMobileApi(() =>
+          Promise.resolve(result.token),
+        ).session();
+        if (!authenticated.authenticated)
+          throw new Error("Invalid login session.");
+        await SecureStore.setItemAsync(TOKEN_KEY, result.token);
+        setSessionError(null);
+        queryClient.clear();
+        setToken(result.token);
+        setSession(authenticated);
+      },
+      signInWithGoogle: async () => {
+        const nextToken = await googleLogin();
+        if (!nextToken) throw new Error("Bạn đã hủy đăng nhập Google.");
+        const authenticated = await createMobileApi(() =>
+          Promise.resolve(nextToken),
+        ).session();
+        if (!authenticated.authenticated)
+          throw new Error("Phiên đăng nhập không hợp lệ.");
+        await SecureStore.setItemAsync(TOKEN_KEY, nextToken);
+        setSessionError(null);
+        queryClient.clear();
+        setToken(nextToken);
+        setSession(authenticated);
       },
       signOut: async () => {
         if (token) {
-          await createMobileApi(() => Promise.resolve(token))
-            .logout()
-            .catch(() => undefined);
+          try {
+            await createMobileApi(() => Promise.resolve(token)).logout();
+          } catch (error) {
+            if (!(error instanceof MobileApiError && error.status === 401))
+              throw error;
+          }
         }
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         queryClient.clear();
@@ -102,7 +135,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         setSession(null);
       },
     }),
-    [loading, refresh, session, token, signInWithToken, queryClient],
+    [loading, queryClient, refresh, session, sessionError, token],
   );
 
   return (

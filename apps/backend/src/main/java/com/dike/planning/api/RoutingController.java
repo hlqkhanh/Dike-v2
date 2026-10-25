@@ -146,6 +146,29 @@ public class RoutingController {
     }
   }
 
+  @PostMapping("/places/reverse")
+  @Operation(operationId = "reversePlace")
+  PlaceResponse reverse(
+      Principal principal,
+      @Valid @RequestBody RoutingRequests.ReversePlace body,
+      HttpServletRequest request) {
+    try {
+      var resolved =
+          places.reverse(
+              principal.getName(), body.latitude(), body.longitude(), request.getRemoteAddr());
+      var value = resolved.place();
+      return new PlaceResponse(
+          resolved.placeRef(),
+          value.displayLabel(),
+          value.publicAreaLabel(),
+          value.longitude(),
+          value.latitude(),
+          value.resolvedAt());
+    } catch (RuntimeException error) {
+      throw mapped(error);
+    }
+  }
+
   @GetMapping("/routes/{id}")
   @Operation(operationId = "getRoute")
   RouteResponse route(Principal principal, @PathVariable String id) {

@@ -1,107 +1,153 @@
-﻿import { Redirect } from "expo-router";
+import type { LocalPersona } from "@/core/api";
+import { Redirect } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-
-import { API_BASE_URL, MobileApiError, type LocalPersona } from "@/core/api";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+  Image,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Text, Button, ErrorText, Icon, ui } from "@/components/ui";
+import { homeAssets } from "@/core/assets";
 import { useSession } from "@/core/session";
 import { theme } from "@/core/theme";
-
-const personas: { value: LocalPersona; label: string }[] = [
-  { value: "member", label: "Thành viên" },
-  { value: "driver", label: "Tài xế" },
-  { value: "admin", label: "Quản trị viên" },
-];
-
 export default function SignIn() {
-  const { session, signInLocally } = useSession();
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState<LocalPersona | null>(null);
+  const {
+    session,
+    token: storedToken,
+    sessionError,
+    refresh,
+    signInWithGoogle,
+    signInLocally,
+  } = useSession();
+  const [error, setError] = useState<unknown>();
+  const [pending, setPending] = useState(false);
   if (session?.authenticated) return <Redirect href="/(tabs)" />;
-
-  const submit = async (persona: LocalPersona) => {
-    if (pending) return;
-    setPending(persona);
-    setError("");
+  async function submit(persona?: LocalPersona) {
+    setPending(true);
+    setError(undefined);
     try {
-      await signInLocally(persona);
-    } catch (cause) {
-      setError(
-        cause instanceof MobileApiError
-          ? cause.status === 404 || cause.status === 401
-            ? "Backend chưa bật đăng nhập local. Hãy chạy API với cấu hình local."
-            : cause.message
-          : "Không thể đăng nhập. Kiểm tra kết nối đến API rồi thử lại.",
-      );
+      if (persona) await signInLocally(persona);
+      else await signInWithGoogle();
+    } catch (e) {
+      setError(e);
     } finally {
-      setPending(null);
+      setPending(false);
     }
-  };
-
+  }
   return (
-    <View style={styles.page}>
-      <Text accessibilityRole="header" style={styles.brand}>
-        Dike
-      </Text>
-      <Text style={styles.title}>Đi chung, nhẹ đường hơn.</Text>
-      <Text style={styles.body}>
-        {__DEV__
-          ? "Chọn tài khoản thử nghiệm để khám phá Dike. Chỉ dùng trong môi trường local."
-          : "Đăng nhập Google cho bản phát hành đang được hoàn thiện."}
-      </Text>
-      {__DEV__ &&
-        personas.map((persona) => (
-          <Pressable
-            key={persona.value}
-            accessibilityRole="button"
-            accessibilityLabel={`Đăng nhập ${persona.label}`}
-            disabled={pending !== null}
-            onPress={() => void submit(persona.value)}
-            style={({ pressed }) => [
-              styles.button,
-              pending !== null && styles.disabled,
-              pressed && styles.pressed,
-            ]}
+    <LinearGradient
+      colors={["#e1f5e9", "#f6fbf8", "#ffffff"]}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              flexGrow: 1,
+              padding: 28,
+              justifyContent: "center",
+              gap: 24,
+            }}
           >
-            <Text style={styles.buttonText}>
-              {pending === persona.value ? "Đang đăng nhập…" : persona.label}
-            </Text>
-          </Pressable>
-        ))}
-      {error ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-      {__DEV__ && <Text style={styles.endpoint}>API: {API_BASE_URL}</Text>}
-    </View>
+            <View style={ui.row}>
+              <View
+                style={{
+                  backgroundColor: "#e5f5eb",
+                  borderRadius: 15,
+                  padding: 12,
+                }}
+              >
+                <Image
+                  source={homeAssets.logo}
+                  accessibilityLabel="Logo Diké"
+                  style={{ width: 36, height: 36 }}
+                />
+              </View>
+              <Text
+                style={{ fontSize: 30, fontWeight: "800", letterSpacing: -1 }}
+              >
+                Diké
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                }}
+              >
+                SHARE
+              </Text>
+            </View>
+            <View style={{ paddingVertical: 20 }}>
+              <Image
+                accessible={false}
+                source={homeAssets.homeLandscape}
+                resizeMode="cover"
+                style={{ width: "100%", height: 158, borderRadius: 26 }}
+              />
+            </View>
+            <View style={{ gap: 14 }}>
+              <Text style={ui.eyebrow}>MỖI CHUYẾN ĐI, THÊM MỘT KẾT NỐI</Text>
+              <Text
+                accessibilityRole="header"
+                style={{
+                  fontSize: 38,
+                  lineHeight: 48,
+                  fontWeight: "800",
+                  letterSpacing: -1.5,
+                }}
+              >
+                Đi chung, nhẹ{`\n`}đường hơn.
+              </Text>
+              <Text style={[ui.muted, { fontSize: 16 }]}>
+                Kết nối những người cùng đường. Chia sẻ hành trình, tiết kiệm
+                chi phí và cùng sống xanh.
+              </Text>
+            </View>
+            <Button
+              label="Đăng nhập bằng Google"
+              icon="logo-google"
+              pending={pending}
+              onPress={() => void submit()}
+            />
+            {__DEV__ ? (
+              <View style={{ gap: 8 }}>
+                {(["member", "driver", "admin"] as const).map((persona) => (
+                  <Button
+                    key={persona}
+                    label={`Local: ${persona}`}
+                    variant="secondary"
+                    disabled={pending}
+                    onPress={() => void submit(persona)}
+                  />
+                ))}
+              </View>
+            ) : null}
+            <ErrorText error={error || sessionError} />
+            {storedToken && sessionError ? (
+              <Button
+                label="Thử kết nối lại"
+                variant="secondary"
+                onPress={() => void refresh()}
+              />
+            ) : null}
+            <View style={[ui.row, { justifyContent: "center" }]}>
+              <Icon name="shield-checkmark-outline" size={17} />
+              <Text style={{ color: theme.colors.inkMuted, fontSize: 12 }}>
+                Tài khoản của bạn được bảo vệ
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  page: {
-    backgroundColor: theme.colors.canvas,
-    flex: 1,
-    gap: theme.spacing.md,
-    justifyContent: "center",
-    padding: theme.spacing.lg,
-  },
-  brand: { color: theme.colors.primary, fontSize: 22, fontWeight: "800" },
-  title: {
-    color: theme.colors.ink,
-    fontSize: 34,
-    fontWeight: "900",
-    lineHeight: 40,
-  },
-  body: { color: theme.colors.inkMuted, fontSize: 16, lineHeight: 24 },
-  button: {
-    alignItems: "center",
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-  },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "800" },
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.8 },
-  error: { color: theme.colors.danger },
-  endpoint: { color: theme.colors.inkMuted, fontSize: 12 },
-});

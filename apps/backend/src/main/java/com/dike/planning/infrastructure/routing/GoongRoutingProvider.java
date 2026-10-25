@@ -97,6 +97,27 @@ class GoongRoutingProvider implements RoutingProvider {
   }
 
   @Override
+  public PlaceSnapshot reverse(double latitude, double longitude, Instant resolvedAt) {
+    JsonNode response =
+        get(
+            "/Geocode",
+            builder ->
+                builder
+                    .queryParam("api_key", properties.apiKey())
+                    .queryParam("latlng", latitude + "," + longitude),
+            "PLACE_NOT_FOUND");
+    JsonNode result = response.path("results").path(0);
+    String address = text(result, "formatted_address");
+    String placeId = text(result, "place_id");
+    if (address == null || placeId == null) {
+      throw new RoutingProviderException("PLACE_NOT_FOUND", "Goong returned no usable address");
+    }
+    // Keep the user's pin, rather than snapping the pickup to the POI's centroid.
+    return new PlaceSnapshot(
+        "GOONG", placeId, address, publicArea(address), longitude, latitude, resolvedAt);
+  }
+
+  @Override
   public RouteResult route(
       PlaceSnapshot origin, PlaceSnapshot destination, VehicleMode vehicleMode) {
     JsonNode response =

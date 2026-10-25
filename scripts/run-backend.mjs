@@ -7,8 +7,8 @@ if (existsSync(".env.local")) loadEnvFile(".env.local");
 loadLocalGoogleOAuth();
 
 const workload = process.argv[2];
-if (!new Set(["api", "worker"]).has(workload)) {
-  throw new Error("Usage: node scripts/run-backend.mjs <api|worker>");
+if (!new Set(["api", "worker", "combined"]).has(workload)) {
+  throw new Error("Usage: node scripts/run-backend.mjs <api|worker|combined>");
 }
 
 const wrapper = process.platform === "win32" ? ".\\mvnw.cmd" : "./mvnw";
