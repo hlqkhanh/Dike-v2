@@ -35,7 +35,7 @@ class DemoDataServiceTest {
   void explicitDemoSeedOnlyCreatesSharedSamplePostsAndNeverRefreshesExistingPosts() {
     var summary = service.seedFor("real-user");
     var updates = ArgumentCaptor.forClass(Update.class);
-    verify(mongo, times(4)).upsert(any(Query.class), updates.capture(), eq("ride_posts"));
+    verify(mongo, times(10)).upsert(any(Query.class), updates.capture(), eq("ride_posts"));
     for (var update : updates.getAllValues()) {
       var insert = update.getUpdateObject().get("$setOnInsert", Document.class);
       assertThat(insert.getString("ownerId")).startsWith("demo-user-");
@@ -43,6 +43,6 @@ class DemoDataServiceTest {
       assertThat(update.getUpdateObject()).doesNotContainKey("$set");
     }
     verify(mongo, never()).save(any(), eq("ride_posts"));
-    assertThat(summary.posts()).isEqualTo(4);
+    assertThat(summary.posts()).isEqualTo(10);
   }
 }
