@@ -22,16 +22,19 @@ export function RouteMapSurface({
   geometry,
   onError,
   onPick,
+  interactive,
 }: {
   geometry: RoutePoint[];
   onError: () => void;
   onPick?: (point: RoutePoint) => void;
+  interactive?: boolean;
 }) {
   const selectable = !!onPick;
+  const isInteractive = interactive !== undefined ? interactive : selectable;
   const [ready, setReady] = useState(false);
   const html = useMemo(
-    () => routeMapHtml(geometry, selectable),
-    [geometry, selectable],
+    () => routeMapHtml(geometry, selectable, isInteractive),
+    [geometry, selectable, isInteractive],
   );
   useEffect(() => {
     setReady(false);

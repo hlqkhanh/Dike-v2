@@ -67,18 +67,9 @@ export default function TabsLayout() {
                 >
                   <Icon
                     name={icons[route.name] ?? "ellipse-outline"}
-                    size={24}
+                    size={26}
                     color={focused ? h.primary : h.muted}
                   />
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      tabStyles.label,
-                      { color: focused ? h.primary : h.muted },
-                    ]}
-                  >
-                    {options.title}
-                  </Text>
                 </Pressable>
               </Fragment>
             );
@@ -182,11 +173,11 @@ export default function TabsLayout() {
 const tabStyles = StyleSheet.create({
   navigation: {
     position: "absolute",
-    start: 16,
-    end: 16,
-    minHeight: 72,
-    padding: 8,
-    borderRadius: 40,
+    start: 20,
+    end: 20,
+    minHeight: 64,
+    padding: 6,
+    borderRadius: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -199,18 +190,17 @@ const tabStyles = StyleSheet.create({
   destination: {
     flex: 1,
     minWidth: 0,
-    minHeight: 56,
-    borderRadius: 32,
+    minHeight: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
   },
   selected: { backgroundColor: h.primarySoft },
   label: { fontSize: 10, fontWeight: "600" },
   create: {
-    width: 52,
-    height: 52,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: h.primary,
     alignItems: "center",
     justifyContent: "center",

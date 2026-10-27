@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "@/core/theme";
 import { Icon, Text, type IconName } from "./ui";
 
@@ -105,22 +104,33 @@ export function RideOptionsPanel({
             onPress={option.onPress}
             style={({ pressed }) => [
               styles.vehicle,
-              option.selected && styles.selected,
-              pressed && styles.pressed,
+              option.selected && styles.vehicleSelected,
+              pressed && styles.vehiclePressed,
             ]}
           >
-            <LinearGradient
-              pointerEvents="none"
-              colors={[theme.vehicleGlass.highlight, theme.vehicleGlass.sheen]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.glassSheen}
-            />
-            <View style={styles.vehicleArt}>
-              <Icon name={option.icon} size={32} />
+            <View
+              style={[
+                styles.vehicleArt,
+                option.selected && styles.vehicleArtSelected,
+              ]}
+            >
+              <Icon
+                name={option.icon}
+                size={28}
+                color={
+                  option.selected ? theme.colors.primary : theme.colors.inkMuted
+                }
+              />
             </View>
             <View style={styles.vehicleCopy}>
-              <Text style={styles.vehicleTitle}>{option.title}</Text>
+              <Text
+                style={[
+                  styles.vehicleTitle,
+                  option.selected && styles.vehicleTitleSelected,
+                ]}
+              >
+                {option.title}
+              </Text>
               <Text numberOfLines={1} style={styles.description}>
                 {option.description}
               </Text>
@@ -128,20 +138,30 @@ export function RideOptionsPanel({
             <View style={styles.price}>
               {option.price ? (
                 <>
-                  <Text style={styles.priceText}>{option.price}</Text>
-                  <Text style={styles.description}>
+                  <Text
+                    style={[
+                      styles.priceText,
+                      option.selected && styles.priceTextSelected,
+                    ]}
+                  >
+                    {option.price}
+                  </Text>
+                  <Text style={styles.priceUnit}>
                     {option.priceUnit ?? "dự kiến"}
                   </Text>
                 </>
               ) : null}
             </View>
-            <Icon
-              name={option.selected ? "checkmark-circle" : "ellipse-outline"}
-              size={22}
-              color={
-                option.selected ? theme.colors.primary : theme.colors.inkMuted
-              }
-            />
+            <View
+              style={[
+                styles.checkCircle,
+                option.selected && styles.checkCircleSelected,
+              ]}
+            >
+              {option.selected ? (
+                <Icon name="checkmark" size={14} color="#ffffff" />
+              ) : null}
+            </View>
           </Pressable>
         ))}
       </View>
@@ -247,41 +267,95 @@ const styles = StyleSheet.create({
   },
   headingText: { fontSize: 18, fontWeight: "800" },
   hint: { fontSize: 12, color: theme.colors.inkMuted },
-  vehicles: { gap: theme.spacing.sm },
+  vehicles: { gap: 10 },
   vehicle: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
-    minHeight: theme.journey.vehicleHeight,
-    padding: theme.spacing.sm,
-    backgroundColor: theme.vehicleGlass.background,
-    borderWidth: 1,
-    borderColor: theme.vehicleGlass.border,
-    borderRadius: theme.radius.md,
-    shadowColor: theme.colors.ink,
-    shadowOffset: { width: 0, height: theme.vehicleGlass.shadowOffset },
-    shadowOpacity: theme.vehicleGlass.shadowOpacity,
-    shadowRadius: theme.vehicleGlass.shadowRadius,
+    gap: 12,
+    minHeight: 74,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#ffffff",
+    borderWidth: 1.5,
+    borderColor: "#e2e8f0",
+    borderRadius: 18,
+    overflow: "hidden",
+    shadowColor: "#083c2e",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 1,
   },
-  selected: {
-    borderColor: theme.vehicleGlass.selectedBorder,
+  vehicleSelected: {
+    backgroundColor: "#f0fdf7",
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  glassSheen: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: theme.radius.md,
+  vehiclePressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.985 }],
   },
   vehicleArt: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#f1f5f3",
     alignItems: "center",
     justifyContent: "center",
   },
-  vehicleCopy: { flex: 1, gap: theme.spacing.xs },
-  vehicleTitle: { fontSize: 16, fontWeight: "800" },
-  description: { fontSize: 12, color: theme.colors.inkMuted },
-  price: { alignItems: "flex-end", gap: theme.spacing.xs },
-  priceText: { fontSize: 15, fontWeight: "800" },
+  vehicleArtSelected: {
+    backgroundColor: "#dcf2e8",
+  },
+  vehicleCopy: { flex: 1, gap: 2 },
+  vehicleTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.ink,
+  },
+  vehicleTitleSelected: {
+    color: theme.colors.primary,
+  },
+  description: {
+    fontSize: 12.5,
+    color: "#64748b",
+  },
+  price: {
+    alignItems: "flex-end",
+    gap: 2,
+    marginRight: 6,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.ink,
+  },
+  priceTextSelected: {
+    color: theme.colors.primary,
+  },
+  priceUnit: {
+    fontSize: 11.5,
+    color: "#64748b",
+    fontWeight: "600",
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#cbd5e1",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  checkCircleSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
   seats: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   seatLabel: { fontSize: 14, fontWeight: "700" },
   stepper: {
@@ -315,5 +389,4 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   advanced: { gap: theme.spacing.md },
-  pressed: { opacity: 0.8 },
 });

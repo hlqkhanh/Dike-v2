@@ -9,11 +9,14 @@ import com.dike.identity.application.MobileSessionTokens;
 import com.dike.identity.application.OtpOperations;
 import com.dike.identity.application.PhoneOnboardingService;
 import com.dike.identity.application.SessionApplicationService;
+import com.dike.identity.infrastructure.security.MobileLoginController;
+import com.dike.identity.infrastructure.security.SessionAttributes;
 import com.dike.shared.api.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.time.Instant;
@@ -65,6 +68,12 @@ public class AuthController {
       telemetry.login("rate_limited");
       throw new ApiException(
           HttpStatus.TOO_MANY_REQUESTS, "AUTH_RATE_LIMITED", "Đã có quá nhiều yêu cầu đăng nhập");
+    }
+    HttpSession session = request.getSession(false);
+    if (session != null && session.getAttribute(MobileLoginController.CHALLENGE) == null) {
+      if (Boolean.TRUE.equals(session.getAttribute(SessionAttributes.MOBILE))) {
+        session.invalidate();
+      }
     }
     response.sendRedirect("/api/v1/auth/oauth2/authorization/google");
   }

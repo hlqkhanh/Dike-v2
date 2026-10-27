@@ -109,7 +109,6 @@ export default function Discover() {
               { transform: [{ translateY: pinnedTranslateY }] },
             ]}
           />
-          <View pointerEvents="none" style={styles.heroCurve} />
           <View style={[styles.heroContent, { paddingTop: insets.top + 14 }]}>
             <Animated.View
               style={[
@@ -183,62 +182,113 @@ export default function Discover() {
                 accessibilityRole="button"
                 accessibilityLabel="Thay đổi điểm đi mặc định"
                 onPress={() => router.push("/onboarding/location")}
-                style={{
-                  minHeight: 48,
-                  padding: theme.spacing.sm,
-                  flexDirection: "row",
-                  gap: theme.spacing.sm,
-                  alignItems: "center",
-                }}
+                style={styles.locationBar}
               >
-                <Icon name="location-outline" size={20} />
-                <Text numberOfLines={1} style={{ flex: 1, fontWeight: "700" }}>
+                <Icon name="location-outline" size={20} color={h.primary} />
+                <Text numberOfLines={1} style={styles.locationText}>
                   {places.preferences.pickup?.displayLabel ??
                     "Chọn điểm đi của bạn"}
                 </Text>
-                <Icon name="chevron-forward" size={18} />
+                <Icon name="chevron-forward" size={18} color={h.muted} />
               </Pressable>
             </Animated.View>
             <View
-              style={[
-                styles.features,
-                { marginTop: Math.max(180, windowHeight * 0.27) },
-              ]}
-            >
-              <FeatureCard
-                driver
-                onPress={() =>
-                  router.push({
-                    pathname: "/create-trip",
-                    params: { mode: "driver" },
-                  })
-                }
-              />
-              <FeatureCard
-                onPress={() =>
-                  router.push({
-                    pathname: "/create-trip",
-                    params: { mode: "passenger" },
-                  })
-                }
-              />
-            </View>
+              style={{
+                height: Math.max(260, windowHeight * 0.38),
+              }}
+            />
           </View>
         </View>
         <View style={styles.content}>
+          <View style={styles.features}>
+            <FeatureCard
+              driver
+              onPress={() =>
+                router.push({
+                  pathname: "/create-trip",
+                  params: { mode: "driver" },
+                })
+              }
+            />
+            <FeatureCard
+              onPress={() =>
+                router.push({
+                  pathname: "/create-trip",
+                  params: { mode: "passenger" },
+                })
+              }
+            />
+          </View>
           <ActivePostResponses compact />
-          <View style={styles.feedHeading}>
-            <Text style={styles.sectionTitle}>Hành trình của bạn</Text>
+          <View style={styles.filterBar}>
+            {/* 3 bộ lọc gọn gàng dạng segmented control */}
+            <View style={styles.segmentedControl}>
+              {[
+                ["ALL", "Tất cả"],
+                ["OFFER_RIDE", "Tôi chở"],
+                ["NEED_RIDE", "Tôi đi ké"],
+              ].map(([value, label]) => {
+                const selected = filter === value;
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={label}
+                    onPress={() => setFilter(value)}
+                    style={[
+                      styles.segmentPill,
+                      selected && styles.segmentPillActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.segmentText,
+                        selected && styles.segmentTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Nút lọc ngày khởi hành ngang hàng */}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Lọc ngày khởi hành"
               onPress={() => setShowDate(!showDate)}
-              style={styles.dateButton}
+              style={[
+                styles.dateButton,
+                Boolean(date) && styles.dateButtonActive,
+              ]}
             >
-              <Icon name="calendar-outline" size={17} color={h.primary} />
-              <Text style={styles.dateText}>
-                {date || "Lọc ngày khởi hành"}
+              <Icon
+                name="calendar-outline"
+                size={15}
+                color={date ? "#0d8a68" : "#475569"}
+              />
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.dateText,
+                  Boolean(date) && styles.dateTextActive,
+                ]}
+              >
+                {date || "Lọc ngày"}
               </Text>
+              {date ? (
+                <Pressable
+                  hitSlop={8}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setDate("");
+                  }}
+                >
+                  <Icon name="close-circle" size={15} color="#0d8a68" />
+                </Pressable>
+              ) : null}
             </Pressable>
           </View>
           {showDate ? (
@@ -250,41 +300,6 @@ export default function Discover() {
               keyboardType="numbers-and-punctuation"
             />
           ) : null}
-          <View style={styles.filters}>
-            {[
-              ["ALL", "Tất cả"],
-              ["OFFER_RIDE", "Tôi chở"],
-              ["NEED_RIDE", "Tôi đi ké"],
-            ].map(([value, label]) => {
-              const selected = filter === value;
-              return (
-                <Pressable
-                  key={value}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={label}
-                  onPress={() => setFilter(value)}
-                  style={[
-                    styles.filterChip,
-                    selected
-                      ? styles.filterChipActive
-                      : styles.filterChipInactive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      selected
-                        ? styles.filterChipTextActive
-                        : styles.filterChipTextInactive,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
           {query.isLoading ? (
             <LoadingCards />
           ) : query.isError ? (
@@ -307,15 +322,9 @@ export default function Discover() {
               </Text>
             </View>
           ) : (
-            <>
-              <View style={ui.row}>
-                <Text style={[ui.muted, { flex: 1 }]}>Người cùng đường</Text>
-                <Badge label={`${posts.length} bài đăng`} />
-              </View>
-              {posts.map((p) => (
-                <PostCard key={p.id} post={p} viewerId={session?.user.id} />
-              ))}
-            </>
+            posts.map((p) => (
+              <PostCard key={p.id} post={p} viewerId={session?.user.id} />
+            ))
           )}
           {query.hasNextPage ? (
             <Button
@@ -547,17 +556,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  heroCurve: {
-    position: "absolute",
-    bottom: 0,
-    start: 0,
-    end: 0,
-    height: 32,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    backgroundColor: h.surface,
-  },
-  heroContent: { paddingHorizontal: 20, paddingBottom: 56 },
+  heroContent: { paddingHorizontal: 16, paddingBottom: 0 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   logo: { width: 36, height: 36 },
   brand: { fontSize: 23, fontWeight: "800", color: h.ink },
@@ -623,11 +622,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  features: {
+  locationBar: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: "row",
     gap: 8,
-    transform: [{ translateY: 56 }],
-    zIndex: 3,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderRadius: 20,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+  },
+  locationText: {
+    flex: 1,
+    fontWeight: "700",
+    fontSize: 13,
+    color: h.ink,
+  },
+  features: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: -48,
+    zIndex: 10,
+    elevation: 10,
   },
   feature: {
     flex: 1,
@@ -661,56 +680,69 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: h.surface,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    marginTop: -48,
     position: "relative",
-    paddingTop: 68,
-    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingHorizontal: 16,
     gap: 12,
     zIndex: 2,
+    overflow: "visible",
   },
-  feedHeading: {
+  filterBar: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 2,
   },
-  sectionTitle: {
-    fontSize: 22,
-    lineHeight: 32,
+  segmentedControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    borderRadius: 22,
+    padding: 3,
+  },
+  segmentPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentPillActive: {
+    backgroundColor: "#0d8a68",
+    ...theme.shadow.card,
+  },
+  segmentText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  segmentTextActive: {
+    color: "#ffffff",
     fontWeight: "800",
-    letterSpacing: -0.6,
-    color: h.ink,
   },
   dateButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: h.primarySoft,
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 48,
-  },
-  dateText: { color: h.primary, fontSize: 11, fontWeight: "700" },
-  filters: { flexDirection: "row", gap: 8, marginBottom: 4 },
-  filterChip: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterChipActive: { backgroundColor: h.primary, ...theme.shadow.card },
-  filterChipInactive: {
-    backgroundColor: h.surface,
+    gap: 5,
+    backgroundColor: "#f8fafc",
+    borderColor: "#e2e8f0",
     borderWidth: 1,
-    borderColor: h.border,
-    ...theme.shadow.card,
+    borderRadius: 20,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    minHeight: 38,
   },
-  filterChipText: { fontSize: 14, fontWeight: "700" },
-  filterChipTextActive: { color: h.surface },
-  filterChipTextInactive: { color: h.ink },
+  dateButtonActive: {
+    backgroundColor: "#e8f5ee",
+    borderColor: "#0d8a68",
+  },
+  dateText: { color: "#475569", fontSize: 12, fontWeight: "600" },
+  dateTextActive: { color: "#0d8a68", fontWeight: "700" },
   emptyCard: {
     borderRadius: 24,
     padding: 24,

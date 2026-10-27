@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useMutation } from "@tanstack/react-query";
 import type { PlaceResponse } from "@dike/api-client-ts";
 import {
@@ -35,6 +42,7 @@ export function DestinationSelection({
   const places = usePlaces();
   const resolve = useResolvePlace();
   const [savedOpen, setSavedOpen] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
   const choose = useMutation({
     mutationFn: async ({
       place,
@@ -53,32 +61,23 @@ export function DestinationSelection({
     onError: (error) => {
       const message =
         error instanceof Error ? error.message : "Vui lòng thử lại.";
-      const needsSettings = /quyền vị trí|cài đặt/i.test(message);
-      Alert.alert(
-        needsSettings ? "Cho phép truy cập vị trí" : "Chưa thể chọn địa điểm",
-        needsSettings
-          ? "Dike cần quyền vị trí để xác định điểm đi của bạn. Hãy mở cài đặt và cho phép truy cập vị trí. Bạn vẫn có thể nhập địa chỉ thủ công."
-          : message,
-        needsSettings
-          ? [
-              { text: "Để sau", style: "cancel" },
-              {
-                text: "Mở cài đặt",
-                onPress: () => {
-                  void Linking.openSettings().catch(() => {
-                    Alert.alert(
-                      "Không mở được cài đặt",
-                      "Vui lòng mở Cài đặt trên điện thoại, chọn Dike và bật quyền vị trí.",
-                    );
-                  });
-                },
-              },
-            ]
-          : [{ text: "Đã hiểu" }],
-      );
+      const needsSettings =
+        /quyền vị trí đã bị từ chối|chưa được cấp quyền vị trí/i.test(message);
+      if (needsSettings) {
+        setLocationModalVisible(true);
+      } else {
+        Alert.alert("Định vị vị trí", message, [{ text: "Đã hiểu" }]);
+      }
     },
   });
   const remove = useMutation({ mutationFn: places.remove });
+  const inlineError = (() => {
+    const err = places.error || remove.error;
+    if (!err) return undefined;
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/quyền vị trí|vị trí|location/i.test(msg)) return undefined;
+    return err;
+  })();
   return (
     <View style={styles.content}>
       <View style={styles.header}>
@@ -171,13 +170,13 @@ export function DestinationSelection({
           </View>
         </Pressable>
       ) : null}
-      <ErrorText error={places.error || remove.error} />
+      {inlineError ? <ErrorText error={inlineError} /> : null}
       {places.isPending ? (
         <Text accessibilityLiveRegion="polite" style={ui.muted}>
           Đang tải địa chỉ…
         </Text>
       ) : null}
-      {places.isError ? (
+      {places.isError && inlineError ? (
         <Button
           label="Thử tải lại địa chỉ"
           variant="secondary"
@@ -316,6 +315,69 @@ export function DestinationSelection({
           </Text>
         )}
       </BottomSheet>
+      <Modal
+        visible={locationModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLocationModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setLocationModalVisible(false)}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconBox}>
+              <Icon
+                name="navigate-circle-outline"
+                size={36}
+                color={theme.colors.primary}
+              />
+            </View>
+            <Text style={styles.modalTitle}>Quyền truy cập vị trí</Text>
+            <Text style={styles.modalMessage}>
+              Diké cần quyền vị trí để tự động định vị điểm đón của bạn bằng
+              GPS.{"\n\n"}Vui lòng mở Cài đặt thiết bị và cấp quyền truy cập vị
+              trí cho ứng dụng.
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Mở cài đặt"
+                style={({ pressed }) => [
+                  styles.modalPrimaryBtn,
+                  pressed && styles.btnPressed,
+                ]}
+                onPress={() => {
+                  setLocationModalVisible(false);
+                  void Linking.openSettings().catch(() => {
+                    Alert.alert(
+                      "Không mở được cài đặt",
+                      "Vui lòng mở Cài đặt trên điện thoại, chọn Dike và bật quyền vị trí.",
+                    );
+                  });
+                }}
+              >
+                <Icon name="settings-outline" size={18} color="#fff" />
+                <Text style={styles.modalPrimaryText}>Mở cài đặt</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Để sau, tôi tự chọn điểm"
+                style={({ pressed }) => [
+                  styles.modalSecondaryBtn,
+                  pressed && styles.btnPressed,
+                ]}
+                onPress={() => setLocationModalVisible(false)}
+              >
+                <Text style={styles.modalSecondaryText}>
+                  Để sau, tôi tự nhập địa chỉ
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -466,5 +528,90 @@ const styles = StyleSheet.create({
   actionDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: d.divider,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 22,
+    alignItems: "center",
+    ...theme.shadow.card,
+    elevation: 10,
+  },
+  modalIconBox: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: "#e8f5ee",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: "#c2e6d3",
+  },
+  modalTitle: {
+    fontSize: 19,
+    fontWeight: "800",
+    color: theme.colors.ink,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: theme.colors.inkMuted,
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 22,
+  },
+  modalActions: {
+    width: "100%",
+    gap: 10,
+  },
+  modalPrimaryBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  modalPrimaryText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  modalSecondaryBtn: {
+    backgroundColor: "#f4f6f8",
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalSecondaryText: {
+    color: theme.colors.inkMuted,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  btnPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
 });

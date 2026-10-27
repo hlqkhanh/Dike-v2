@@ -168,40 +168,150 @@ export function useResolvePlace() {
     });
 }
 
-export async function currentCoordinates() {
+export async function currentCoordinates(): Promise<{
+  latitude: number;
+  longitude: number;
+}> {
   const Location = await import("expo-location");
-  const permission = await Location.requestForegroundPermissionsAsync();
-  if (!permission.granted)
+
+  // 1. Kiểm tra quyền hiện tại trước, tránh yêu cầu lại khi đã cấp quyền
+  let permission = await Location.getForegroundPermissionsAsync();
+  if (!permission.granted) {
+    permission = await Location.requestForegroundPermissionsAsync();
+  }
+  if (!permission.granted) {
     throw new Error(
       permission.canAskAgain
-        ? "Chưa được cấp quyền vị trí. Bạn có thể thử lại hoặc chọn địa chỉ thủ công."
-        : "Quyền vị trí đã bị từ chối. Mở cài đặt để cho phép ứng dụng truy cập vị trí.",
+        ? "Chưa được cấp quyền vị trí. Vui lòng cho phép ứng dụng truy cập vị trí."
+        : "Quyền vị trí đã bị từ chối. Mở Cài đặt để cho phép ứng dụng truy cập vị trí.",
     );
-  if (!(await Location.hasServicesEnabledAsync()))
-    throw new Error(
-      "Dịch vụ vị trí đang tắt. Bật vị trí hoặc nhập địa chỉ thủ công.",
-    );
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  }
+
+  // 2. Lấy vị trí đã biết gần nhất ngay lập tức (dưới 50ms) để làm fallback
+  let fallbackCoords: { latitude: number; longitude: number } | undefined;
   try {
-    const position = await Promise.race([
+    const lastKnown = await Location.getLastKnownPositionAsync();
+    if (
+      lastKnown?.coords &&
+      Number.isFinite(lastKnown.coords.latitude) &&
+      Number.isFinite(lastKnown.coords.longitude) &&
+      Math.abs(lastKnown.coords.latitude) <= 85 &&
+      Math.abs(lastKnown.coords.longitude) <= 180
+    ) {
+      fallbackCoords = {
+        latitude: lastKnown.coords.latitude,
+        longitude: lastKnown.coords.longitude,
+      };
+    }
+  } catch {
+    // Bỏ qua lỗi lastKnown, tiếp tục lấy vị trí mới
+  }
+
+  // 3. Thử lấy vị trí mới nhất (Accuracy.Balanced) kèm hộp thoại bật định vị trên Android
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const fresh = await Promise.race([
       Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        mayShowUserSettingsDialog: true,
       }),
-      new Promise<never>(
-        (_, reject) =>
-          (timer = setTimeout(
-            () =>
-              reject(
-                new Error(
-                  "Chưa xác định được vị trí. Thử lại hoặc nhập địa chỉ thủ công.",
-                ),
-              ),
-            15_000,
-          )),
-      ),
-    ]);
-    return position.coords;
-  } finally {
-    clearTimeout(timer);
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("LOCATION_TIMEOUT")), 5000);
+      }),
+    ]).finally(() => {
+      clearTimeout(timer);
+    });
+
+    if (fresh?.coords) {
+      return {
+        latitude: fresh.coords.latitude,
+        longitude: fresh.coords.longitude,
+      };
+    }
+  } catch {
+    // Nếu Balanced thất bại hoặc timeout: nếu có fallback thì dùng ngay!
+    if (fallbackCoords) {
+      return fallbackCoords;
+    }
+
+    // Nếu chưa có fallback, thử High accuracy với timeout 4s
+    try {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const high = await Promise.race([
+        Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          mayShowUserSettingsDialog: true,
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("LOCATION_TIMEOUT")), 4000);
+        }),
+      ]).finally(() => {
+        clearTimeout(timer);
+      });
+
+      if (high?.coords) {
+        return {
+          latitude: high.coords.latitude,
+          longitude: high.coords.longitude,
+        };
+      }
+    } catch {
+      // Bỏ qua
+    }
+
+    // Thử Lowest accuracy (chỉ cần Cell/Wifi, hoạt động tốt trong nhà)
+    try {
+      const lowest = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Lowest,
+        mayShowUserSettingsDialog: true,
+      });
+      if (lowest?.coords) {
+        return {
+          latitude: lowest.coords.latitude,
+          longitude: lowest.coords.longitude,
+        };
+      }
+    } catch {
+      // Bỏ qua
+    }
+
+    // Thử kiểm tra lại lastKnown một lần nữa
+    try {
+      const retryLast = await Location.getLastKnownPositionAsync();
+      if (retryLast?.coords) {
+        return {
+          latitude: retryLast.coords.latitude,
+          longitude: retryLast.coords.longitude,
+        };
+      }
+    } catch {
+      // Bỏ qua
+    }
+
+    // Kiểm tra xem dịch vụ vị trí có bị tắt trên máy không
+    try {
+      const services = await Location.hasServicesEnabledAsync();
+      if (!services) {
+        throw new Error(
+          "Định vị (GPS) trên thiết bị đang tắt. Vui lòng bật Vị trí trong thanh cài đặt nhanh của điện thoại.",
+        );
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("Định vị")) {
+        throw e;
+      }
+    }
+
+    throw new Error(
+      "Chưa thể xác định vị trí hiện tại. Vui lòng bật định vị GPS hoặc chọn địa chỉ thủ công.",
+    );
   }
+
+  if (fallbackCoords) {
+    return fallbackCoords;
+  }
+
+  throw new Error(
+    "Chưa thể xác định vị trí hiện tại. Vui lòng bật định vị GPS hoặc chọn địa chỉ thủ công.",
+  );
 }

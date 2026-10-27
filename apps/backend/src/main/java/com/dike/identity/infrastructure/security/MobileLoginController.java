@@ -27,24 +27,36 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth/mobile")
 public class MobileLoginController {
-  static final String CHALLENGE = "dike.mobile.challenge";
-  static final String STATE = "dike.mobile.state";
-  static final String CALLBACK = "dike.mobile.callback";
+  public static final String CHALLENGE = "dike.mobile.challenge";
+  public static final String STATE = "dike.mobile.state";
+  public static final String CALLBACK = "dike.mobile.callback";
   private static final String PREFIX = "dike:auth:mobile:";
   private final StringRedisTemplate redis;
   private final LoginRateLimiter limiter;
   private final Set<String> allowedBrowserCallbacks;
+  private final org.springframework.session.web.http.HttpSessionIdResolver sessionIdResolver;
 
   public MobileLoginController(
       StringRedisTemplate redis,
       LoginRateLimiter limiter,
       @Value("${dike.auth.allowed-origins:http://localhost:3000}") List<URI> allowedOrigins) {
+    this(redis, limiter, allowedOrigins, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public MobileLoginController(
+      StringRedisTemplate redis,
+      LoginRateLimiter limiter,
+      @Value("${dike.auth.allowed-origins:http://localhost:3000}") List<URI> allowedOrigins,
+      @org.springframework.beans.factory.annotation.Autowired(required = false)
+          org.springframework.session.web.http.HttpSessionIdResolver sessionIdResolver) {
     this.redis = redis;
     this.limiter = limiter;
     this.allowedBrowserCallbacks =
         allowedOrigins.stream()
             .map(MobileLoginController::origin)
             .collect(Collectors.toUnmodifiableSet());
+    this.sessionIdResolver = sessionIdResolver;
   }
 
   @GetMapping("/google")
@@ -103,6 +115,9 @@ public class MobileLoginController {
     session.removeAttribute(STATE);
     session.removeAttribute(CALLBACK);
     session.setAttribute(SessionAttributes.MOBILE, true);
+    if (sessionIdResolver != null) {
+      sessionIdResolver.expireSession(request, response);
+    }
     String code = UUID.randomUUID().toString();
     redis
         .opsForValue()

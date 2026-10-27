@@ -27,6 +27,7 @@ export function DetailPage({
   onRefresh,
   refreshing,
   art,
+  backgroundColor,
 }: PropsWithChildren<{
   title: string;
   subtitle?: string;
@@ -34,6 +35,7 @@ export function DetailPage({
   onRefresh?: () => void;
   refreshing?: boolean;
   art?: PageArt;
+  backgroundColor?: string;
 }>) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffset = useRef(0);
@@ -68,7 +70,10 @@ export function DetailPage({
     };
   }, [reducedMotion]);
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.safe}>
+    <SafeAreaView
+      edges={["top", "bottom"]}
+      style={[styles.safe, backgroundColor ? { backgroundColor } : null]}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

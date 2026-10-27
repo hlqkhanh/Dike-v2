@@ -137,39 +137,49 @@ const styles = StyleSheet.create({
   },
   destinationPage: { backgroundColor: theme.colors.surface },
   destinationContent: {
-    paddingBottom: theme.spacing.md,
+    paddingBottom: 40,
     gap: theme.spacing.sm,
   },
-  destinationModes: {
+  roleBar: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    backgroundColor: "#f1f5f3",
+    borderRadius: 28,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "#e3eae6",
   },
-  destinationMode: {
+  roleTab: {
     flex: 1,
-    minHeight: theme.journey.sheetHandleTarget,
-    paddingHorizontal: theme.destination.rowSpacing,
-    paddingVertical: theme.spacing.sm,
+    minHeight: 46,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
     justifyContent: "center",
-    borderRadius: theme.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    gap: 8,
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  destinationModeSelected: {
-    backgroundColor: theme.destination.iconBackground,
-    borderColor: theme.colors.primary,
+  roleTabActive: {
+    backgroundColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  destinationModeText: {
-    fontSize: theme.destination.titleSize,
+  roleTabPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  roleTabText: {
+    fontSize: 15,
     fontWeight: "700",
     color: theme.colors.inkMuted,
   },
-  destinationModeTextSelected: { color: theme.colors.primary },
+  roleTabTextActive: {
+    color: "#ffffff",
+    fontWeight: "800",
+  },
   optionsContent: { flexGrow: 1 },
   optionsSheet: {
     marginTop: -theme.spacing.md,
@@ -475,6 +485,7 @@ function TripRouteMap({
           key={attempt}
           geometry={geometry}
           onError={() => setFailed(true)}
+          interactive={large}
         />
       )}
     </View>
@@ -936,7 +947,73 @@ export default function CreateTrip() {
         ) : undefined
       }
       footer={
-        step === 1 ? (
+        step === 0 ? (
+          <>
+            {hasValidRoute ? (
+              <Button
+                label={
+                  mode === "driver"
+                    ? "Kiểm tra điểm xuất phát"
+                    : "Kiểm tra điểm đón"
+                }
+                icon="navigate-outline"
+                onPress={() => {
+                  setMapTarget("origin");
+                  setMapSeed(origin);
+                  setStep(3);
+                }}
+              />
+            ) : null}
+            <View style={styles.roleBar}>
+              {(["driver", "passenger"] as const).map((value) => {
+                const selected = mode === value;
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      value === "driver"
+                        ? "Chuyển sang chế độ Tôi chở"
+                        : "Chuyển sang chế độ Tôi đi ké"
+                    }
+                    accessibilityState={{ selected }}
+                    style={({ pressed }) => [
+                      styles.roleTab,
+                      selected && styles.roleTabActive,
+                      pressed && styles.roleTabPressed,
+                    ]}
+                    onPress={() => {
+                      setMode(value);
+                      change();
+                    }}
+                  >
+                    <Icon
+                      name={
+                        value === "driver"
+                          ? selected
+                            ? "car-sport"
+                            : "car-sport-outline"
+                          : selected
+                            ? "person"
+                            : "person-outline"
+                      }
+                      size={20}
+                      color={selected ? "#ffffff" : theme.colors.inkMuted}
+                    />
+                    <Text
+                      style={[
+                        styles.roleTabText,
+                        selected && styles.roleTabTextActive,
+                      ]}
+                    >
+                      {value === "driver" ? "Tôi chở" : "Tôi đi ké"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : step === 1 ? (
           <>
             <Pressable
               accessibilityRole="button"
@@ -988,50 +1065,6 @@ export default function CreateTrip() {
             onMap={() => openMap.mutate()}
             onBack={back}
           />
-          <View style={styles.destinationModes}>
-            {(["driver", "passenger"] as const).map((value) => (
-              <Pressable
-                key={value}
-                accessibilityRole="button"
-                accessibilityState={{ selected: mode === value }}
-                style={[
-                  styles.destinationMode,
-                  mode === value && styles.destinationModeSelected,
-                ]}
-                onPress={() => {
-                  setMode(value);
-                  change();
-                }}
-              >
-                <Icon
-                  name={
-                    value === "driver" ? "car-sport-outline" : "person-outline"
-                  }
-                  size={theme.destination.iconSize}
-                  color={
-                    mode === value
-                      ? theme.colors.primary
-                      : theme.colors.inkMuted
-                  }
-                />
-                <Text
-                  style={[
-                    styles.destinationModeText,
-                    mode === value && styles.destinationModeTextSelected,
-                  ]}
-                >
-                  {value === "driver" ? "Tôi chở" : "Tôi đi ké"}
-                </Text>
-                {mode === value ? (
-                  <Icon
-                    name="checkmark-circle"
-                    size={theme.destination.iconSize}
-                    color={theme.colors.primary}
-                  />
-                ) : null}
-              </Pressable>
-            ))}
-          </View>
           {restorePickup.isError && !origin ? (
             <>
               <Text accessibilityLiveRegion="polite" style={ui.muted}>
@@ -1054,22 +1087,6 @@ export default function CreateTrip() {
             <Text accessibilityLiveRegion="polite" style={ui.muted}>
               Điểm đi và điểm đến đang trùng nhau. Hãy chọn địa điểm khác.
             </Text>
-          ) : null}
-          {hasValidRoute ? (
-            <View style={styles.checkButtonInset}>
-              <Button
-                label={
-                  mode === "driver"
-                    ? "Kiểm tra điểm xuất phát"
-                    : "Kiểm tra điểm đón"
-                }
-                onPress={() => {
-                  setMapTarget("origin");
-                  setMapSeed(origin);
-                  setStep(3);
-                }}
-              />
-            </View>
           ) : null}
           {openMap.isPending ? (
             <Text accessibilityLiveRegion="polite" style={ui.muted}>

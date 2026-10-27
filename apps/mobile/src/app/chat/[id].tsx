@@ -83,7 +83,7 @@ export default function Chat() {
     };
   }, [api, id, last, client]);
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3faf7" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -94,8 +94,8 @@ export default function Chat() {
             {
               padding: 16,
               borderBottomWidth: 1,
-              borderColor: "#deece5",
-              backgroundColor: "#f7fcf9",
+              borderColor: "#f1f5f9",
+              backgroundColor: "#ffffff",
               paddingVertical: 18,
             },
           ]}
@@ -185,7 +185,7 @@ export default function Chat() {
                 style={{
                   alignSelf: own ? "flex-end" : "flex-start",
                   maxWidth: "88%",
-                  backgroundColor: own ? "#087d61" : "#fff",
+                  backgroundColor: own ? "#087d61" : "#f1f5f9",
                   padding: 14,
                   borderRadius: 20,
                   borderBottomRightRadius: own ? 5 : 20,
@@ -218,13 +218,13 @@ export default function Chat() {
                   style={{
                     fontSize: 15,
                     lineHeight: 23,
-                    color: own ? "#fff" : "#12342d",
+                    color: own ? "#fff" : "#0f172a",
                   }}
                 >
                   {m.hidden ? "Tin nhắn đã được ẩn" : m.text}
                 </Text>
                 <Text
-                  style={{ fontSize: 10, color: own ? "#e6fff2" : "#526e62" }}
+                  style={{ fontSize: 10, color: own ? "#e6fff2" : "#64748b" }}
                 >
                   {dateTime(m.createdAt)}
                 </Text>
@@ -248,7 +248,7 @@ export default function Chat() {
             padding: 16,
             backgroundColor: "#fff",
             borderTopWidth: 1,
-            borderColor: "#deece5",
+            borderColor: "#f1f5f9",
             gap: 12,
           }}
         >

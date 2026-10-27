@@ -22,8 +22,11 @@ class MobileLoginControllerTest {
   private final ValueOperations<String, String> values = mock(ValueOperations.class);
 
   private final LoginRateLimiter limiter = mock(LoginRateLimiter.class);
+  private final org.springframework.session.web.http.HttpSessionIdResolver sessionIdResolver =
+      mock(org.springframework.session.web.http.HttpSessionIdResolver.class);
   private final MobileLoginController controller =
-      new MobileLoginController(redis, limiter, List.of(URI.create("http://localhost:8081")));
+      new MobileLoginController(
+          redis, limiter, List.of(URI.create("http://localhost:8081")), sessionIdResolver);
   private final MockHttpServletRequest request = new MockHttpServletRequest();
   private final String verifier = "a".repeat(64);
   private final String code = "00000000-0000-0000-0000-000000000000";
@@ -85,6 +88,7 @@ class MobileLoginControllerTest {
             startsWith("dike:auth:mobile:"),
             eq(MobileLoginController.challenge(verifier) + ":dike-mobile." + session.getId()),
             eq(Duration.ofSeconds(60)));
+    verify(sessionIdResolver).expireSession(request, response);
     assertThat(session.getAttribute(MobileLoginController.CHALLENGE)).isNull();
     assertThatThrownBy(() -> controller.complete(request, response))
         .isInstanceOf(ApiException.class);

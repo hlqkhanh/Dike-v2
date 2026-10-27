@@ -196,6 +196,7 @@ export default function PostDetail() {
   return (
     <DetailPage
       title="Chi tiết hành trình"
+      backgroundColor="#ffffff"
       onRefresh={() => {
         void post.refetch();
         setMapFailed(false);

@@ -88,7 +88,6 @@ public class SecurityConfiguration {
     return csrf;
   }
 
-  @Bean
   SecurityFilterChain apiSecurity(
       HttpSecurity http,
       ClientRegistrationRepository clients,
@@ -102,6 +101,38 @@ public class SecurityConfiguration {
       Clock clock,
       AuthTelemetry telemetry,
       LoginRateLimiter loginRateLimiter)
+      throws Exception {
+    return apiSecurity(
+        http,
+        clients,
+        provisioning,
+        access,
+        properties,
+        authorizedClients,
+        securityContexts,
+        csrf,
+        sessions,
+        clock,
+        telemetry,
+        loginRateLimiter,
+        httpSessionIdResolver(cookieSerializer(properties)));
+  }
+
+  @Bean
+  SecurityFilterChain apiSecurity(
+      HttpSecurity http,
+      ClientRegistrationRepository clients,
+      IdentityProvisioningService provisioning,
+      AccountAccessService access,
+      IdentityProperties properties,
+      OAuth2AuthorizedClientRepository authorizedClients,
+      SecurityContextRepository securityContexts,
+      CookieCsrfTokenRepository csrf,
+      FindByIndexNameSessionRepository<? extends Session> sessions,
+      Clock clock,
+      AuthTelemetry telemetry,
+      LoginRateLimiter loginRateLimiter,
+      HttpSessionIdResolver sessionIdResolver)
       throws Exception {
     var authorizationResolver =
         new PkceAuthorizationRequestResolver(
@@ -237,7 +268,7 @@ public class SecurityConfiguration {
 
     http.addFilterBefore(new TrustedOriginFilter(properties), CsrfFilter.class);
     http.addFilterAfter(
-        new AccountAuthenticationFilter(access),
+        new AccountAuthenticationFilter(access, sessionIdResolver),
         org.springframework.security.web.context.SecurityContextHolderFilter.class);
     http.addFilterAfter(new LockedAccountSafetyFilter(), AccountAuthenticationFilter.class);
     http.addFilterAfter(

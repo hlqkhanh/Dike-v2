@@ -18,9 +18,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 final class AccountAuthenticationFilter extends OncePerRequestFilter {
 
   private final AccountAccessService access;
+  private final org.springframework.session.web.http.HttpSessionIdResolver sessionIdResolver;
 
   AccountAuthenticationFilter(AccountAccessService access) {
+    this(access, null);
+  }
+
+  AccountAuthenticationFilter(
+      AccountAccessService access,
+      org.springframework.session.web.http.HttpSessionIdResolver sessionIdResolver) {
     this.access = access;
+    this.sessionIdResolver = sessionIdResolver;
   }
 
   @Override
@@ -33,6 +41,9 @@ final class AccountAuthenticationFilter extends OncePerRequestFilter {
       if (mobile
           ? !MobileSessionIdResolver.isAuthenticatedMobileRequest(request)
           : MobileSessionIdResolver.hasAuthorizationHeader(request)) {
+        if (mobile && !MobileSessionIdResolver.hasAuthorizationHeader(request) && sessionIdResolver != null) {
+          sessionIdResolver.expireSession(request, response);
+        }
         SecurityErrorWriter.write(
             request,
             response,

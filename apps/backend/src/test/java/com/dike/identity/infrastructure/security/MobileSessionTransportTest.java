@@ -42,13 +42,15 @@ class MobileSessionTransportTest {
   private final SessionRepositoryFilter<MapSession> sessions =
       new SessionRepositoryFilter<>(repository);
   private final AccountAccessService access = mock(AccountAccessService.class);
+  private final MobileSessionIdResolver resolver;
 
   MobileSessionTransportTest() {
     var serializer = new DefaultCookieSerializer();
     serializer.setCookieName("DIKE_SESSION");
     var cookies = new CookieHttpSessionIdResolver();
     cookies.setCookieSerializer(serializer);
-    sessions.setHttpSessionIdResolver(new MobileSessionIdResolver(cookies));
+    this.resolver = new MobileSessionIdResolver(cookies);
+    sessions.setHttpSessionIdResolver(resolver);
     when(access.require("member-id"))
         .thenReturn(
             new AccountAccessSnapshot(
@@ -115,7 +117,9 @@ class MobileSessionTransportTest {
         new Cookie(
             "DIKE_SESSION",
             Base64.getEncoder().encodeToString(sessionId.getBytes(StandardCharsets.UTF_8)));
-    assertThat(send("GET", "/private", null, nativeCookie, null).getStatus()).isEqualTo(401);
+    var replayResponse = send("GET", "/private", null, nativeCookie, null);
+    assertThat(replayResponse.getStatus()).isEqualTo(401);
+    assertThat(replayResponse.getHeader("Set-Cookie")).contains("Max-Age=0");
     assertThat(send("GET", "/private", token, null, null).getStatus()).isEqualTo(200);
 
     var webCookie = send("GET", "/login-web", null, null, null).getCookie("DIKE_SESSION");
@@ -160,7 +164,7 @@ class MobileSessionTransportTest {
           response,
           new MockFilterChain(
               new TestEndpoints(),
-              new AccountAuthenticationFilter(access),
+              new AccountAuthenticationFilter(access, resolver),
               new TrustedOriginFilter(properties),
               csrf,
               new AuthNoStoreFilter()));
