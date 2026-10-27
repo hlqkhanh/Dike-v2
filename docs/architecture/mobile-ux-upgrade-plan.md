@@ -1,4 +1,4 @@
-.# Plan nâng cấp UX Dike Mobile theo nghiệp vụ web
+# Plan nâng cấp UX Dike Mobile theo nghiệp vụ web
 
 Ngày đánh giá: **20/10/2026**. Baseline: `main` tại `bef64b2`, cộng các thay đổi mobile/backend local đang có sau khi pull. Trạng thái: **đã triển khai đợt 1, đợt 2 và đợt 3 theo phạm vi bên dưới; các hạng mục còn lại vẫn là đề xuất**.
 
