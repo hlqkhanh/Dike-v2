@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TabBarGlass } from "@/components/TabBarGlass";
-import { Icon, Text, type IconName } from "@/components/ui";
+import { Icon, type IconName } from "@/components/ui";
 import { homeTheme as h } from "@/core/home-theme";
 import { useSession } from "@/core/session";
 

@@ -22,14 +22,12 @@ import { homeTheme as h } from "@/core/home-theme";
 import { theme } from "@/core/theme";
 import {
   Avatar,
-  Badge,
   Button,
   EmptyState,
   Field,
   Icon,
   LoadingCards,
   Text,
-  ui,
 } from "@/components/ui";
 import { useMobileApi, money } from "@/core/hooks";
 import { useSession } from "@/core/session";

@@ -360,7 +360,7 @@ export default function Schedules() {
           <View style={styles.timelineSection}>
             <Text style={styles.monthSectionHeader}>{currentMonthHeader}</Text>
 
-            {upcomingGroups.map((group, groupIdx) => (
+            {upcomingGroups.map((group) => (
               <View key={group.dateKey} style={styles.timelineGroupRow}>
                 {/* Left Date Column */}
                 <View style={styles.dateColumn}>
