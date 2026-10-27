@@ -1,12 +1,13 @@
 package com.dike.identity.infrastructure.security;
 
+import com.dike.identity.api.MobileLoginExchange.ExchangeRequest;
+import com.dike.identity.api.MobileLoginExchange.ExchangeResponse;
 import com.dike.identity.application.LoginRateLimiter;
 import com.dike.identity.application.MobileSessionTokens;
 import com.dike.shared.api.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Pattern;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -126,12 +127,6 @@ public class MobileLoginController {
     String destination = callback == null ? "dike://auth/callback" : callback;
     response.sendRedirect(destination + "?code=" + code + "&state=" + state);
   }
-
-  public record ExchangeRequest(
-      @Pattern(regexp = "[a-f0-9-]{36}") String code,
-      @Pattern(regexp = "[A-Za-z0-9_-]{43,128}") String verifier) {}
-
-  public record ExchangeResponse(String token) {}
 
   @PostMapping("/exchange")
   ExchangeResponse exchange(@Valid @RequestBody ExchangeRequest body, HttpServletRequest request) {

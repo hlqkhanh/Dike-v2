@@ -46,13 +46,13 @@ class MobileLoginControllerTest {
             MobileLoginController.challenge(verifier) + ":session-credential", (String) null);
     assertThat(
             controller
-                .exchange(new MobileLoginController.ExchangeRequest(code, verifier), request)
+                .exchange(new com.dike.identity.api.MobileLoginExchange.ExchangeRequest(code, verifier), request)
                 .token())
         .isEqualTo("session-credential");
     assertThatThrownBy(
             () ->
                 controller.exchange(
-                    new MobileLoginController.ExchangeRequest(code, verifier), request))
+                    new com.dike.identity.api.MobileLoginExchange.ExchangeRequest(code, verifier), request))
         .isInstanceOf(ApiException.class);
   }
 
@@ -62,12 +62,12 @@ class MobileLoginControllerTest {
     assertThatThrownBy(
             () ->
                 controller.exchange(
-                    new MobileLoginController.ExchangeRequest(code, verifier), request))
+                    new com.dike.identity.api.MobileLoginExchange.ExchangeRequest(code, verifier), request))
         .isInstanceOf(ApiException.class);
     assertThatThrownBy(
             () ->
                 controller.exchange(
-                    new MobileLoginController.ExchangeRequest(code, verifier), request))
+                    new com.dike.identity.api.MobileLoginExchange.ExchangeRequest(code, verifier), request))
         .isInstanceOf(ApiException.class);
   }
 
@@ -102,7 +102,7 @@ class MobileLoginControllerTest {
     assertThatThrownBy(
             () ->
                 controller.exchange(
-                    new MobileLoginController.ExchangeRequest(code, verifier), request))
+                    new com.dike.identity.api.MobileLoginExchange.ExchangeRequest(code, verifier), request))
         .isInstanceOf(ApiException.class);
   }
 }
