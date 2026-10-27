@@ -192,33 +192,13 @@ public class DemoDataService implements ApplicationRunner {
             21.0055,
             now);
     Document airport =
-        place(
-            "Sân bay Nội Bài, Sóc Sơn, Hà Nội",
-            "Sóc Sơn, Hà Nội",
-            105.8078,
-            21.2187,
-            now);
+        place("Sân bay Nội Bài, Sóc Sơn, Hà Nội", "Sóc Sơn, Hà Nội", 105.8078, 21.2187, now);
     Document oldQuarter =
-        place(
-            "Hồ Gươm, Hoàn Kiếm, Hà Nội",
-            "Hoàn Kiếm, Hà Nội",
-            105.8525,
-            21.0288,
-            now);
+        place("Hồ Gươm, Hoàn Kiếm, Hà Nội", "Hoàn Kiếm, Hà Nội", 105.8525, 21.0288, now);
     Document myDinh =
-        place(
-            "Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội",
-            "Nam Từ Liêm, Hà Nội",
-            105.7782,
-            21.0285,
-            now);
+        place("Bến xe Mỹ Đình, Nam Từ Liêm, Hà Nội", "Nam Từ Liêm, Hà Nội", 105.7782, 21.0285, now);
     Document tayHo =
-        place(
-            "Công viên nước Hồ Tây, Tây Hồ, Hà Nội",
-            "Tây Hồ, Hà Nội",
-            105.8184,
-            21.0691,
-            now);
+        place("Công viên nước Hồ Tây, Tây Hồ, Hà Nội", "Tây Hồ, Hà Nội", 105.8184, 21.0691, now);
 
     String scheduleId = id(actor, "schedule-work");
     mongo.save(

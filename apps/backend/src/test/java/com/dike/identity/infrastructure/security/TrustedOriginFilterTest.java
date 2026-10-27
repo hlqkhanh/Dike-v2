@@ -17,7 +17,9 @@ class TrustedOriginFilterTest {
   @Test
   void acceptsExplicitMobileCredentialWithoutBrowserOrigin() throws Exception {
     var request = new MockHttpServletRequest("POST", "/api/v1/auth/logout");
-    var session = new org.springframework.mock.web.MockHttpSession(null, "00000000-0000-0000-0000-000000000000");
+    var session =
+        new org.springframework.mock.web.MockHttpSession(
+            null, "00000000-0000-0000-0000-000000000000");
     session.setAttribute(SessionAttributes.MOBILE, true);
     session.setAttribute(SessionAttributes.ACCOUNT_ID, "member");
     request.setSession(session);

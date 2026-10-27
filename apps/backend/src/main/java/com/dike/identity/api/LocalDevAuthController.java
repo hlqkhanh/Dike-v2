@@ -194,9 +194,6 @@ public class LocalDevAuthController {
 
   private static String origin(URI uri) {
     if (uri.getScheme() == null || uri.getHost() == null) throw new IllegalArgumentException();
-    return uri.getScheme()
-        + "://"
-        + uri.getHost()
-        + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
+    return uri.getScheme() + "://" + uri.getHost() + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
   }
 }

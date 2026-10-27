@@ -93,10 +93,7 @@ public class MobileLoginController {
   }
 
   void start(
-      String challenge,
-      String state,
-      HttpServletRequest request,
-      HttpServletResponse response)
+      String challenge, String state, HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     start(challenge, state, null, request, response);
   }
@@ -122,7 +119,10 @@ public class MobileLoginController {
     String code = UUID.randomUUID().toString();
     redis
         .opsForValue()
-        .set(PREFIX + code, challenge + ":" + MobileSessionTokens.tokenFor(session), Duration.ofSeconds(60));
+        .set(
+            PREFIX + code,
+            challenge + ":" + MobileSessionTokens.tokenFor(session),
+            Duration.ofSeconds(60));
     // Fixed redirect prevents open redirects and credential delivery to arbitrary applications.
     String destination = callback == null ? "dike://auth/callback" : callback;
     response.sendRedirect(destination + "?code=" + code + "&state=" + state);
@@ -172,9 +172,6 @@ public class MobileLoginController {
 
   private static String origin(URI uri) {
     if (uri.getScheme() == null || uri.getHost() == null) throw new IllegalArgumentException();
-    return uri.getScheme()
-        + "://"
-        + uri.getHost()
-        + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
+    return uri.getScheme() + "://" + uri.getHost() + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
   }
 }

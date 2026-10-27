@@ -41,7 +41,9 @@ final class AccountAuthenticationFilter extends OncePerRequestFilter {
       if (mobile
           ? !MobileSessionIdResolver.isAuthenticatedMobileRequest(request)
           : MobileSessionIdResolver.hasAuthorizationHeader(request)) {
-        if (mobile && !MobileSessionIdResolver.hasAuthorizationHeader(request) && sessionIdResolver != null) {
+        if (mobile
+            && !MobileSessionIdResolver.hasAuthorizationHeader(request)
+            && sessionIdResolver != null) {
           sessionIdResolver.expireSession(request, response);
         }
         SecurityErrorWriter.write(
