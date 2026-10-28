@@ -1,0 +1,47 @@
+# Public, restricted demo. Never combine with local/staging/production profiles.
+spring:
+  mongodb:
+    database: ${DIKE_MONGODB_DATABASE:dike}
+    uri: ${DIKE_MONGODB_URI}
+  data:
+    redis:
+      host: ${DIKE_REDIS_HOST}
+      port: ${DIKE_REDIS_PORT:6379}
+      ssl:
+        enabled: false
+
+dike:
+  environment: demo
+  workload: combined
+  service:
+    version: ${DIKE_SERVICE_VERSION:${RENDER_GIT_COMMIT}}
+  demo:
+    seed-enabled: false
+  identity:
+    simulated-full-access-enabled: false
+  auth:
+    public-base-url: ${DIKE_AUTH_PUBLIC_BASE_URL}
+    allowed-origins: ${DIKE_AUTH_ALLOWED_ORIGINS}
+    dev-login-enabled: false
+    require-phone-otp: false
+    cookie:
+      name: __Host-DIKE_SESSION
+      secure: true
+  otp:
+    provider: disabled
+    send-enabled: false
+    hmac-secret: ${DIKE_OTP_HMAC_SECRET}
+    rate-key-secret: ${DIKE_OTP_RATE_KEY_SECRET}
+  realtime:
+    websocket-url: ${DIKE_WEBSOCKET_URL:wss://${RENDER_EXTERNAL_HOSTNAME}/ws}
+    allowed-origins: ${DIKE_REALTIME_ALLOWED_ORIGINS}
+  # No routing API calls or charges in the restricted demo.
+  routing:
+    provider: disabled
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,mongo,redis

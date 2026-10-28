@@ -141,7 +141,8 @@ class RideDiscoverySecurityTest {
           mock(FindByIndexNameSessionRepository.class),
           Clock.systemUTC(),
           mock(AuthTelemetry.class),
-          mock(LoginRateLimiter.class));
+          mock(LoginRateLimiter.class),
+          new org.springframework.mock.env.MockEnvironment());
     }
   }
 

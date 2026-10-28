@@ -1,6 +1,7 @@
 package com.dike.shared.config;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,6 +22,18 @@ public final class HostedEnvironmentConfigurationValidator implements Applicatio
   @Override
   public void run(ApplicationArguments arguments) {
     String stage = value("dike.environment", "local");
+    var profiles = Arrays.asList(environment.getActiveProfiles());
+    if (profiles.contains("demo") && !"demo".equals(stage)) reject("dike.environment");
+    if (profiles.contains("demo")
+        && profiles.stream()
+            .anyMatch(List.of("local", "staging", "production", "api", "worker")::contains)) {
+      reject("spring.profiles.active");
+    }
+    if ("demo".equals(stage)) {
+      if (!profiles.contains("demo")) reject("spring.profiles.active");
+      validateDemo();
+      return;
+    }
     if (!"staging".equals(stage) && !"production".equals(stage)) {
       return;
     }
@@ -39,6 +52,46 @@ public final class HostedEnvironmentConfigurationValidator implements Applicatio
     requireValue("dike.planning.contribution.demo", "false");
     requireSecureUri("dike.realtime.websocket-url");
     requireValue("dike.identity.simulated-full-access-enabled", "false");
+  }
+
+  private void validateDemo() {
+    requireValue("dike.workload", "combined");
+    requireNonDefault("dike.service.version", List.of("dev", "local", "unknown"));
+    requireRemoteUri("spring.mongodb.uri", true);
+    requireRemoteHost("spring.data.redis.host");
+    // This demo only uses Render's private, same-region Redis network.
+    requireValue("spring.data.redis.ssl.enabled", "false");
+    if (!required("spring.data.redis.host").matches("red-[a-z0-9]+")) {
+      reject("spring.data.redis.host");
+    }
+    requireValue("dike.identity.simulated-full-access-enabled", "false");
+    requireValue("dike.auth.dev-login-enabled", "false");
+    requireValue("dike.auth.require-phone-otp", "false");
+    requireValue("dike.auth.cookie.secure", "true");
+    requireValue("dike.auth.cookie.name", "__Host-DIKE_SESSION");
+    requireValue("dike.otp.provider", "disabled");
+    requireValue("dike.otp.send-enabled", "false");
+    requireValue("dike.routing.provider", "disabled");
+    requireSecureUri("dike.auth.public-base-url");
+    if (!required("dike.auth.public-base-url").startsWith("https://"))
+      reject("dike.auth.public-base-url");
+    for (String raw : required("dike.auth.allowed-origins").split(",")) {
+      URI origin = URI.create(raw.trim());
+      if (!"https".equals(origin.getScheme())
+          || origin.getHost() == null
+          || !origin.getPath().isEmpty()
+          || origin.getQuery() != null
+          || origin.getFragment() != null) {
+        reject("dike.auth.allowed-origins");
+      }
+    }
+    requireNonDefault(
+        "spring.security.oauth2.client.registration.google.client-id",
+        List.of("local-not-configured"));
+    requireNonDefault(
+        "spring.security.oauth2.client.registration.google.client-secret",
+        List.of("local-not-configured"));
+    requireSecureUri("dike.realtime.websocket-url");
   }
 
   private void requireRemoteUri(String key, boolean allowMongoScheme) {

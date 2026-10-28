@@ -1,0 +1,40 @@
+# Reuses the existing dike-redis-staging instance. No paid worker or storage.
+services:
+  - type: web
+    name: dike-api-demo
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /actuator/health/readiness
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: demo,combined
+      - key: DIKE_WORKLOAD
+        value: combined
+      - key: DIKE_MONGODB_URI
+        sync: false
+      - key: DIKE_MONGODB_DATABASE
+        value: dike
+      - key: DIKE_REDIS_HOST
+        value: red-dbgs50cs728c73c8o6n0
+      - key: DIKE_REDIS_PORT
+        value: "6379"
+      - key: DIKE_GOOGLE_CLIENT_ID
+        value: 48551220762-r2n82s3p0fbnrmam7eoulcuqd4pshqbl.apps.googleusercontent.com
+      - key: DIKE_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: DIKE_AUTH_PUBLIC_BASE_URL
+        value: https://dike-v2.vercel.app
+      - key: DIKE_AUTH_ALLOWED_ORIGINS
+        value: https://dike-v2.vercel.app
+      - key: DIKE_REALTIME_ALLOWED_ORIGINS
+        value: https://dike-v2.vercel.app
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=50 -XX:MaxMetaspaceSize=160m -Xss512k -Dfile.encoding=UTF-8
+      - key: DIKE_OTP_HMAC_SECRET
+        generateValue: true
+      - key: DIKE_OTP_RATE_KEY_SECRET
+        generateValue: true

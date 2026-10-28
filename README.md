@@ -165,6 +165,7 @@ pnpm api:check
 - [File storage và account deletion](docs/runbooks/file-storage-and-account-deletion.md)
 - [Bạn bè, chặn và thu hồi quyền](docs/runbooks/social-relations.md)
 - [Production release](docs/runbooks/production-release.md)
+- [Deploy Render, Vercel và MongoDB Atlas](docs/runbooks/render-vercel-atlas.md)
 - [Backup and restore drill](docs/runbooks/backup-restore.md)
 - [Incident response](docs/runbooks/incident-response.md)
 - [Architecture Decision Records](docs/architecture/adr/README.md)

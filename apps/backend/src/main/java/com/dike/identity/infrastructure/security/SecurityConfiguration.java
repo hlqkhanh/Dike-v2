@@ -101,7 +101,8 @@ public class SecurityConfiguration {
       FindByIndexNameSessionRepository<? extends Session> sessions,
       Clock clock,
       AuthTelemetry telemetry,
-      LoginRateLimiter loginRateLimiter)
+      LoginRateLimiter loginRateLimiter,
+      Environment environment)
       throws Exception {
     return apiSecurity(
         http,
@@ -116,7 +117,8 @@ public class SecurityConfiguration {
         clock,
         telemetry,
         loginRateLimiter,
-        httpSessionIdResolver(cookieSerializer(properties)));
+        httpSessionIdResolver(cookieSerializer(properties)),
+        environment);
   }
 
   @Bean
@@ -133,8 +135,12 @@ public class SecurityConfiguration {
       Clock clock,
       AuthTelemetry telemetry,
       LoginRateLimiter loginRateLimiter,
-      HttpSessionIdResolver sessionIdResolver)
+      HttpSessionIdResolver sessionIdResolver,
+      Environment environment)
       throws Exception {
+    if ("demo".equals(environment.getProperty("dike.environment"))) {
+      http.addFilterBefore(new DemoFeatureFilter(), CsrfFilter.class);
+    }
     var authorizationResolver =
         new PkceAuthorizationRequestResolver(
             clients, properties.publicBaseUrl(), properties.google().registrationId());

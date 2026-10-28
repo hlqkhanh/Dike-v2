@@ -30,6 +30,14 @@ export default async function LoginPage({
             Tiếp tục hành trình di chuyển xanh cùng chúng tôi.
           </p>
 
+          {process.env.DIKE_WEB_DEMO === "true" ? (
+            <p role="note" className="login-subtitle">
+              Bản demo miễn phí: đăng nhập Google và khám phá với quyền thành
+              viên. OTP, tải file và tạo lộ trình hiện không khả dụng. Lần truy
+              cập đầu có thể cần chờ dịch vụ khởi động.
+            </p>
+          ) : null}
+
           {error ? (
             <div className="login-error-alert" role="alert">
               <span aria-hidden="true">⚠️</span>
