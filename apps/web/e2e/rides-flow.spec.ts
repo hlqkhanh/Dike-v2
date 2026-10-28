@@ -796,10 +796,22 @@ test("active journey supports payment acknowledgement and consented location sha
         amountVnd: 30000,
         passengerPaidAt: paid ? "2026-10-08T02:05:00Z" : null,
         driverReceivedAt: null,
-        status: paid ? "PASSENGER_PAID" : "PENDING",
+        status: paid ? "PASSENGER_REPORTED_PAID" : "NONE",
         locked: false,
         bankVerified: false,
         version: paid ? 1 : 0,
+      },
+    }),
+  );
+  await page.route("**/api/v1/bookings/live/payment", (route) =>
+    route.fulfill({
+      json: {
+        bookingId: "live",
+        amountVnd: 30000,
+        status: "UNAVAILABLE",
+        providerAvailable: false,
+        bankVerified: false,
+        version: 0,
       },
     }),
   );
@@ -832,8 +844,8 @@ test("active journey supports payment acknowledgement and consented location sha
   );
 
   await page.goto("/bookings/live");
-  await page.getByRole("button", { name: "Xác nhận đã thanh toán" }).click();
-  await expect(page.getByText("Hành khách đã thanh toán")).toBeVisible();
+  await page.getByRole("button", { name: "Tôi đã trả tiền mặt" }).click();
+  await expect(page.getByText("Chờ tài xế xác nhận")).toBeVisible();
   await page.getByRole("button", { name: "Cho phép chia sẻ" }).click();
   await expect(page.getByText("Đang bật", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Gửi vị trí hiện tại" }).click();

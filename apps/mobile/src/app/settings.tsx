@@ -1,13 +1,21 @@
 import { router, type Href } from "expo-router";
+import { useMutation } from "@tanstack/react-query";
 import { Pressable, View } from "react-native";
 import { DetailPage } from "@/components/DetailPage";
-import { Card, Icon, Text, ui, type IconName } from "@/components/ui";
+import { Button, Card, ErrorText, Icon, Text, ui, type IconName } from "@/components/ui";
+import { useSession } from "@/core/session";
 const items: { title: string; text: string; icon: IconName; href: Href }[] = [
   {
     title: "Thông tin cá nhân",
     text: "Tên hiển thị và giới thiệu",
     icon: "person-outline",
     href: "/settings/profile",
+  },
+  {
+    title: "Lịch trình thường xuyên",
+    text: "Quản lý các tuyến đường bạn hay di chuyển",
+    icon: "calendar-outline",
+    href: "/schedules",
   },
   {
     title: "Quyền riêng tư",
@@ -41,11 +49,14 @@ const items: { title: string; text: string; icon: IconName; href: Href }[] = [
   },
 ];
 export default function Settings() {
+  const { signOut } = useSession();
+  const out = useMutation({ mutationFn: signOut });
   return (
-    <DetailPage title="Cài đặt" subtitle="Dike theo cách của bạn">
+    <DetailPage title="Cài đặt" subtitle="Quản lý hồ sơ và trải nghiệm Diké của bạn">
       {[
-        { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(0, 3) },
-        { title: "ỨNG DỤNG VÀ BẢO MẬT", rows: items.slice(3) },
+        { title: "HỒ SƠ VÀ HÀNH TRÌNH", rows: items.slice(0, 2) },
+        { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(2, 4) },
+        { title: "ỨNG DỤNG VÀ BẢO MẬT", rows: items.slice(4) },
       ].map((group) => (
         <View key={group.title} style={{ gap: 12 }}>
           <Text style={[ui.eyebrow, { paddingHorizontal: 4 }]}>
@@ -82,6 +93,14 @@ export default function Settings() {
           </Card>
         </View>
       ))}
+      <ErrorText error={out.error} />
+      <Button
+        label="Đăng xuất"
+        icon="log-out-outline"
+        variant="secondary"
+        pending={out.isPending}
+        onPress={() => out.mutate()}
+      />
     </DetailPage>
   );
 }

@@ -25,13 +25,13 @@ import {
   ErrorText,
   Field,
   Icon,
-  RouteCard,
   Text,
   ui,
 } from "@/components/ui";
 import { useMobileApi, dateTime, money, statusLabel } from "@/core/hooks";
 import { useSession } from "@/core/session";
 import { RouteMapSurface } from "@/components/RouteMapSurface";
+import { RideProgress } from "@/components/RideProgress";
 import { theme } from "@/core/theme";
 export default function PostDetail() {
   const { id = "", responseId } = useLocalSearchParams<{
@@ -196,7 +196,7 @@ export default function PostDetail() {
   return (
     <DetailPage
       title="Chi tiết hành trình"
-      backgroundColor="#ffffff"
+      backgroundColor={theme.colors.canvas}
       onRefresh={() => {
         void post.refetch();
         setMapFailed(false);
@@ -212,7 +212,7 @@ export default function PostDetail() {
                 <Avatar
                   name={data.ownerDisplayName}
                   uri={data.ownerAvatarUrl}
-                  size={44}
+                  size={68}
                 />
                 <View style={styles.ownerIdentity}>
                   <Text style={styles.ownerName}>{data.ownerDisplayName}</Text>
@@ -272,18 +272,35 @@ export default function PostDetail() {
                 />
               )}
             </View>
-            <Card>
-              <RouteCard
-                origin={data.originLabel}
-                destination={data.destinationLabel}
-              />
+            <Card style={styles.journeyCard}>
+              <View style={styles.routePanel}>
+                <View style={styles.routeRail}>
+                  <View style={styles.originMarker} />
+                  <View style={styles.routeLine} />
+                  <View style={styles.destinationMarker}>
+                    <Icon name="flag" size={15} color="#fff" />
+                  </View>
+                </View>
+                <View style={styles.routeCopy}>
+                  <View style={styles.routeStop}>
+                    <Text style={styles.routeLabel}>ĐIỂM ĐI</Text>
+                    <Text style={styles.routeValue}>{data.originLabel}</Text>
+                  </View>
+                  <View style={styles.routeDivider} />
+                  <View style={styles.routeStop}>
+                    <Text style={styles.routeLabel}>ĐIỂM ĐẾN</Text>
+                    <Text style={styles.routeValue}>{data.destinationLabel}</Text>
+                  </View>
+                </View>
+              </View>
               <View style={styles.metaGrid}>
                 <View style={styles.metaItem}>
-                  <Icon name="calendar-outline" size={18} />
+                  <Icon name="calendar-outline" size={24} />
                   <View style={styles.metaCopy}>
                     <Text style={styles.metaValue}>
                       {dateTime(data.departureAt)}
                     </Text>
+                    <Text style={styles.metaLabel}>Thời gian đi</Text>
                   </View>
                 </View>
                 <View style={styles.metaItem}>
@@ -293,31 +310,34 @@ export default function PostDetail() {
                         ? "car-outline"
                         : "bicycle-outline"
                     }
-                    size={18}
+                    size={24}
                   />
                   <View style={styles.metaCopy}>
                     <Text style={styles.metaValue}>
                       {data.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
                     </Text>
+                    <Text style={styles.metaLabel}>Phương tiện</Text>
                   </View>
                 </View>
                 <View style={styles.metaItem}>
-                  <Icon name="navigate-outline" size={18} />
+                  <Icon name="navigate-outline" size={24} />
                   <View style={styles.metaCopy}>
                     <Text style={styles.metaValue}>
                       {route.data
                         ? `${(route.data.distanceMeters / 1000).toFixed(1)} km · ${Math.ceil(route.data.durationSeconds / 60)} phút`
                         : "Đang tải..."}
                     </Text>
+                    <Text style={styles.metaLabel}>Quãng đường</Text>
                   </View>
                 </View>
                 <View style={styles.metaItem}>
-                  <Icon name="people-outline" size={18} />
+                  <Icon name="people-outline" size={24} />
                   <View style={styles.metaCopy}>
                     <Text style={styles.metaValue}>
                       {data.remainingSeats} chỗ ·{" "}
                       {money(data.contributionPerKm)}/km
                     </Text>
+                    <Text style={styles.metaLabel}>Số chỗ / Chi phí</Text>
                   </View>
                 </View>
               </View>
@@ -342,7 +362,7 @@ export default function PostDetail() {
                 ) : null}
                 <Button
                   label="Đóng bài đăng"
-                  variant="secondary"
+                  icon="trash-outline"
                   disabled={!["DRAFT", "OPEN"].includes(data.status)}
                   onPress={() => setClose(true)}
                 />
@@ -381,10 +401,19 @@ export default function PostDetail() {
                 <ErrorText error={discuss.error} />
               </>
             )}
-            <Text style={ui.sectionTitle}>
-              {own ? "Yêu cầu kết nối" : "Yêu cầu của bạn"}
-            </Text>
-            <ResourceState query={responses}>
+            <Card style={styles.connectionSection}>
+              <View style={styles.connectionHeader}>
+                <View style={styles.connectionTitle}>
+                  <Icon name="people" size={23} />
+                  <Text style={styles.connectionHeading}>
+                    {own ? "Yêu cầu kết nối" : "Yêu cầu của bạn"}
+                  </Text>
+                </View>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countText}>{responses.data?.length ?? 0}</Text>
+                </View>
+              </View>
+              <ResourceState query={responses}>
               {responses.data?.length === 0 ? (
                 <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
               ) : null}
@@ -395,17 +424,8 @@ export default function PostDetail() {
                     Number(b.id === responseId) - Number(a.id === responseId),
                 )
                 .map((r) => {
-                  const driver =
-                    r.action === "REQUEST_RIDE" ? r.ownerId : r.requesterId;
-                  const next = (
-                    {
-                      ACCEPTED: "DRIVER_STARTED",
-                      DRIVER_STARTED: "DRIVER_ARRIVED",
-                      DRIVER_ARRIVED: "COMPLETED",
-                    } as Record<string, string>
-                  )[r.status];
                   return (
-                    <Card key={r.id}>
+                    <View key={r.id} style={styles.responseCard}>
                       <View style={ui.row}>
                         <Avatar
                           name={r.requesterDisplayName}
@@ -426,6 +446,20 @@ export default function PostDetail() {
                           Đón lúc {dateTime(r.pickupCheck.pickupAt)} ·{" "}
                           {r.pickupCheck.pickup.displayLabel}
                         </Text>
+                      ) : null}
+                      {[
+                        "ACCEPTED",
+                        "DRIVER_STARTED",
+                        "DRIVER_ARRIVED",
+                        "COMPLETED",
+                      ].includes(r.status) ? (
+                        <RideProgress
+                          response={r}
+                          currentUserId={session?.user.id}
+                          onAdvance={(value) =>
+                            setDecision({ response: r, value })
+                          }
+                        />
                       ) : null}
                       {r.status === "PENDING" ? (
                         own ? (
@@ -454,14 +488,6 @@ export default function PostDetail() {
                           />
                         )
                       ) : null}
-                      {driver === session?.user.id && next ? (
-                        <Button
-                          label={statusLabel(next)}
-                          onPress={() =>
-                            setDecision({ response: r, value: next })
-                          }
-                        />
-                      ) : null}
                       {r.conversationId ? (
                         <Button
                           label="Mở trò chuyện"
@@ -474,10 +500,11 @@ export default function PostDetail() {
                           }
                         />
                       ) : null}
-                    </Card>
+                    </View>
                   );
                 })}
-            </ResourceState>
+              </ResourceState>
+            </Card>
             {!own ? (
               <Button
                 label="Báo cáo bài đăng"
@@ -627,8 +654,10 @@ const styles = StyleSheet.create({
   map: {
     alignItems: "center",
     backgroundColor: theme.colors.surfaceMuted,
-    borderRadius: theme.radius.md,
-    height: 180,
+    borderColor: "#fff",
+    borderRadius: 24,
+    borderWidth: 4,
+    height: 224,
     justifyContent: "center",
     overflow: "hidden",
     width: "100%",
@@ -645,23 +674,24 @@ const styles = StyleSheet.create({
   },
   metaItem: {
     alignItems: "center",
-    backgroundColor: theme.colors.surfaceMuted,
-    borderRadius: theme.radius.md,
+    backgroundColor: "#f1faf6",
+    borderRadius: 18,
     flexDirection: "row",
-    gap: theme.spacing.xs,
-    minHeight: 58,
+    gap: 10,
+    minHeight: 72,
     minWidth: 0,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
     width: "48%",
   },
   metaCopy: { flex: 1, minWidth: 0 },
   metaValue: {
     color: theme.colors.ink,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 17,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 18,
   },
+  metaLabel: { color: theme.colors.inkMuted, fontSize: 10, marginTop: 2 },
   note: {
     borderTopColor: theme.colors.border,
     borderTopWidth: 1,
@@ -670,23 +700,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingTop: theme.spacing.md,
   },
-  ownerIdentity: { flex: 1, gap: 2, minWidth: 0 },
-  ownerName: { color: theme.colors.ink, fontSize: 16, fontWeight: "800" },
-  ownerRole: { color: theme.colors.inkMuted, fontSize: 12 },
+  ownerIdentity: { flex: 1, gap: 4, minWidth: 0 },
+  ownerName: { color: theme.colors.ink, fontSize: 19, fontWeight: "900" },
+  ownerRole: { color: theme.colors.inkMuted, fontSize: 13 },
   ownerRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: theme.spacing.sm,
   },
-  profileCard: { padding: theme.spacing.md },
+  profileCard: { padding: 18, borderRadius: 24 },
   profileLink: {
     alignItems: "center",
     backgroundColor: theme.colors.surfaceMuted,
     borderRadius: theme.radius.pill,
     flexDirection: "row",
     gap: 2,
-    minHeight: 44,
-    paddingHorizontal: theme.spacing.sm,
+    minHeight: 48,
+    paddingHorizontal: 13,
   },
   profileLinkText: {
     color: theme.colors.primary,
@@ -697,4 +727,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
   },
+  journeyCard: { padding: 16, borderRadius: 24, gap: 16 },
+  routePanel: { flexDirection: "row", gap: 13 },
+  routeRail: { width: 28, alignItems: "center", paddingVertical: 4 },
+  originMarker: { width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: theme.colors.primary, backgroundColor: "#fff" },
+  routeLine: { flex: 1, width: 2, minHeight: 48, backgroundColor: "#a9dccb" },
+  destinationMarker: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.passenger },
+  routeCopy: { flex: 1, gap: 12 },
+  routeStop: { gap: 5, minHeight: 58, justifyContent: "center" },
+  routeLabel: { color: theme.colors.primary, fontSize: 11, fontWeight: "900", letterSpacing: 0.7 },
+  routeValue: { color: theme.colors.ink, fontSize: 15, lineHeight: 21, fontWeight: "800" },
+  routeDivider: { height: 1, backgroundColor: theme.colors.border },
+  connectionSection: { borderRadius: 24, padding: 14, gap: 12 },
+  connectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  connectionTitle: { flexDirection: "row", alignItems: "center", gap: 9 },
+  connectionHeading: { color: theme.colors.ink, fontSize: 18, fontWeight: "900" },
+  countBadge: { minWidth: 34, height: 34, paddingHorizontal: 10, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f7f1" },
+  countText: { color: theme.colors.primary, fontSize: 14, fontWeight: "900" },
+  responseCard: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 18, backgroundColor: "#fff", padding: 13, gap: 10 },
 });

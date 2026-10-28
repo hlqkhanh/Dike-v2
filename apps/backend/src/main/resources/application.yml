@@ -37,6 +37,14 @@ dike:
     simulated-full-access-enabled: ${DIKE_SIMULATED_FULL_ACCESS_ENABLED:false}
   ride:
     boarding-key: ${DIKE_RIDE_BOARDING_KEY:}
+  payment:
+    payos:
+      enabled: ${DIKE_PAYOS_ENABLED:false}
+      client-id: ${DIKE_PAYOS_CLIENT_ID:}
+      api-key: ${DIKE_PAYOS_API_KEY:}
+      checksum-key: ${DIKE_PAYOS_CHECKSUM_KEY:}
+      public-base-url: ${DIKE_PAYOS_PUBLIC_BASE_URL:http://localhost:3000}
+      checkout-ttl: ${DIKE_PAYOS_CHECKOUT_TTL:30m}
   environment: ${DIKE_ENVIRONMENT:local}
   workload: ${DIKE_WORKLOAD:api}
   service:

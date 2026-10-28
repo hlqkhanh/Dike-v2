@@ -3,7 +3,7 @@ import { colors as sharedColors } from "@dike/design-tokens";
 export const theme = {
   colors: {
     ...sharedColors,
-    canvas: "#f3faf7",
+    canvas: "#ffffff",
     ink: "#12342d",
     inkMuted: "#526e62",
     primary: "#087d61",

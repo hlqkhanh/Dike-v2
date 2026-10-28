@@ -1,14 +1,26 @@
 import type { RidePostRoute } from "@dike/api-client-ts";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { MobileApiError } from "@/core/api";
 import { useMobileApi } from "@/core/hooks";
 import { homeTheme as h } from "@/core/home-theme";
 import { Icon, Text } from "./ui";
 import { RouteMapSurface } from "./RouteMapSurface";
 
-export function PostRoutePreview({ postId }: { postId: string }) {
+export function PostRoutePreview({
+  postId,
+  style,
+}: {
+  postId: string;
+  style?: StyleProp<ViewStyle>;
+}) {
   const api = useMobileApi();
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -36,7 +48,7 @@ export function PostRoutePreview({ postId }: { postId: string }) {
   const loading = route.isPending || (route.isFetching && geometry.length < 2);
   return (
     <View
-      style={styles.shell}
+      style={[styles.shell, style]}
       accessibilityLabel={
         geometry.length >= 2 && !failed
           ? "Bản đồ tuyến đường thực tế"

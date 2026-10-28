@@ -17427,6 +17427,62 @@ html:has(.journeys-hub) {
   border-color: #8ed5bd;
   background: #eaf9f3;
 }
+.journey-payment-methods {
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.journey-payment-methods button {
+  min-height: 72px;
+  padding: 13px 15px;
+  border: 1px solid #d4e5df;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #355b51;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+.journey-payment-methods button > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.journey-payment-methods button strong,
+.journey-payment-methods button small {
+  display: block;
+}
+.journey-payment-methods button strong {
+  color: #173f35;
+  font-size: 0.88rem;
+}
+.journey-payment-methods button small {
+  color: #789088;
+  font-size: 0.72rem;
+}
+.journey-payment-methods button[aria-pressed="true"] {
+  border-color: #119a76;
+  color: #08785d;
+  background: #ecf9f4;
+  box-shadow: 0 0 0 3px rgba(17, 154, 118, 0.1);
+}
+.journey-payment-methods button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+@media (max-width: 600px) {
+  .journey-payment-methods {
+    grid-template-columns: 1fr;
+  }
+}
 .response-progress {
   position: relative;
   z-index: 2;
@@ -17457,7 +17513,7 @@ html:has(.journeys-hub) {
   margin: 15px 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   list-style: none;
 }
 .response-progress li {
@@ -17515,6 +17571,237 @@ html:has(.journeys-hub) {
   margin: 12px 0 0;
   color: #617a73;
   font-size: 0.75rem;
+}
+.response-progress > button.response-payment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px auto 0;
+}
+.response-payment-flow {
+  margin-top: 16px;
+}
+.response-payment-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.response-payment-choices button {
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid #d7e5e0;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  color: #173f35;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.response-payment-choices button:hover {
+  border-color: #16a07a;
+  box-shadow: 0 10px 24px rgba(10, 126, 94, 0.1);
+  transform: translateY(-1px);
+}
+.response-payment-choices button > span {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #07936e;
+  background: #eaf8f3;
+}
+.response-payment-choices b,
+.response-payment-choices small {
+  display: block;
+}
+.response-payment-choices b {
+  font-size: 0.94rem;
+}
+.response-payment-choices small {
+  margin-top: 5px;
+  color: #738982;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.response-payment-choices i {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #b9cec7;
+  border-radius: 50%;
+}
+.response-payment-confirmation {
+  padding: 18px;
+  border: 1px solid #cce5dc;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.92);
+}
+.response-payment-confirmation > .response-payment-back {
+  padding: 0;
+  border: 0;
+  color: #607a72;
+  background: transparent;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.response-payment-confirmation h3 {
+  margin: 12px 0;
+  color: #163f35;
+  font-size: 1.05rem;
+}
+.response-payment-notice {
+  padding: 13px 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #078462;
+  background: #eaf8f3;
+}
+.response-payment-notice > svg {
+  flex: 0 0 auto;
+}
+.response-payment-notice strong,
+.response-payment-notice small {
+  display: block;
+}
+.response-payment-notice strong {
+  font-size: 0.78rem;
+}
+.response-payment-notice small {
+  margin-top: 3px;
+  color: #6e837d;
+  font-size: 0.68rem;
+}
+.response-payment-summary {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #dceae5;
+  border-radius: 12px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #667e77;
+  background: #fbfdfc;
+  text-align: center;
+}
+.response-payment-summary > strong {
+  justify-self: start;
+  color: #20483d;
+  font-size: 0.75rem;
+}
+.response-payment-summary > span,
+.response-payment-summary > small {
+  font-size: 0.68rem;
+}
+.response-payment-summary > b {
+  color: #113d33;
+  font-size: 1.35rem;
+}
+.response-payment-confirmation > button.response-payment-submit {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #0a8d69, #05a77c);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.response-payment-confirmation > p {
+  margin: 11px 0 0;
+  color: #6a817a;
+  font-size: 0.73rem;
+}
+.response-payment-confirmation > p.is-success {
+  color: #087b5e;
+  font-weight: 750;
+  text-align: center;
+}
+.response-cash-payment {
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid #cce5dc;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.88);
+}
+.response-cash-payment header,
+.feed-response-owner-panel > .response-progress .response-cash-payment header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #173f35;
+  font-size: 0.84rem;
+}
+.response-cash-payment header strong {
+  color: #087b5e;
+  font-size: 1rem;
+}
+.response-cash-status {
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.response-cash-status span {
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #dce9e4;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #7a8e88;
+  background: #f8fbfa;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.response-cash-status span.is-complete {
+  border-color: #9edbc7;
+  color: #087b5e;
+  background: #eaf8f3;
+}
+.response-cash-payment > button {
+  min-height: 40px;
+  padding: 8px 15px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: #087f61;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.response-cash-payment > p {
+  margin: 10px 0 0;
+  color: #687f78;
+  font-size: 0.74rem;
+}
+.response-cash-payment > p.is-success {
+  color: #087b5e;
+  font-weight: 750;
+}
+@media (max-width: 560px) {
+  .response-payment-choices {
+    grid-template-columns: 1fr;
+  }
+  .response-cash-status {
+    grid-template-columns: 1fr;
+  }
 }
 .response-progress.is-compact {
   margin-top: 12px;
@@ -18610,17 +18897,15 @@ html:has(.journeys-hub) {
   white-space: nowrap;
 }
 .conversation-pinned-route-arrow {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   flex: 0 0 auto;
-  border-radius: 999px;
   display: grid;
   place-items: center;
-  color: #fff;
-  background: #07956e;
-  box-shadow: 0 4px 10px rgba(7, 149, 110, 0.2);
+  color: #07956e;
 }
-.conversation-pinned-route svg:first-child,
+.conversation-pinned-route > svg:first-child,
+.conversation-pinned-destination-icon,
 .conversation-pinned-time > svg {
   flex: 0 0 auto;
   color: #09946e;

@@ -468,22 +468,20 @@ export function PostDetail({ id }: { id: string }) {
                         </div>
 
                         <div className="feed-response-decision">
-                          <strong className="feed-response-status">
-                            {item.status === "PENDING" ? (
-                              <Clock3 aria-hidden="true" size={18} />
-                            ) : isActiveResponse(item) ? (
-                              <Check aria-hidden="true" size={18} />
-                            ) : (
-                              <XCircle aria-hidden="true" size={18} />
-                            )}
-                            {item.status === "PENDING"
-                              ? "Đang chờ phản hồi"
-                              : isActiveResponse(item)
-                                ? "Đã xác nhận"
+                          {!isActiveResponse(item) ? (
+                            <strong className="feed-response-status">
+                              {item.status === "PENDING" ? (
+                                <Clock3 aria-hidden="true" size={18} />
+                              ) : (
+                                <XCircle aria-hidden="true" size={18} />
+                              )}
+                              {item.status === "PENDING"
+                                ? "Đang chờ phản hồi"
                                 : item.status === "REJECTED"
                                   ? "Đã từ chối"
                                   : "Đã rút yêu cầu"}
-                          </strong>
+                            </strong>
+                          ) : null}
                           {item.status === "PENDING" ? (
                             <div className="feed-response-buttons">
                               <button

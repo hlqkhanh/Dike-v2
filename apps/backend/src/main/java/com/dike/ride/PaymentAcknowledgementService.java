@@ -6,6 +6,7 @@ import com.mongodb.client.result.UpdateResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -118,7 +119,7 @@ public class PaymentAcknowledgementService {
     return view(mongo.findById(bookingId, PaymentAcknowledgement.class));
   }
 
-  private PaymentAcknowledgement getOrCreate(RideParticipantAccess.BookingParticipants booking) {
+  private PaymentAcknowledgement getOrCreate(Participant booking) {
     PaymentAcknowledgement current = mongo.findById(booking.id(), PaymentAcknowledgement.class);
     if (current != null) return current;
     try {
@@ -137,13 +138,49 @@ public class PaymentAcknowledgementService {
     }
   }
 
-  private RideParticipantAccess.BookingParticipants participant(String actor, String bookingId) {
-    var booking = rides.booking(bookingId).orElseThrow(PaymentAcknowledgementService::missing);
-    if (!booking.participant(actor)) throw missing();
-    return booking;
+  private Participant participant(String actor, String bookingId) {
+    Optional<RideParticipantAccess.BookingParticipants> storedBooking = rides.booking(bookingId);
+    if (storedBooking.isPresent()) {
+      var booking = storedBooking.get();
+      if (!booking.participant(actor)) throw missing();
+      return new Participant(
+          booking.id(),
+          booking.passengerId(),
+          booking.driverId(),
+          booking.status(),
+          booking.agreedPriceVnd());
+    }
+    org.bson.Document response =
+        mongo.findById(bookingId, org.bson.Document.class, "ride_post_responses");
+    if (response == null) throw missing();
+    String ownerId = response.getString("ownerId");
+    String requesterId = response.getString("requesterId");
+    if (!actor.equals(ownerId) && !actor.equals(requesterId)) throw missing();
+    String driverId = "REQUEST_RIDE".equals(response.getString("action")) ? ownerId : requesterId;
+    String passengerId = driverId.equals(ownerId) ? requesterId : ownerId;
+    return new Participant(
+        bookingId,
+        passengerId,
+        driverId,
+        response.getString("status"),
+        responseAmount(response.getString("postId")));
   }
 
-  private void ensureEligible(RideParticipantAccess.BookingParticipants booking) {
+  private long responseAmount(String postId) {
+    org.bson.Document post = mongo.findById(postId, org.bson.Document.class, "ride_posts");
+    if (post == null) return 0;
+    Number contribution = (Number) post.get("contributionPerKm");
+    String routeId = post.getString("routeId");
+    org.bson.Document route =
+        routeId == null
+            ? null
+            : mongo.findById(routeId, org.bson.Document.class, "route_snapshots");
+    Number distance = route == null ? null : (Number) route.get("distanceMeters");
+    if (contribution == null || distance == null) return 0;
+    return Math.max(0, Math.round(contribution.doubleValue() * distance.doubleValue() / 1000d));
+  }
+
+  private void ensureEligible(Participant booking) {
     if (java.util.Set.of("CANCELLED", "NO_SHOW", "ENDED_EARLY").contains(booking.status())) {
       throw conflict("PAYMENT_ACK_NOT_ELIGIBLE");
     }
@@ -165,6 +202,17 @@ public class PaymentAcknowledgementService {
         value.lockedAt() != null,
         false,
         value.version());
+  }
+
+  private record Participant(
+      String id, String passengerId, String driverId, String status, long agreedPriceVnd) {
+    boolean participant(String actor) {
+      return passengerId.equals(actor) || driverId.equals(actor);
+    }
+
+    String counterpart(String actor) {
+      return passengerId.equals(actor) ? driverId : passengerId;
+    }
   }
 
   private static ApiException forbidden() {
