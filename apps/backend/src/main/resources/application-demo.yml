@@ -1,5 +1,10 @@
 # Public, restricted demo. Never combine with local/staging/production profiles.
 spring:
+  session:
+    data:
+      redis:
+        # Render manages Redis configuration and denies CONFIG GET/SET.
+        configure-action: none
   mongodb:
     database: ${DIKE_MONGODB_DATABASE:dike}
     uri: ${DIKE_MONGODB_URI}
@@ -14,7 +19,7 @@ dike:
   environment: demo
   workload: combined
   service:
-    version: ${DIKE_SERVICE_VERSION:${RENDER_GIT_COMMIT}}
+    version: ${RENDER_GIT_COMMIT:${DIKE_SERVICE_VERSION}}
   demo:
     seed-enabled: false
   identity:

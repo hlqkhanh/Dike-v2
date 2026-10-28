@@ -16,6 +16,8 @@ Không dùng `infra/render.yaml` cho demo vì blueprint đó tạo worker trả 
   storage không được đăng ký trong profile demo.
 - Redis dùng hostname nội bộ `red-dbgs50cs728c73c8o6n0`, port 6379, cùng Render
   Singapore. Không mở external access và không tắt TLS của staging/production.
+- Demo đặt `spring.session.data.redis.configure-action=none` vì Render không
+  cho ứng dụng gọi `CONFIG GET/SET`. Không đổi quyền Redis để vượt hạn chế này.
 - Render tự cung cấp commit SHA và public hostname; profile demo dùng chúng cho
   service version và WebSocket URL. Không đoán tên miền trước khi tạo service.
 - Chỉ cần chủ tài khoản nhập MongoDB URI và Google client secret trên Render.
@@ -54,11 +56,12 @@ các guard của staging/production.
 Đã tạo [Atlas project Dike](https://cloud.mongodb.com/v2/6ae149ca6a8b52c9631fc816#/overview)
 và cluster `Dike`, Free, AWS Singapore. Atlas báo cluster sẵn sàng. Đã xác minh user
 `dike`, SCRAM, có quyền `readWrite` trên database `dike`; dùng tên database này khi
-nhập cấu hình Render. Chưa mở network access hoặc kết nối ứng dụng.
+nhập cấu hình Render. Chủ tài khoản đã xác nhận và đã thêm hai dải outbound
+Render Singapore `74.220.52.0/24`, `74.220.60.0/24`; không mở `0.0.0.0/0`.
 
 Đã tạo [Render Key Value dike-redis-staging](https://dashboard.render.com/r/red-dbgs50cs728c73c8o6n0),
 Free, Singapore, `noeviction`, trạng thái Available. External access vẫn bị chặn;
-chưa nối với API. Gói Free không lưu dữ liệu qua restart.
+đã cấu hình API dùng hostname nội bộ. Gói Free không lưu dữ liệu qua restart.
 
 Google project `dike-510901` đã có Branding, External/Testing, test users và client
 `Dike Local Web`. Đã tạo thêm client `Dike Staging Web`, chỉ có origin
@@ -67,16 +70,22 @@ Google project `dike-510901` đã có Branding, External/Testing, test users và
 `48551220762-r2n82s3p0fbnrmam7eoulcuqd4pshqbl.apps.googleusercontent.com`.
 Client secret không được ghi vào repository; chủ tài khoản lưu trực tiếp từ Google.
 
-Vercel đã deploy frontend `apps/web` thành công từ GitHub `main`, deployment
-`dpl_HLjQappNALRBaZCuS71CDgNxkzyR`, commit
-`8333cb417a07f026cdd7a9dca2905d9c3ad60c8a`, Corepack được bật. Domain:
-[dike-v2.vercel.app](https://dike-v2.vercel.app). Trang chủ đã được mở và xác minh
-hiển thị trên domain này. Trạng thái Vercel là Deployed to Production; ứng dụng
-chưa đủ điều kiện staging/production vì backend vẫn chưa triển khai.
-Chưa cấu hình upstream Render; các API sẽ không hoạt động cho tới khi thêm
-`DIKE_API_INTERNAL_ORIGIN` và redeploy. Backend API/worker chưa được tạo.
-Frontend đã build và kiểm tra TypeScript thành
-công trên máy local (Node.js 26.11.1); vẫn cần xác minh build Node.js 24 trên Vercel.
+Vercel đã deploy frontend `apps/web` lên Production từ nhánh
+`codex/free-demo-deployment`, commit `3ea10eb28a4ede124431db4f80ca334e1931d52a`.
+Deployment `dike-v2-do3eepn2t-khanh-hos-projects-c0a513fe.vercel.app` báo Ready.
+Domain cố định: [dike-v2.vercel.app](https://dike-v2.vercel.app). Trang login đã
+hiển thị thông báo demo, với `DIKE_WEB_DEMO=true` và upstream
+`DIKE_API_INTERNAL_ORIGIN=https://dike-api-demo.onrender.com`.
+
+Đã tạo Render Free web service `dike-api-demo`, ID `srv-dbgvs1etlv9c73dh1t0g`,
+URL [dike-api-demo.onrender.com](https://dike-api-demo.onrender.com), Blueprint
+`dike-free-demo`, path `infra/render-demo.yaml`. Chủ tài khoản tự nhập hai secret
+trên Render. Đã sửa lỗi khởi động `NOPERM config|get` bằng biến
+`SPRING_SESSION_DATA_REDIS_CONFIGURE_ACTION=none`. Image cũ có mặc định
+`DIKE_SERVICE_VERSION=dev`, nên cấu hình release hiện tại đặt SHA commit tường
+minh; profile demo mới ưu tiên `RENDER_GIT_COMMIT`. Cần xác minh readiness và
+Google login sau khi Render hoàn tất khởi động; chưa coi frontend Ready là bằng
+chứng backend hoạt động.
 
 ## MongoDB Atlas
 
@@ -87,8 +96,8 @@ công trên máy local (Node.js 26.11.1); vẫn cần xác minh build Node.js 24
 4. Network Access chỉ cho phép outbound IP ranges của dịch vụ Render, lấy từ
    dashboard sau khi chọn region. Không mặc định mở `0.0.0.0/0`.
 5. Đặt URI driver `mongodb+srv://...` trong secret `DIKE_MONGODB_URI` của Render,
-   database trong `DIKE_MONGODB_DATABASE=dike`. Override giá trị `dike_staging` trong
-   blueprint để khớp quyền user đã tạo. URL-encode ký tự đặc biệt
+   database trong `DIKE_MONGODB_DATABASE=dike`, khớp quyền user đã tạo.
+   URL-encode ký tự đặc biệt
    trong username/password. Không mang `replicaSet=rs0` từ local sang Atlas.
 6. Ứng dụng tự chạy migration/index khi khởi động. Không import dữ liệu MIROIR.
 
@@ -96,7 +105,9 @@ công trên máy local (Node.js 26.11.1); vẫn cần xác minh build Node.js 24
 
 - Repository: `hlqkhanh/Dike-v2`; Docker context và Root Directory tại repository
   root; Dockerfile `./Dockerfile`.
-- Blueprint path: `infra/render.yaml`; region Singapore.
+- Demo dùng `infra/render-demo.yaml`; phần dưới là cấu hình staging trả phí,
+  chỉ áp dụng khi chủ tài khoản đổi yêu cầu và chấp nhận chi phí.
+- Blueprint staging: `infra/render.yaml`; region Singapore.
 - API: `SPRING_PROFILES_ACTIVE=staging,api`, `DIKE_WORKLOAD=api`.
 - Worker: `SPRING_PROFILES_ACTIVE=staging,worker`, `DIKE_WORKLOAD=worker`.
 - Dùng cùng release cho API/worker, đặt `DIKE_SERVICE_VERSION` bằng commit SHA.
