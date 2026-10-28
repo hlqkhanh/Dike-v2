@@ -83,9 +83,14 @@ URL [dike-api-demo.onrender.com](https://dike-api-demo.onrender.com), Blueprint
 trên Render. Đã sửa lỗi khởi động `NOPERM config|get` bằng biến
 `SPRING_SESSION_DATA_REDIS_CONFIGURE_ACTION=none`. Image cũ có mặc định
 `DIKE_SERVICE_VERSION=dev`, nên cấu hình release hiện tại đặt SHA commit tường
-minh; profile demo mới ưu tiên `RENDER_GIT_COMMIT`. Cần xác minh readiness và
-Google login sau khi Render hoàn tất khởi động; chưa coi frontend Ready là bằng
-chứng backend hoạt động.
+minh; profile demo mới ưu tiên `RENDER_GIT_COMMIT`. Render đã báo Live;
+liveness/readiness trả `UP`, OpenAPI kiểm tra thành công. Qua domain Vercel,
+OAuth chuyển đến Google với callback đúng, PKCE S256 và cookie Secure/HttpOnly;
+file/OTP/routing trả 503 `DEMO_FEATURE_DISABLED` như thiết kế.
+
+Lần đăng nhập bằng trình duyệt quay về `OIDC_LOGIN_FAILED`, nên chưa xác nhận
+luồng đăng nhập hoàn tất. Bản chẩn đoán chỉ ghi mã OAuth từ danh sách cố định,
+không ghi exception message, token, claims hay response của nhà cung cấp.
 
 ## MongoDB Atlas
 

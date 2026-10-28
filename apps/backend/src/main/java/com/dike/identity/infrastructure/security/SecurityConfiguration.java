@@ -245,7 +245,30 @@ public class SecurityConfiguration {
                                     oauthError;
                                 default -> "other";
                               };
-                          log.warn("Google OAuth login failed: {}", diagnostic);
+                          String detail = "unspecified";
+                          Throwable cause = exception;
+                          for (int depth = 0;
+                              cause != null && depth < 8 && "unspecified".equals(detail);
+                              depth++, cause = cause.getCause()) {
+                            String message = cause.getMessage();
+                            if (message != null) {
+                              detail =
+                                  List.of(
+                                          "invalid_client",
+                                          "invalid_grant",
+                                          "redirect_uri_mismatch",
+                                          "unauthorized_client",
+                                          "401 Unauthorized",
+                                          "400 Bad Request",
+                                          "Connection refused",
+                                          "Connection timed out")
+                                      .stream()
+                                      .filter(message::contains)
+                                      .findFirst()
+                                      .orElse("unspecified");
+                            }
+                          }
+                          log.warn("Google OAuth login failed: {} ({})", diagnostic, detail);
                           if (!loginRateLimiter.tryAcquireFailure(request.getRemoteAddr())) {
                             telemetry.login("rate_limited");
                             response.sendRedirect(
