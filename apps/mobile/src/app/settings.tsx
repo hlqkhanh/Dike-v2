@@ -2,7 +2,15 @@ import { router, type Href } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Pressable, View } from "react-native";
 import { DetailPage } from "@/components/DetailPage";
-import { Button, Card, ErrorText, Icon, Text, ui, type IconName } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ErrorText,
+  Icon,
+  Text,
+  ui,
+  type IconName,
+} from "@/components/ui";
 import { useSession } from "@/core/session";
 const items: { title: string; text: string; icon: IconName; href: Href }[] = [
   {
@@ -52,7 +60,10 @@ export default function Settings() {
   const { signOut } = useSession();
   const out = useMutation({ mutationFn: signOut });
   return (
-    <DetailPage title="Cài đặt" subtitle="Quản lý hồ sơ và trải nghiệm Diké của bạn">
+    <DetailPage
+      title="Cài đặt"
+      subtitle="Quản lý hồ sơ và trải nghiệm Diké của bạn"
+    >
       {[
         { title: "HỒ SƠ VÀ HÀNH TRÌNH", rows: items.slice(0, 2) },
         { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(2, 4) },

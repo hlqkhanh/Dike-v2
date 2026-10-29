@@ -319,7 +319,12 @@ export default function Discover() {
             </View>
           ) : (
             posts.map((p) => (
-              <RidePostCard key={p.id} post={p} viewerId={session?.user.id} onChanged={() => void query.refetch()} />
+              <RidePostCard
+                key={p.id}
+                post={p}
+                viewerId={session?.user.id}
+                onChanged={() => void query.refetch()}
+              />
             ))
           )}
           {query.hasNextPage ? (

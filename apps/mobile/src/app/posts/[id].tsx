@@ -289,7 +289,9 @@ export default function PostDetail() {
                   <View style={styles.routeDivider} />
                   <View style={styles.routeStop}>
                     <Text style={styles.routeLabel}>ĐIỂM ĐẾN</Text>
-                    <Text style={styles.routeValue}>{data.destinationLabel}</Text>
+                    <Text style={styles.routeValue}>
+                      {data.destinationLabel}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -410,99 +412,107 @@ export default function PostDetail() {
                   </Text>
                 </View>
                 <View style={styles.countBadge}>
-                  <Text style={styles.countText}>{responses.data?.length ?? 0}</Text>
+                  <Text style={styles.countText}>
+                    {responses.data?.length ?? 0}
+                  </Text>
                 </View>
               </View>
               <ResourceState query={responses}>
-              {responses.data?.length === 0 ? (
-                <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
-              ) : null}
-              {responses.data
-                ?.slice()
-                .sort(
-                  (a, b) =>
-                    Number(b.id === responseId) - Number(a.id === responseId),
-                )
-                .map((r) => {
-                  return (
-                    <View key={r.id} style={styles.responseCard}>
-                      <View style={ui.row}>
-                        <Avatar
-                          name={r.requesterDisplayName}
-                          uri={r.requesterAvatarUrl}
-                        />
-                        <Text
-                          style={[ui.sectionTitle, { flex: 1, fontSize: 16 }]}
-                        >
-                          {r.requesterDisplayName}
-                        </Text>
-                      </View>
-                      <Badge label={statusLabel(r.status)} />
-                      {r.message ? (
-                        <Text style={ui.muted}>{r.message}</Text>
-                      ) : null}
-                      {r.pickupCheck ? (
-                        <Text style={ui.muted}>
-                          Đón lúc {dateTime(r.pickupCheck.pickupAt)} ·{" "}
-                          {r.pickupCheck.pickup.displayLabel}
-                        </Text>
-                      ) : null}
-                      {[
-                        "ACCEPTED",
-                        "DRIVER_STARTED",
-                        "DRIVER_ARRIVED",
-                        "COMPLETED",
-                      ].includes(r.status) ? (
-                        <RideProgress
-                          response={r}
-                          currentUserId={session?.user.id}
-                          onAdvance={(value) =>
-                            setDecision({ response: r, value })
-                          }
-                        />
-                      ) : null}
-                      {r.status === "PENDING" ? (
-                        own ? (
-                          <>
-                            <Button
-                              label="Chấp nhận"
-                              onPress={() =>
-                                setDecision({ response: r, value: "ACCEPTED" })
-                              }
-                            />
-                            <Button
-                              label="Từ chối"
-                              variant="secondary"
-                              onPress={() =>
-                                setDecision({ response: r, value: "REJECTED" })
-                              }
-                            />
-                          </>
-                        ) : (
-                          <Button
-                            label="Rút yêu cầu"
-                            variant="secondary"
-                            onPress={() =>
-                              setDecision({ response: r, value: "WITHDRAWN" })
+                {responses.data?.length === 0 ? (
+                  <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
+                ) : null}
+                {responses.data
+                  ?.slice()
+                  .sort(
+                    (a, b) =>
+                      Number(b.id === responseId) - Number(a.id === responseId),
+                  )
+                  .map((r) => {
+                    return (
+                      <View key={r.id} style={styles.responseCard}>
+                        <View style={ui.row}>
+                          <Avatar
+                            name={r.requesterDisplayName}
+                            uri={r.requesterAvatarUrl}
+                          />
+                          <Text
+                            style={[ui.sectionTitle, { flex: 1, fontSize: 16 }]}
+                          >
+                            {r.requesterDisplayName}
+                          </Text>
+                        </View>
+                        <Badge label={statusLabel(r.status)} />
+                        {r.message ? (
+                          <Text style={ui.muted}>{r.message}</Text>
+                        ) : null}
+                        {r.pickupCheck ? (
+                          <Text style={ui.muted}>
+                            Đón lúc {dateTime(r.pickupCheck.pickupAt)} ·{" "}
+                            {r.pickupCheck.pickup.displayLabel}
+                          </Text>
+                        ) : null}
+                        {[
+                          "ACCEPTED",
+                          "DRIVER_STARTED",
+                          "DRIVER_ARRIVED",
+                          "COMPLETED",
+                        ].includes(r.status) ? (
+                          <RideProgress
+                            response={r}
+                            currentUserId={session?.user.id}
+                            onAdvance={(value) =>
+                              setDecision({ response: r, value })
                             }
                           />
-                        )
-                      ) : null}
-                      {r.conversationId ? (
-                        <Button
-                          label="Mở trò chuyện"
-                          variant="secondary"
-                          onPress={() =>
-                            router.push({
-                              pathname: "/chat/[id]",
-                              params: { id: r.conversationId! },
-                            })
-                          }
-                        />
-                      ) : null}
-                    </View>
-                  );
-                })}
+                        ) : null}
+                        {r.status === "PENDING" ? (
+                          own ? (
+                            <>
+                              <Button
+                                label="Chấp nhận"
+                                onPress={() =>
+                                  setDecision({
+                                    response: r,
+                                    value: "ACCEPTED",
+                                  })
+                                }
+                              />
+                              <Button
+                                label="Từ chối"
+                                variant="secondary"
+                                onPress={() =>
+                                  setDecision({
+                                    response: r,
+                                    value: "REJECTED",
+                                  })
+                                }
+                              />
+                            </>
+                          ) : (
+                            <Button
+                              label="Rút yêu cầu"
+                              variant="secondary"
+                              onPress={() =>
+                                setDecision({ response: r, value: "WITHDRAWN" })
+                              }
+                            />
+                          )
+                        ) : null}
+                        {r.conversationId ? (
+                          <Button
+                            label="Mở trò chuyện"
+                            variant="secondary"
+                            onPress={() =>
+                              router.push({
+                                pathname: "/chat/[id]",
+                                params: { id: r.conversationId! },
+                              })
+                            }
+                          />
+                        ) : null}
+                      </View>
+                    );
+                  })}
               </ResourceState>
             </Card>
             {!own ? (
@@ -730,19 +740,66 @@ const styles = StyleSheet.create({
   journeyCard: { padding: 16, borderRadius: 24, gap: 16 },
   routePanel: { flexDirection: "row", gap: 13 },
   routeRail: { width: 28, alignItems: "center", paddingVertical: 4 },
-  originMarker: { width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: theme.colors.primary, backgroundColor: "#fff" },
+  originMarker: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+    backgroundColor: "#fff",
+  },
   routeLine: { flex: 1, width: 2, minHeight: 48, backgroundColor: "#a9dccb" },
-  destinationMarker: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.passenger },
+  destinationMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.passenger,
+  },
   routeCopy: { flex: 1, gap: 12 },
   routeStop: { gap: 5, minHeight: 58, justifyContent: "center" },
-  routeLabel: { color: theme.colors.primary, fontSize: 11, fontWeight: "900", letterSpacing: 0.7 },
-  routeValue: { color: theme.colors.ink, fontSize: 15, lineHeight: 21, fontWeight: "800" },
+  routeLabel: {
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+  },
+  routeValue: {
+    color: theme.colors.ink,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: "800",
+  },
   routeDivider: { height: 1, backgroundColor: theme.colors.border },
   connectionSection: { borderRadius: 24, padding: 14, gap: 12 },
-  connectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  connectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   connectionTitle: { flexDirection: "row", alignItems: "center", gap: 9 },
-  connectionHeading: { color: theme.colors.ink, fontSize: 18, fontWeight: "900" },
-  countBadge: { minWidth: 34, height: 34, paddingHorizontal: 10, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#e8f7f1" },
+  connectionHeading: {
+    color: theme.colors.ink,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  countBadge: {
+    minWidth: 34,
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#e8f7f1",
+  },
   countText: { color: theme.colors.primary, fontSize: 14, fontWeight: "900" },
-  responseCard: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 18, backgroundColor: "#fff", padding: 13, gap: 10 },
+  responseCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    padding: 13,
+    gap: 10,
+  },
 });

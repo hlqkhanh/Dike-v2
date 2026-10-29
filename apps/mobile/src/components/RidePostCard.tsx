@@ -52,7 +52,11 @@ export function RidePostCard({
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
         <View style={styles.header}>
-          <Avatar name={post.ownerDisplayName} uri={post.ownerAvatarUrl} size={44} />
+          <Avatar
+            name={post.ownerDisplayName}
+            uri={post.ownerAvatarUrl}
+            size={44}
+          />
           <View style={styles.identity}>
             <Text numberOfLines={1} style={styles.ownerName}>
               {post.ownerDisplayName}
@@ -70,16 +74,32 @@ export function RidePostCard({
               event.stopPropagation();
               setMenuOpen(true);
             }}
-            style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.moreButton,
+              pressed && styles.pressed,
+            ]}
           >
-            <Icon name="ellipsis-horizontal" size={22} color={theme.colors.inkMuted} />
+            <Icon
+              name="ellipsis-horizontal"
+              size={22}
+              color={theme.colors.inkMuted}
+            />
           </Pressable>
         </View>
 
         <View style={styles.topRow}>
           <View style={[styles.roleBadge, { backgroundColor: soft }]}>
-            <Icon name={passenger ? "person-outline" : "car-outline"} size={16} color={accent} />
-            <Text style={[styles.roleText, { color: passenger ? theme.colors.passengerInk : accent }]}>
+            <Icon
+              name={passenger ? "person-outline" : "car-outline"}
+              size={16}
+              color={accent}
+            />
+            <Text
+              style={[
+                styles.roleText,
+                { color: passenger ? theme.colors.passengerInk : accent },
+              ]}
+            >
               {passenger ? "Tôi đi ké" : "Tôi chở"}
             </Text>
           </View>
@@ -88,34 +108,66 @@ export function RidePostCard({
 
         <View style={styles.route}>
           <View style={styles.stopRow}>
-            <View style={styles.stopIcon}><Icon name="location-outline" size={20} color={accent} /></View>
-            <Text numberOfLines={2} style={styles.stopText}>{post.originLabel}</Text>
+            <View style={styles.stopIcon}>
+              <Icon name="location-outline" size={20} color={accent} />
+            </View>
+            <Text numberOfLines={2} style={styles.stopText}>
+              {post.originLabel}
+            </Text>
           </View>
           <View style={[styles.stopLine, { backgroundColor: accent }]} />
           <View style={styles.stopRow}>
-            <View style={styles.stopIcon}><Icon name="flag-outline" size={20} color={accent} /></View>
-            <Text numberOfLines={2} style={styles.stopText}>{post.destinationLabel}</Text>
+            <View style={styles.stopIcon}>
+              <Icon name="flag-outline" size={20} color={accent} />
+            </View>
+            <Text numberOfLines={2} style={styles.stopText}>
+              {post.destinationLabel}
+            </Text>
           </View>
         </View>
 
         <PostRoutePreview postId={post.id} style={styles.map} />
 
-        {post.note ? <Text numberOfLines={2} style={styles.note}>{post.note}</Text> : null}
+        {post.note ? (
+          <Text numberOfLines={2} style={styles.note}>
+            {post.note}
+          </Text>
+        ) : null}
         <View style={styles.footer}>
           <View style={styles.meta}>
-            <Icon name={post.vehicleType === "CAR" ? "car-outline" : "bicycle-outline"} size={17} color={theme.colors.inkMuted} />
-            <Text style={styles.metaText}>{post.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}</Text>
+            <Icon
+              name={
+                post.vehicleType === "CAR" ? "car-outline" : "bicycle-outline"
+              }
+              size={17}
+              color={theme.colors.inkMuted}
+            />
+            <Text style={styles.metaText}>
+              {post.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
+            </Text>
           </View>
           <View style={styles.meta}>
-            <Icon name="people-outline" size={17} color={theme.colors.inkMuted} />
-            <Text style={styles.metaText}>{post.pendingResponseCount} yêu cầu</Text>
+            <Icon
+              name="people-outline"
+              size={17}
+              color={theme.colors.inkMuted}
+            />
+            <Text style={styles.metaText}>
+              {post.pendingResponseCount} yêu cầu
+            </Text>
           </View>
-          <Text style={[styles.status, { color: accent }]}>{statusLabel(post.status)}</Text>
+          <Text style={[styles.status, { color: accent }]}>
+            {statusLabel(post.status)}
+          </Text>
           <Icon name="chevron-forward" size={18} color={accent} />
         </View>
       </Pressable>
 
-      <BottomSheet visible={menuOpen} title="Tùy chọn bài đăng" onClose={() => setMenuOpen(false)}>
+      <BottomSheet
+        visible={menuOpen}
+        title="Tùy chọn bài đăng"
+        onClose={() => setMenuOpen(false)}
+      >
         <Button
           label={own ? "Quản lý bài đăng" : "Xem bài đăng"}
           icon={own ? "create-outline" : "eye-outline"}
@@ -149,37 +201,117 @@ export function RidePostCard({
         ) : null}
       </BottomSheet>
 
-      <BottomSheet visible={confirmDelete} title="Xóa bài đăng?" onClose={() => setConfirmDelete(false)}>
+      <BottomSheet
+        visible={confirmDelete}
+        title="Xóa bài đăng?"
+        onClose={() => setConfirmDelete(false)}
+      >
         <Text style={styles.deleteHint}>
-          Bài đăng sẽ được đóng, ngừng nhận yêu cầu mới và không còn xuất hiện trong danh sách hiện tại.
+          Bài đăng sẽ được đóng, ngừng nhận yêu cầu mới và không còn xuất hiện
+          trong danh sách hiện tại.
         </Text>
         <ErrorText error={remove.error} />
-        <Button label="Xóa bài đăng" icon="trash-outline" variant="danger" pending={remove.isPending} onPress={() => remove.mutate()} />
+        <Button
+          label="Xóa bài đăng"
+          icon="trash-outline"
+          variant="danger"
+          pending={remove.isPending}
+          onPress={() => remove.mutate()}
+        />
       </BottomSheet>
-      <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} targetId={post.id} targetType="POST" />
+      <ReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetId={post.id}
+        targetType="POST"
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#fff", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 20, padding: 14, gap: 13, ...theme.shadow.card },
+  card: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 20,
+    padding: 14,
+    gap: 13,
+    ...theme.shadow.card,
+  },
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   identity: { flex: 1, gap: 2 },
   ownerName: { color: theme.colors.ink, fontSize: 15, fontWeight: "800" },
   ownerMeta: { color: theme.colors.inkMuted, fontSize: 11 },
-  moreButton: { width: 42, height: 42, marginRight: -7, alignItems: "center", justifyContent: "center", borderRadius: 21 },
+  moreButton: {
+    width: 42,
+    height: 42,
+    marginRight: -7,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 21,
+  },
   topRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  roleBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999 },
+  roleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   roleText: { fontSize: 12, fontWeight: "800" },
-  date: { marginLeft: "auto", flexShrink: 1, color: theme.colors.inkMuted, fontSize: 11, fontWeight: "600", textAlign: "right" },
+  date: {
+    marginLeft: "auto",
+    flexShrink: 1,
+    color: theme.colors.inkMuted,
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "right",
+  },
   route: { position: "relative", gap: 14, backgroundColor: "#fff" },
-  stopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, minHeight: 52, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 14, backgroundColor: "#fff", zIndex: 1 },
-  stopIcon: { width: 22, alignItems: "center", paddingTop: 1, backgroundColor: "#fff" },
-  stopLine: { position: "absolute", left: 23, top: 20, bottom: 20, width: 2, opacity: 0.4 },
-  stopText: { flex: 1, color: theme.colors.ink, fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  stopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    minHeight: 52,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    zIndex: 1,
+  },
+  stopIcon: {
+    width: 22,
+    alignItems: "center",
+    paddingTop: 1,
+    backgroundColor: "#fff",
+  },
+  stopLine: {
+    position: "absolute",
+    left: 23,
+    top: 20,
+    bottom: 20,
+    width: 2,
+    opacity: 0.4,
+  },
+  stopText: {
+    flex: 1,
+    color: theme.colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
   map: { width: "100%", height: 180, borderRadius: 16 },
   note: { color: theme.colors.inkMuted, fontSize: 13, lineHeight: 19 },
-  footer: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 11, flexDirection: "row", alignItems: "center", gap: 10 },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   meta: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { color: theme.colors.inkMuted, fontSize: 11 },
   status: { marginLeft: "auto", fontSize: 11, fontWeight: "800" },

@@ -85,24 +85,67 @@ export function ActivePostResponses({
             <View style={[styles.floatingIcon, { backgroundColor: accent }]}>
               <Icon name="navigate-outline" size={17} color="#fff" />
             </View>
-            <Text numberOfLines={1} style={styles.floatingTitle}>Chuyến đi gần nhất</Text>
-            <View style={[styles.statusPill, { backgroundColor: passenger ? "#fff1bd" : "#e8f7f1" }]}>
-              <Text numberOfLines={1} style={[styles.floatingStatus, { color: passenger ? theme.colors.passengerInk : theme.colors.primary }]}>{statusLabel(active.status)}</Text>
+            <Text numberOfLines={1} style={styles.floatingTitle}>
+              Chuyến đi gần nhất
+            </Text>
+            <View
+              style={[
+                styles.statusPill,
+                { backgroundColor: passenger ? "#fff1bd" : "#e8f7f1" },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.floatingStatus,
+                  {
+                    color: passenger
+                      ? theme.colors.passengerInk
+                      : theme.colors.primary,
+                  },
+                ]}
+              >
+                {statusLabel(active.status)}
+              </Text>
             </View>
           </View>
           {activePost ? (
             <>
               <View style={styles.routeRow}>
                 <Icon name="location-outline" size={15} color={accent} />
-                <Text numberOfLines={1} style={styles.routeText}>{activePost.originLabel}</Text>
-                <Icon name="arrow-forward" size={14} color={theme.colors.inkMuted} />
-                <Text numberOfLines={1} style={styles.routeText}>{activePost.destinationLabel}</Text>
+                <Text numberOfLines={1} style={styles.routeText}>
+                  {activePost.originLabel}
+                </Text>
+                <Icon
+                  name="arrow-forward"
+                  size={14}
+                  color={theme.colors.inkMuted}
+                />
+                <Text numberOfLines={1} style={styles.routeText}>
+                  {activePost.destinationLabel}
+                </Text>
               </View>
               <View style={styles.metaRow}>
-                <Icon name="calendar-outline" size={14} color={theme.colors.inkMuted} />
-                <Text style={styles.metaText}>{dateTime(activePost.departureAt)}</Text>
-                <Icon name={activePost.vehicleType === "CAR" ? "car-outline" : "bicycle-outline"} size={15} color={theme.colors.inkMuted} />
-                <Text style={styles.metaText}>{activePost.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}</Text>
+                <Icon
+                  name="calendar-outline"
+                  size={14}
+                  color={theme.colors.inkMuted}
+                />
+                <Text style={styles.metaText}>
+                  {dateTime(activePost.departureAt)}
+                </Text>
+                <Icon
+                  name={
+                    activePost.vehicleType === "CAR"
+                      ? "car-outline"
+                      : "bicycle-outline"
+                  }
+                  size={15}
+                  color={theme.colors.inkMuted}
+                />
+                <Text style={styles.metaText}>
+                  {activePost.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
+                </Text>
               </View>
             </>
           ) : null}
@@ -162,11 +205,31 @@ const styles = StyleSheet.create({
   },
   floatingCopy: { flex: 1, minWidth: 0, gap: 6 },
   floatingHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
-  floatingTitle: { flex: 1, color: theme.colors.ink, fontSize: 13, fontWeight: "800" },
-  statusPill: { maxWidth: 115, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "#e8f7f1" },
-  floatingStatus: { color: theme.colors.primary, fontSize: 9, fontWeight: "800" },
+  floatingTitle: {
+    flex: 1,
+    color: theme.colors.ink,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  statusPill: {
+    maxWidth: 115,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "#e8f7f1",
+  },
+  floatingStatus: {
+    color: theme.colors.primary,
+    fontSize: 9,
+    fontWeight: "800",
+  },
   routeRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  routeText: { flex: 1, color: theme.colors.ink, fontSize: 10, fontWeight: "700" },
+  routeText: {
+    flex: 1,
+    color: theme.colors.ink,
+    fontSize: 10,
+    fontWeight: "700",
+  },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   metaText: { marginRight: 8, color: theme.colors.inkMuted, fontSize: 9 },
 });

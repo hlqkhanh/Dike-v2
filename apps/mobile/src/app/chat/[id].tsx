@@ -10,10 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
-import type {
-  JourneyMessage,
-  RidePostResponse,
-} from "@dike/api-client-ts";
+import type { JourneyMessage, RidePostResponse } from "@dike/api-client-ts";
 import {
   Avatar,
   Button,
@@ -52,7 +49,12 @@ function PinnedTripProgress({ response }: { response?: RidePostResponse }) {
         return (
           <View
             key={step.status}
-            style={{ flex: 1, alignItems: "center", gap: 4, position: "relative" }}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              gap: 4,
+              position: "relative",
+            }}
           >
             {index > 0 ? (
               <View
@@ -281,29 +283,45 @@ export default function Chat() {
                 borderBottomColor: "#dceee6",
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+              >
                 <Icon name="pin" size={16} />
-                <Text style={{ color: "#075f4b", fontSize: 13, fontWeight: "800" }}>
+                <Text
+                  style={{ color: "#075f4b", fontSize: 13, fontWeight: "800" }}
+                >
                   Chuyến đi đã ghim
                 </Text>
               </View>
               <Icon name="chevron-forward" size={17} color="#087d61" />
             </View>
             <View style={{ padding: 12, gap: 11 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+              >
                 <Icon name="location" size={16} />
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, fontWeight: "700" }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, fontSize: 12, fontWeight: "700" }}
+                >
                   {pinnedPost.data.originLabel}
                 </Text>
                 <Icon name="arrow-forward" size={14} color="#6f857c" />
                 <Icon name="flag" size={15} color="#e9a400" />
-                <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, fontWeight: "700" }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ flex: 1, fontSize: 12, fontWeight: "700" }}
+                >
                   {pinnedPost.data.destinationLabel}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
+              >
                 <Icon name="calendar-outline" size={15} />
-                <Text style={{ color: "#526b61", fontSize: 11, fontWeight: "600" }}>
+                <Text
+                  style={{ color: "#526b61", fontSize: 11, fontWeight: "600" }}
+                >
                   {dateTime(pinnedPost.data.departureAt)}
                 </Text>
               </View>
