@@ -229,7 +229,7 @@ export function ConversationContent({
       }
     >
       <header className="conversation-toolbar">
-        <h1>
+        <h1 aria-label={recipientName}>
           {recipientId ? (
             <Link
               className="conversation-profile-link"

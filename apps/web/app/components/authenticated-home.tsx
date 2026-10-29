@@ -77,6 +77,11 @@ export function AuthenticatedHome({
     getNextPageParam: (last) => last.nextCursor || undefined,
     refetchInterval: 15_000,
   });
+  const capabilities = useQuery({
+    queryKey: ["rides", "capabilities"],
+    queryFn: rideApi.capabilities,
+    retry: false,
+  });
   const bookings = useQuery({
     queryKey: ["rides", "bookings", "home"],
     queryFn: () => rideApi.bookings(),
@@ -348,6 +353,11 @@ export function AuthenticatedHome({
             </Link>
           </div>
           <div className="new-feed-container">
+            {capabilities.data && !capabilities.data.posting ? (
+              <p className="new-feed-action-error" role="status">
+                {capabilities.data.message}
+              </p>
+            ) : null}
             {activePostMatch ? (
               <MatchedRideCard
                 post={activePostMatch.post}
@@ -471,7 +481,11 @@ export function AuthenticatedHome({
             ) : posts.length === 0 ? (
               <div className="new-feed-state">
                 <span>🌿</span>
-                <h3>Chưa tìm thấy hành trình phù hợp</h3>
+                <h3>
+                  {feedPosts.length === 0
+                    ? "Chưa có bài đăng để hiển thị."
+                    : "Chưa tìm thấy hành trình phù hợp"}
+                </h3>
                 <p>
                   Thử đổi từ khóa hoặc bộ lọc, hoặc tạo nhu cầu mới của bạn.
                 </p>
@@ -764,7 +778,7 @@ function HomeRideCard({
       <Link
         className="new-ride-card-link"
         href={`/feed/${encodeURIComponent(post.id)}`}
-        aria-label={`Xem chi tiết hành trình của ${ownerName}`}
+        aria-label={`${post.originLabel} → ${post.destinationLabel}`}
       />
       <div className="new-ride-content">
         <div className="new-ride-information">

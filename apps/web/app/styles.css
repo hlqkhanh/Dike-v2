@@ -6500,7 +6500,7 @@ a {
 }
 .verification-progress p {
   margin: 5px 0 0;
-  color: #70877f;
+  color: #526b62;
   font-size: 0.74rem;
 }
 .verification-page .simulation-notice {
@@ -6545,7 +6545,7 @@ a {
   font-weight: 800;
 }
 .verification-card > div small {
-  color: #738981;
+  color: #526b62;
 }
 .verification-card > a {
   display: inline-flex;

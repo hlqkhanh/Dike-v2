@@ -44,6 +44,7 @@ import {
 import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
+  const [currentTime] = useState(() => Date.now());
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(
     null,
   );
@@ -505,7 +506,15 @@ export function PostDetail({ id }: { id: string }) {
                               <button
                                 className="is-accept"
                                 type="button"
-                                disabled={responseCommand.isPending}
+                                disabled={
+                                  responseCommand.isPending ||
+                                  Boolean(
+                                    item.pickupCheck &&
+                                      new Date(
+                                        item.pickupCheck.expiresAt,
+                                      ).getTime() <= currentTime,
+                                  )
+                                }
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   responseCommand.mutate({
