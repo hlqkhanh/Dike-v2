@@ -20,6 +20,7 @@ import {
 import { authApi } from "../auth/api";
 import { useAuthFailure } from "../auth/use-auth-failure";
 import { BookingTools } from "../journey/booking-tools";
+import { journeyApi } from "../journey/api";
 import { rideApi } from "./api";
 import {
   dateTime,
@@ -30,12 +31,13 @@ import {
 } from "./dashboard";
 
 const timeline = [
-  "CONFIRMED",
-  "DRIVER_ARRIVED",
-  "BOARDED",
-  "IN_PROGRESS",
-  "COMPLETED",
-];
+  { status: "CONFIRMED", label: "Đã xác nhận" },
+  { status: "DRIVER_ARRIVED", label: "Đã đến điểm đón" },
+  { status: "BOARDED", label: "Đã lên xe" },
+  { status: "IN_PROGRESS", label: "Đang di chuyển" },
+  { status: "COMPLETED", label: "Hoàn thành" },
+  { status: "PAYMENT", label: "Thanh toán" },
+] as const;
 
 export function BookingDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -60,6 +62,20 @@ export function BookingDetail({ id }: { id: string }) {
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
+  });
+  const payment = useQuery({
+    queryKey: ["payment", id],
+    queryFn: () => journeyApi.payment(id),
+    enabled: Boolean(booking.data),
+    refetchInterval: 15000,
+    retry: false,
+  });
+  const cashPayment = useQuery({
+    queryKey: ["cash-payment", id],
+    queryFn: () => journeyApi.cashPayment(id),
+    enabled: Boolean(booking.data),
+    refetchInterval: 15000,
+    retry: false,
   });
   const command = useRideCommand();
   useAuthFailure(booking.error);
@@ -148,15 +164,26 @@ export function BookingDetail({ id }: { id: string }) {
                   className="booking-timeline"
                   aria-label="Tiến trình booking"
                 >
-                  {timeline.map((status, index) => {
-                    const activeIndex = timeline.indexOf(item.status);
+                  {timeline.map((step, index) => {
+                    const activeIndex = timeline.findIndex(
+                      (candidate) => candidate.status === item.status,
+                    );
                     const done =
-                      item.status === "COMPLETED" ||
-                      (activeIndex >= 0 && index <= activeIndex);
+                      step.status === "PAYMENT"
+                        ? item.status === "COMPLETED" &&
+                          Boolean(
+                            payment.data?.bankVerified ||
+                              cashPayment.data?.locked,
+                          )
+                        : item.status === "COMPLETED" ||
+                          (activeIndex >= 0 && index <= activeIndex);
                     return (
-                      <li className={done ? "is-complete" : ""} key={status}>
+                      <li
+                        className={done ? "is-complete" : ""}
+                        key={step.status}
+                      >
                         <span>{index + 1}</span>
-                        <small>{statusName(status)}</small>
+                        <small>{step.label}</small>
                       </li>
                     );
                   })}

@@ -44,6 +44,7 @@ import {
 import { ErrorState, LoadingState } from "../../app/components/app-ui";
 
 export function PostDetail({ id }: { id: string }) {
+  const [currentTime] = useState(() => Date.now());
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(
     null,
   );
@@ -468,22 +469,20 @@ export function PostDetail({ id }: { id: string }) {
                         </div>
 
                         <div className="feed-response-decision">
-                          <strong className="feed-response-status">
-                            {item.status === "PENDING" ? (
-                              <Clock3 aria-hidden="true" size={18} />
-                            ) : isActiveResponse(item) ? (
-                              <Check aria-hidden="true" size={18} />
-                            ) : (
-                              <XCircle aria-hidden="true" size={18} />
-                            )}
-                            {item.status === "PENDING"
-                              ? "Đang chờ phản hồi"
-                              : isActiveResponse(item)
-                                ? "Đã xác nhận"
+                          {!isActiveResponse(item) ? (
+                            <strong className="feed-response-status">
+                              {item.status === "PENDING" ? (
+                                <Clock3 aria-hidden="true" size={18} />
+                              ) : (
+                                <XCircle aria-hidden="true" size={18} />
+                              )}
+                              {item.status === "PENDING"
+                                ? "Đang chờ phản hồi"
                                 : item.status === "REJECTED"
                                   ? "Đã từ chối"
                                   : "Đã rút yêu cầu"}
-                          </strong>
+                            </strong>
+                          ) : null}
                           {item.status === "PENDING" ? (
                             <div className="feed-response-buttons">
                               <button
@@ -507,7 +506,15 @@ export function PostDetail({ id }: { id: string }) {
                               <button
                                 className="is-accept"
                                 type="button"
-                                disabled={responseCommand.isPending}
+                                disabled={
+                                  responseCommand.isPending ||
+                                  Boolean(
+                                    item.pickupCheck &&
+                                      new Date(
+                                        item.pickupCheck.expiresAt,
+                                      ).getTime() <= currentTime,
+                                  )
+                                }
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   responseCommand.mutate({

@@ -2,9 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Banknote,
   Check,
   CircleDollarSign,
   Clock3,
+  CreditCard,
   LocateFixed,
   MapPin,
   ShieldCheck,
@@ -14,7 +16,10 @@ import { useState } from "react";
 import { journeyApi } from "./api";
 
 const paymentNames: Record<string, string> = {
-  PENDING: "Chờ xác nhận",
+  UNAVAILABLE: "Chưa cấu hình",
+  NOT_STARTED: "Chưa thanh toán",
+  PENDING: "Đang chờ thanh toán",
+  PAID: "Ngân hàng đã xác nhận",
   PASSENGER_PAID: "Hành khách đã thanh toán",
   DRIVER_RECEIVED: "Tài xế đã xác nhận nhận tiền",
   CONFIRMED: "Đã đối soát",
@@ -51,6 +56,9 @@ export function BookingTools({
   const [locationConsent, setLocationConsent] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [reviewSent, setReviewSent] = useState(false);
+  const [bankBin, setBankBin] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"PAYOS" | "CASH">("PAYOS");
   const terminal = Boolean(
     bookingStatus &&
       ["COMPLETED", "CANCELLED", "NO_SHOW", "ENDED_EARLY"].includes(
@@ -65,6 +73,11 @@ export function BookingTools({
   const payment = useQuery({
     queryKey: ["payment", bookingId],
     queryFn: () => journeyApi.payment(bookingId),
+    retry: false,
+  });
+  const cashPayment = useQuery({
+    queryKey: ["cash-payment", bookingId],
+    queryFn: () => journeyApi.cashPayment(bookingId),
     retry: false,
   });
   const eligibility = useQuery({
@@ -87,6 +100,7 @@ export function BookingTools({
   const refresh = async () => {
     await Promise.all([
       client.invalidateQueries({ queryKey: ["payment", bookingId] }),
+      client.invalidateQueries({ queryKey: ["cash-payment", bookingId] }),
       client.invalidateQueries({ queryKey: ["review-eligibility", bookingId] }),
       client.invalidateQueries({ queryKey: ["booking-reviews", bookingId] }),
       client.invalidateQueries({ queryKey: ["live-location", bookingId] }),
@@ -96,10 +110,42 @@ export function BookingTools({
     mutationFn: async (run: () => Promise<unknown>) => run(),
     onSuccess: refresh,
   });
-  const ownKind = driver ? "received" : "paid";
-  const ownAcknowledged = driver
-    ? Boolean(payment.data?.driverReceivedAt)
-    : Boolean(payment.data?.passengerPaidAt);
+  const checkout = useMutation({
+    mutationFn: () => journeyApi.createPaymentCheckout(bookingId),
+    onSuccess: async (result) => {
+      await client.invalidateQueries({ queryKey: ["payment", bookingId] });
+      if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
+    },
+  });
+  const payout = useMutation({
+    mutationFn: () =>
+      journeyApi.requestPaymentPayout(bookingId, bankBin, accountNumber),
+    onSuccess: async () => {
+      setAccountNumber("");
+      await client.invalidateQueries({ queryKey: ["payment", bookingId] });
+    },
+  });
+  const confirmCash = useMutation({
+    mutationFn: (kind: "paid" | "received") =>
+      journeyApi.acknowledgePayment(bookingId, kind, true),
+    onSuccess: async () => {
+      await client.invalidateQueries({
+        queryKey: ["cash-payment", bookingId],
+      });
+    },
+  });
+
+  const cashStarted = Boolean(
+    cashPayment.data && cashPayment.data.status !== "NONE",
+  );
+  const selectedPaymentMethod =
+    payment.data?.bankVerified || payment.data?.status === "PENDING"
+      ? "PAYOS"
+      : driver && cashStarted
+        ? "CASH"
+        : payment.data?.providerAvailable
+          ? paymentMethod
+          : "CASH";
 
   const updateConsent = (enabled: boolean) => {
     setLocationError("");
@@ -152,9 +198,19 @@ export function BookingTools({
           </div>
           {payment.data ? (
             <span
-              className={`journey-state-pill${payment.data.locked ? " is-success" : ""}`}
+              className={`journey-state-pill${
+                payment.data.bankVerified || cashPayment.data?.locked
+                  ? " is-success"
+                  : ""
+              }`}
             >
-              {paymentNames[payment.data.status] ?? "Đang xử lý"}
+              {selectedPaymentMethod === "CASH"
+                ? cashPayment.data?.locked
+                  ? "Tiền mặt đã xác nhận"
+                  : cashPayment.data?.passengerPaidAt
+                    ? "Chờ tài xế xác nhận"
+                    : "Thanh toán tiền mặt"
+                : (paymentNames[payment.data.status] ?? "Đang xử lý")}
             </span>
           ) : null}
         </div>
@@ -173,52 +229,242 @@ export function BookingTools({
                 currency: "VND",
               }).format(payment.data.amountVnd)}
             </strong>
-            <div className="journey-confirmation-grid">
+            {!driver &&
+            !payment.data.bankVerified &&
+            !cashPayment.data?.locked ? (
               <div
-                className={payment.data.passengerPaidAt ? "is-complete" : ""}
+                className="journey-payment-methods"
+                aria-label="Phương thức thanh toán"
               >
-                <Check aria-hidden="true" size={17} />
-                <span>
-                  <strong>Hành khách</strong>
-                  <small>{timeLabel(payment.data.passengerPaidAt)}</small>
-                </span>
+                <button
+                  aria-pressed={selectedPaymentMethod === "PAYOS"}
+                  disabled={!payment.data.providerAvailable || cashStarted}
+                  type="button"
+                  onClick={() => setPaymentMethod("PAYOS")}
+                >
+                  <CreditCard aria-hidden="true" size={19} />
+                  <span>
+                    <strong>Chuyển khoản</strong>
+                    <small>payOS thử nghiệm</small>
+                  </span>
+                </button>
+                <button
+                  aria-pressed={selectedPaymentMethod === "CASH"}
+                  disabled={payment.data.status === "PENDING"}
+                  type="button"
+                  onClick={() => setPaymentMethod("CASH")}
+                >
+                  <Banknote aria-hidden="true" size={19} />
+                  <span>
+                    <strong>Tiền mặt</strong>
+                    <small>Xác nhận giữa hai bên</small>
+                  </span>
+                </button>
               </div>
-              <div
-                className={payment.data.driverReceivedAt ? "is-complete" : ""}
-              >
-                <Check aria-hidden="true" size={17} />
-                <span>
-                  <strong>Tài xế</strong>
-                  <small>{timeLabel(payment.data.driverReceivedAt)}</small>
-                </span>
-              </div>
-            </div>
-            <p className="journey-section-copy">
-              Diké chỉ ghi nhận xác nhận của hai bên và không xác minh giao dịch
-              ngân hàng.
-            </p>
-            <button
-              className="app-button app-button--primary"
-              type="button"
-              disabled={command.isPending || payment.data.locked}
-              onClick={() =>
-                command.mutate(() =>
-                  journeyApi.acknowledgePayment(
-                    bookingId,
-                    ownKind,
-                    !ownAcknowledged,
-                  ),
-                )
-              }
-            >
-              {payment.data.locked
-                ? "Hai bên đã xác nhận"
-                : ownAcknowledged
-                  ? "Rút xác nhận"
-                  : driver
-                    ? "Xác nhận đã nhận tiền"
-                    : "Xác nhận đã thanh toán"}
-            </button>
+            ) : null}
+
+            {selectedPaymentMethod === "CASH" ? (
+              <>
+                {cashPayment.isPending ? (
+                  <p role="status">Đang tải xác nhận tiền mặt…</p>
+                ) : cashPayment.isError ? (
+                  <InlineError
+                    message={cashPayment.error.message}
+                    retry={() => void cashPayment.refetch()}
+                  />
+                ) : cashPayment.data ? (
+                  <>
+                    <div className="journey-confirmation-grid">
+                      <div
+                        className={
+                          cashPayment.data.passengerPaidAt ? "is-complete" : ""
+                        }
+                      >
+                        <Check aria-hidden="true" size={17} />
+                        <span>
+                          <strong>Người đi ké đã trả</strong>
+                          <small>
+                            {timeLabel(cashPayment.data.passengerPaidAt)}
+                          </small>
+                        </span>
+                      </div>
+                      <div
+                        className={
+                          cashPayment.data.driverReceivedAt ? "is-complete" : ""
+                        }
+                      >
+                        <Check aria-hidden="true" size={17} />
+                        <span>
+                          <strong>Người chở đã nhận</strong>
+                          <small>
+                            {timeLabel(cashPayment.data.driverReceivedAt)}
+                          </small>
+                        </span>
+                      </div>
+                    </div>
+                    <p className="journey-section-copy">
+                      Thanh toán tiền mặt được hai thành viên tự xác nhận. Diké
+                      không xác minh giao dịch này qua ngân hàng.
+                    </p>
+                    {!driver && !cashPayment.data.passengerPaidAt ? (
+                      <button
+                        className="app-button app-button--primary"
+                        type="button"
+                        disabled={confirmCash.isPending}
+                        onClick={() => confirmCash.mutate("paid")}
+                      >
+                        {confirmCash.isPending
+                          ? "Đang xác nhận…"
+                          : "Tôi đã trả tiền mặt"}
+                      </button>
+                    ) : null}
+                    {driver && !cashPayment.data.passengerPaidAt ? (
+                      <p className="journey-empty-copy">
+                        Đang chờ người đi ké xác nhận đã trả tiền mặt.
+                      </p>
+                    ) : null}
+                    {driver &&
+                    cashPayment.data.passengerPaidAt &&
+                    !cashPayment.data.driverReceivedAt ? (
+                      <button
+                        className="app-button app-button--primary"
+                        type="button"
+                        disabled={confirmCash.isPending}
+                        onClick={() => confirmCash.mutate("received")}
+                      >
+                        {confirmCash.isPending
+                          ? "Đang xác nhận…"
+                          : "Xác nhận đã nhận tiền"}
+                      </button>
+                    ) : null}
+                    {cashPayment.data.locked ? (
+                      <p className="success-notice" role="status">
+                        Hai bên đã xác nhận hoàn tất thanh toán tiền mặt.
+                      </p>
+                    ) : null}
+                    {confirmCash.isError ? (
+                      <p className="journey-inline-error" role="alert">
+                        {confirmCash.error.message}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="journey-confirmation-grid">
+                  <div
+                    className={payment.data.bankVerified ? "is-complete" : ""}
+                  >
+                    <Check aria-hidden="true" size={17} />
+                    <span>
+                      <strong>Hành khách</strong>
+                      <small>{timeLabel(payment.data.paidAt)}</small>
+                    </span>
+                  </div>
+                  <div
+                    className={payment.data.bankVerified ? "is-complete" : ""}
+                  >
+                    <Check aria-hidden="true" size={17} />
+                    <span>
+                      <strong>Đối soát ngân hàng</strong>
+                      <small>
+                        {payment.data.bankVerified
+                          ? "Đã xác minh qua payOS"
+                          : "Đang chờ"}
+                      </small>
+                    </span>
+                  </div>
+                </div>
+                <p className="journey-section-copy">
+                  Bản thử nghiệm chỉ ghi nhận chuyển khoản khi nhận được webhook
+                  hợp lệ từ payOS.
+                </p>
+                {!driver && !payment.data.bankVerified ? (
+                  <button
+                    className="app-button app-button--primary"
+                    type="button"
+                    disabled={
+                      checkout.isPending || !payment.data.providerAvailable
+                    }
+                    onClick={() => checkout.mutate()}
+                  >
+                    {checkout.isPending
+                      ? "Đang tạo mã thanh toán…"
+                      : payment.data.status === "PENDING"
+                        ? "Tiếp tục thanh toán"
+                        : "Thanh toán qua payOS"}
+                  </button>
+                ) : null}
+                {driver && !payment.data.bankVerified ? (
+                  <p className="journey-empty-copy">
+                    Đang chờ hành khách thanh toán qua payOS.
+                  </p>
+                ) : null}
+                {driver &&
+                payment.data.bankVerified &&
+                bookingStatus === "COMPLETED" &&
+                !payment.data.payoutStatus ? (
+                  <div className="journey-review-form">
+                    <label>
+                      Mã BIN ngân hàng nhận tiền
+                      <input
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={bankBin}
+                        onChange={(event) =>
+                          setBankBin(event.target.value.replace(/\D/g, ""))
+                        }
+                        placeholder="Ví dụ: 970422"
+                      />
+                    </label>
+                    <label>
+                      Số tài khoản của tài xế
+                      <input
+                        inputMode="numeric"
+                        maxLength={19}
+                        value={accountNumber}
+                        onChange={(event) =>
+                          setAccountNumber(
+                            event.target.value.replace(/\D/g, ""),
+                          )
+                        }
+                      />
+                    </label>
+                    <button
+                      className="app-button app-button--primary"
+                      type="button"
+                      disabled={
+                        payout.isPending ||
+                        bankBin.length !== 6 ||
+                        accountNumber.length < 6
+                      }
+                      onClick={() => payout.mutate()}
+                    >
+                      {payout.isPending
+                        ? "Đang tạo lệnh chi…"
+                        : "Nhận tiền chuyến đi"}
+                    </button>
+                  </div>
+                ) : null}
+                {payment.data.payoutStatus ? (
+                  <p className="success-notice" role="status">
+                    Lệnh chi {payment.data.payoutStatus.toLowerCase()} ·{" "}
+                    {payment.data.payoutDestination}
+                  </p>
+                ) : null}
+                {checkout.isError ? (
+                  <p className="journey-inline-error" role="alert">
+                    {checkout.error.message}
+                  </p>
+                ) : null}
+                {payout.isError ? (
+                  <p className="journey-inline-error" role="alert">
+                    {payout.error.message}
+                  </p>
+                ) : null}
+              </>
+            )}
           </>
         ) : null}
       </section>

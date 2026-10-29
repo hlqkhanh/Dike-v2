@@ -64,6 +64,21 @@ export type PaymentAcknowledgement = {
   bankVerified: false;
   version: number;
 };
+export type RidePayment = {
+  bookingId: string;
+  amountVnd: number;
+  status: "UNAVAILABLE" | "NOT_STARTED" | "PENDING" | "PAID";
+  providerAvailable: boolean;
+  bankVerified: boolean;
+  checkoutUrl?: string;
+  qrCode?: string;
+  expiresAt?: string;
+  paidAt?: string;
+  payoutStatus?: string;
+  payoutDestination?: string;
+  paidOutAt?: string;
+  version: number;
+};
 export type ReviewEligibility = {
   bookingId: string;
   eligible: boolean;
@@ -222,8 +237,25 @@ export function createJourneyApi(configuration: ApiClientConfiguration) {
     readAllNotifications: () =>
       request<void>("/notifications/read-all", "POST"),
     payment: (bookingId: string) =>
+      request<RidePayment>(`/bookings/${id(bookingId)}/payment`),
+    cashPayment: (bookingId: string) =>
       request<PaymentAcknowledgement>(
         `/bookings/${id(bookingId)}/payment-acknowledgement`,
+      ),
+    createPaymentCheckout: (bookingId: string) =>
+      request<RidePayment>(
+        `/bookings/${id(bookingId)}/payment/checkout`,
+        "POST",
+      ),
+    requestPaymentPayout: (
+      bookingId: string,
+      bankBin: string,
+      accountNumber: string,
+    ) =>
+      request<RidePayment>(
+        `/bookings/${id(bookingId)}/payment/payout`,
+        "POST",
+        { bankBin, accountNumber },
       ),
     acknowledgePayment: (
       bookingId: string,

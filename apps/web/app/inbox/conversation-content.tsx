@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CalendarDays,
   CarFront,
+  Flag,
   MapPin,
   MoreHorizontal,
   Phone,
@@ -228,7 +229,7 @@ export function ConversationContent({
       }
     >
       <header className="conversation-toolbar">
-        <h1>
+        <h1 aria-label={recipientName}>
           {recipientId ? (
             <Link
               className="conversation-profile-link"
@@ -331,6 +332,11 @@ export function ConversationContent({
               >
                 <ArrowRight size={17} />
               </span>
+              <Flag
+                className="conversation-pinned-destination-icon"
+                aria-hidden="true"
+                size={18}
+              />
               <strong>{pinnedPost.data.destinationLabel}</strong>
             </div>
             <div className="conversation-pinned-time">

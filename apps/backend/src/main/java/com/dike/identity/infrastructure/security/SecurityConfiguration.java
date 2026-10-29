@@ -167,6 +167,7 @@ public class SecurityConfiguration {
                         "/api/v1/auth/dev/mobile",
                         "/api/v1/auth/oauth2/authorization/**",
                         "/api/v1/auth/callback/**",
+                        "/api/v1/webhooks/payos",
                         "/oauth2/**",
                         "/ws/**")
                     .permitAll()
@@ -213,6 +214,7 @@ public class SecurityConfiguration {
                         request ->
                             "POST".equals(request.getMethod())
                                 && "/api/v1/auth/mobile/exchange".equals(request.getRequestURI()))
+                    .ignoringRequestMatchers("/api/v1/webhooks/payos")
                     .csrfTokenRepository(csrf)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
         .oauth2Login(

@@ -33,7 +33,7 @@ export default function RootLayout() {
       <View
         style={{
           flex: 1,
-          backgroundColor: "#f3faf7",
+          backgroundColor: "#ffffff",
           justifyContent: "center",
         }}
       >
@@ -64,8 +64,13 @@ function SessionNavigator() {
   ].includes(session?.user.nextAction ?? "");
   if (loading) return <SessionLoading />;
   return (
-    <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }}>
+    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "#ffffff" },
+        }}
+      >
         <Stack.Screen name="index" />
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="auth/callback" />

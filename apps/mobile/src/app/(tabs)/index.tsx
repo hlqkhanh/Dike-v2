@@ -1,7 +1,6 @@
-import { PostRoutePreview } from "@/components/PostRoutePreview";
+import { RidePostCard } from "@/components/RidePostCard";
 import { ActivePostResponses } from "@/components/ActivePostResponses";
 import { LinearGradient } from "expo-linear-gradient";
-import type { RidePostView } from "@dike/api-client-ts";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
 import { usePlaces } from "@/core/places";
@@ -29,7 +28,7 @@ import {
   LoadingCards,
   Text,
 } from "@/components/ui";
-import { useMobileApi, money } from "@/core/hooks";
+import { useMobileApi } from "@/core/hooks";
 import { useSession } from "@/core/session";
 export default function Discover() {
   const places = usePlaces();
@@ -217,7 +216,6 @@ export default function Discover() {
               }
             />
           </View>
-          <ActivePostResponses compact />
           <View style={styles.filterBar}>
             {/* 3 bộ lọc gọn gàng dạng segmented control */}
             <View style={styles.segmentedControl}>
@@ -321,7 +319,12 @@ export default function Discover() {
             </View>
           ) : (
             posts.map((p) => (
-              <PostCard key={p.id} post={p} viewerId={session?.user.id} />
+              <RidePostCard
+                key={p.id}
+                post={p}
+                viewerId={session?.user.id}
+                onChanged={() => void query.refetch()}
+              />
             ))
           )}
           {query.hasNextPage ? (
@@ -334,6 +337,7 @@ export default function Discover() {
           ) : null}
         </View>
       </Animated.ScrollView>
+      <ActivePostResponses floating bottomOffset={84 + insets.bottom} />
     </View>
   );
 }
@@ -388,159 +392,6 @@ function FeatureCard({
         </View>
       </Pressable>
     </View>
-  );
-}
-
-function PostCard({
-  post: p,
-  viewerId,
-}: {
-  post: RidePostView;
-  viewerId?: string;
-}) {
-  const passenger = p.type === "NEED_RIDE";
-  const own = p.ownerId === viewerId;
-  const actionLabel = own
-    ? p.pendingResponseCount > 0
-      ? "Xem yêu cầu"
-      : "Quản lý bài"
-    : p.status !== "OPEN"
-      ? "Xem bài đăng"
-      : passenger
-        ? "Xem nhu cầu"
-        : "Xem chuyến đi";
-  const accent = passenger ? h.passengerInk : h.primary;
-  const soft = passenger ? h.passengerSoft : h.primarySoft;
-  const departure = new Date(p.departureAt);
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`${actionLabel}: từ ${p.originLabel} đến ${p.destinationLabel}`}
-      onPress={() =>
-        router.push({ pathname: "/posts/[id]", params: { id: p.id } })
-      }
-      style={({ pressed }) => [
-        styles.post,
-        passenger && styles.passengerPost,
-        pressed && { opacity: 0.85 },
-      ]}
-    >
-      <View style={styles.postHeader}>
-        <Avatar name={p.ownerDisplayName} uri={p.ownerAvatarUrl} size={40} />
-        <View style={styles.postIdentity}>
-          <Text style={styles.ownerName}>{p.ownerDisplayName}</Text>
-          <View style={styles.inline}>
-            <Text style={styles.caption}>
-              {p.visibility === "PUBLIC"
-                ? "Hành trình công khai"
-                : "Hành trình cộng đồng"}
-            </Text>
-            <Icon
-              name={
-                p.visibility === "PUBLIC" ? "globe-outline" : "people-outline"
-              }
-              size={14}
-              color={h.muted}
-            />
-          </View>
-        </View>
-        <View style={[styles.roleBadge, { backgroundColor: soft }]}>
-          <Icon name="car-outline" size={16} color={accent} />
-          <Text style={[styles.roleText, { color: accent }]}>
-            {passenger ? "Tôi đi ké" : "Tôi chở"}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.routeRow}>
-        <View style={styles.routeRail}>
-          <View style={[styles.routeDot, { backgroundColor: accent }]} />
-          <View style={[styles.routeLine, { backgroundColor: accent }]} />
-          <View style={[styles.routeDot, { backgroundColor: accent }]} />
-        </View>
-        <View style={styles.routeLabels}>
-          <View style={styles.routeStop}>
-            <Text style={styles.caption}>Điểm đi</Text>
-            <Text style={styles.routeText}>{p.originLabel}</Text>
-          </View>
-          <View style={styles.routeStop}>
-            <Text style={styles.caption}>Điểm đến</Text>
-            <Text style={styles.routeText}>{p.destinationLabel}</Text>
-          </View>
-        </View>
-        <PostRoutePreview postId={p.id} />
-      </View>
-      <View style={styles.metadata}>
-        <View style={styles.inline}>
-          <Icon name="calendar-outline" size={16} color={h.muted} />
-          <Text style={styles.metaText}>
-            {departure.toLocaleDateString("vi-VN")}
-          </Text>
-        </View>
-        <View style={styles.inline}>
-          <Icon name="time-outline" size={16} color={h.muted} />
-          <Text style={styles.metaText}>
-            {departure.toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-        </View>
-        <View style={styles.inline}>
-          <Icon
-            name={p.vehicleType === "CAR" ? "car-outline" : "bicycle-outline"}
-            size={18}
-            color={h.muted}
-          />
-          <Text style={styles.metaText}>
-            {p.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
-          </Text>
-        </View>
-      </View>
-      {p.note ? (
-        <Text numberOfLines={2} style={styles.note}>
-          {p.note}
-        </Text>
-      ) : null}
-      <View style={styles.postFooter}>
-        <View style={styles.postStats}>
-          <View style={[styles.statPill, { backgroundColor: soft }]}>
-            <Icon name="car-outline" size={16} color={accent} />
-            <Text style={[styles.statText, { color: accent }]}>
-              {passenger ? "Cần đi ké" : `Còn ${p.remainingSeats} chỗ`}
-            </Text>
-          </View>
-          <View style={[styles.statPill, { backgroundColor: soft }]}>
-            <Icon name="person-outline" size={16} color={accent} />
-            <Text style={[styles.statText, { color: accent }]}>
-              {p.pendingResponseCount} yêu cầu
-            </Text>
-          </View>
-        </View>
-        <View
-          style={[
-            styles.joinButton,
-            {
-              backgroundColor: passenger ? h.surface : h.primary,
-              borderColor: accent,
-            },
-          ]}
-        >
-          <Text
-            style={[styles.joinText, { color: passenger ? accent : h.surface }]}
-          >
-            {actionLabel}
-          </Text>
-          <Icon
-            name="arrow-forward"
-            size={18}
-            color={passenger ? accent : h.surface}
-          />
-        </View>
-      </View>
-      {p.contributionPerKm > 0 ? (
-        <Text style={styles.price}>{money(p.contributionPerKm)}/km</Text>
-      ) : null}
-    </Pressable>
   );
 }
 

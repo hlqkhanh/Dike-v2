@@ -29,7 +29,8 @@ final class TrustedOriginFilter extends OncePerRequestFilter {
     if (isSafe(request.getMethod())
         || MobileSessionIdResolver.isAuthenticatedMobileRequest(request)
         || ("POST".equals(request.getMethod())
-            && "/api/v1/auth/mobile/exchange".equals(request.getRequestURI()))) {
+            && "/api/v1/auth/mobile/exchange".equals(request.getRequestURI()))
+        || "/api/v1/webhooks/payos".equals(request.getRequestURI())) {
       filterChain.doFilter(request, response);
       return;
     }

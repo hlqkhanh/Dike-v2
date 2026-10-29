@@ -101,7 +101,7 @@ class RoutePlanningServiceTest {
   }
 
   @Test
-  void storesRouteAndRoundsEstimateToNearestThousand() {
+  void storesRouteAndUsesFixedTwoThousandPerKilometer() {
     RouteSnapshot route =
         service.route("user-1", "origin-ref", "destination-ref", VehicleMode.MOTORBIKE);
     when(store.route(route.id())).thenReturn(Optional.of(route));
@@ -109,8 +109,8 @@ class RoutePlanningServiceTest {
     var estimate = service.estimate("user-1", route.id(), 10_000, 1);
 
     assertThat(route.distanceMeters()).isEqualTo(10_000);
-    assertThat(estimate.suggestedPerKmVnd()).isEqualTo(250);
-    assertThat(estimate.amountVnd()).isEqualTo(3_000);
+    assertThat(estimate.suggestedPerKmVnd()).isEqualTo(2_000);
+    assertThat(estimate.amountVnd()).isEqualTo(20_000);
     assertThat(estimate.expiresAt()).isEqualTo(route.expiresAt());
   }
 

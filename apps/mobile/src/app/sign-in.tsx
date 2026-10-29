@@ -40,7 +40,7 @@ export default function SignIn() {
   }
   return (
     <LinearGradient
-      colors={["#e1f5e9", "#f6fbf8", "#ffffff"]}
+      colors={["#ffffff", "#ffffff", "#ffffff"]}
       style={{ flex: 1 }}
     >
       <SafeAreaView style={{ flex: 1 }}>
