@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RidePaymentService {
+  private static final long CONTRIBUTION_PER_KM_VND = 2_000L;
   private final MongoTemplate mongo;
   private final RideParticipantAccess rides;
   private final PayOsGateway payos;
@@ -273,15 +274,15 @@ public class RidePaymentService {
   private long responseAmount(String postId) {
     org.bson.Document post = mongo.findById(postId, org.bson.Document.class, "ride_posts");
     if (post == null) return 0;
-    Number contribution = (Number) post.get("contributionPerKm");
     String routeId = post.getString("routeId");
     org.bson.Document route =
         routeId == null
             ? null
             : mongo.findById(routeId, org.bson.Document.class, "route_snapshots");
     Number distance = route == null ? null : (Number) route.get("distanceMeters");
-    if (contribution == null || distance == null) return 0;
-    return Math.max(0, Math.round(contribution.doubleValue() * distance.doubleValue() / 1000d));
+    if (distance == null) return 0;
+    return Math.max(
+        0, Math.round(CONTRIBUTION_PER_KM_VND * distance.doubleValue() / 1000d));
   }
 
   private static ApiException missing() {

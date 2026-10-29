@@ -81,7 +81,7 @@ export default function Profile() {
           <Text style={styles.eyebrow}>HÀNH TRÌNH CỦA BẠN</Text>
           <Text style={styles.sectionTitle}>Chuyến đi đã đăng</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Đăng chuyến đi" onPress={() => router.push("/rides/new")} style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Đăng chuyến đi" onPress={() => router.push("/create-trip")} style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}>
           <Icon name="add" color="#fff" size={20} />
           <Text style={styles.createButtonText}>Đăng chuyến</Text>
         </Pressable>
@@ -93,7 +93,7 @@ export default function Profile() {
             <Icon name="map-outline" size={30} />
             <Text style={styles.emptyTitle}>Chưa có chuyến đi</Text>
             <Text style={styles.emptyText}>Các chuyến bạn đăng hoặc lưu nháp sẽ xuất hiện tại đây.</Text>
-            <Button label="Tạo chuyến đầu tiên" onPress={() => router.push("/rides/new")} />
+            <Button label="Tạo chuyến đầu tiên" onPress={() => router.push("/create-trip")} />
           </Card>
         )}
       </ResourceState>
@@ -110,7 +110,7 @@ function ProfileFact({ icon, text }: { icon: FactIcon; text: string }) {
 const styles = StyleSheet.create({
   profileShell: { backgroundColor: "#fff", borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: theme.colors.border },
   cover: { height: 142, backgroundColor: "#d9efe6" },
-  coverImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
+  coverImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
   settingsButton: { position: "absolute", top: 14, right: 14, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,.9)", borderWidth: 1, borderColor: "rgba(255,255,255,.95)" },
   identity: { alignItems: "center", paddingHorizontal: 22, paddingBottom: 18 },
   avatarRing: { marginTop: -52, padding: 5, backgroundColor: "#fff", borderRadius: 60 },

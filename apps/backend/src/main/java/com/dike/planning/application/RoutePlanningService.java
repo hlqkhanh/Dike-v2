@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RoutePlanningService {
+  private static final long CONTRIBUTION_PER_KM_VND = 2_000L;
 
-  private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
   private static final BigDecimal ONE_THOUSAND = BigDecimal.valueOf(1000);
 
   private final RoutingProvider provider;
@@ -112,19 +112,8 @@ public class RoutePlanningService {
         || passengerSeats > 7) {
       throw new InvalidRouteRequestException();
     }
-    BigDecimal consumption =
-        route.vehicleMode() == VehicleMode.CAR
-            ? contribution.carLitersPer100Km()
-            : contribution.motorbikeLitersPer100Km();
-    BigDecimal perKm =
-        contribution
-            .fuelPriceVndPerLiter()
-            .multiply(consumption)
-            .divide(ONE_HUNDRED, 8, RoundingMode.HALF_UP)
-            .divide(BigDecimal.valueOf(passengerSeats + 1L), 8, RoundingMode.HALF_UP)
-            .max(contribution.minimumPerKmVnd())
-            .min(contribution.maximumPerKmVnd());
-    long suggestedPerKm = perKm.setScale(0, RoundingMode.HALF_UP).longValueExact();
+    BigDecimal perKm = BigDecimal.valueOf(CONTRIBUTION_PER_KM_VND);
+    long suggestedPerKm = CONTRIBUTION_PER_KM_VND;
     BigDecimal rawAmount =
         perKm
             .multiply(BigDecimal.valueOf(sharedDistanceMeters))

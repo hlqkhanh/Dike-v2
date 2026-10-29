@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RideService {
+  private static final long CONTRIBUTION_PER_KM_VND = 2_000L;
   private final RideStore store;
   private final RideResources resources;
   private final RideEligibility eligibility;
@@ -136,7 +137,7 @@ public class RideService {
         || route.durationSeconds() <= 0
         || !compatibleVehicleType(vehicle.type(), route.vehicleType())
         || input.offeredSeats() > vehicle.passengerCapacity()
-        || !resources.contributionAllowed(vehicle, input.contributionPerKm()))
+        || !resources.contributionAllowed(vehicle, CONTRIBUTION_PER_KM_VND))
       throw invalid("INVALID_CAPACITY_OR_CONTRIBUTION");
     String id =
         commands.execute(
@@ -168,7 +169,7 @@ public class RideService {
                       route.destinationLabel(),
                       input.visibility(),
                       input.communityId(),
-                      input.contributionPerKm(),
+                      CONTRIBUTION_PER_KM_VND,
                       input.detourMeters(),
                       input.detourSeconds(),
                       List.of(),
@@ -230,7 +231,7 @@ public class RideService {
         || route.durationSeconds() <= 0
         || edit.offeredSeats() < 1
         || edit.offeredSeats() > vehicle.passengerCapacity()
-        || !resources.contributionAllowed(vehicle, edit.contributionPerKm()))
+        || !resources.contributionAllowed(vehicle, CONTRIBUTION_PER_KM_VND))
       throw invalid("INVALID_CAPACITY_OR_CONTRIBUTION");
     commands.execute(
         actor,
@@ -265,7 +266,7 @@ public class RideService {
                   route.destinationLabel(),
                   edit.visibility(),
                   edit.communityId(),
-                  edit.contributionPerKm(),
+                  CONTRIBUTION_PER_KM_VND,
                   edit.detourMeters(),
                   edit.detourSeconds(),
                   List.of(),

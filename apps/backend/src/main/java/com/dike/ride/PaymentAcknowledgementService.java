@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentAcknowledgementService {
+  private static final long CONTRIBUTION_PER_KM_VND = 2_000L;
 
   private final MongoTemplate mongo;
   private final RideParticipantAccess rides;
@@ -121,7 +122,22 @@ public class PaymentAcknowledgementService {
 
   private PaymentAcknowledgement getOrCreate(Participant booking) {
     PaymentAcknowledgement current = mongo.findById(booking.id(), PaymentAcknowledgement.class);
-    if (current != null) return current;
+    if (current != null) {
+      if (current.lockedAt() == null && current.amountVnd() != booking.agreedPriceVnd()) {
+        mongo.updateFirst(
+            Query.query(
+                Criteria.where("_id")
+                    .is(booking.id())
+                    .and("version")
+                    .is(current.version())
+                    .and("lockedAt")
+                    .is(null)),
+            new Update().set("amountVnd", booking.agreedPriceVnd()).inc("version", 1),
+            PaymentAcknowledgement.class);
+        return mongo.findById(booking.id(), PaymentAcknowledgement.class);
+      }
+      return current;
+    }
     try {
       return mongo.insert(
           new PaymentAcknowledgement(
@@ -169,15 +185,15 @@ public class PaymentAcknowledgementService {
   private long responseAmount(String postId) {
     org.bson.Document post = mongo.findById(postId, org.bson.Document.class, "ride_posts");
     if (post == null) return 0;
-    Number contribution = (Number) post.get("contributionPerKm");
     String routeId = post.getString("routeId");
     org.bson.Document route =
         routeId == null
             ? null
             : mongo.findById(routeId, org.bson.Document.class, "route_snapshots");
     Number distance = route == null ? null : (Number) route.get("distanceMeters");
-    if (contribution == null || distance == null) return 0;
-    return Math.max(0, Math.round(contribution.doubleValue() * distance.doubleValue() / 1000d));
+    if (distance == null) return 0;
+    return Math.max(
+        0, Math.round(CONTRIBUTION_PER_KM_VND * distance.doubleValue() / 1000d));
   }
 
   private void ensureEligible(Participant booking) {
