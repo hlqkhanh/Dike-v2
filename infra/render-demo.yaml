@@ -38,3 +38,8 @@ services:
         generateValue: true
       - key: DIKE_OTP_RATE_KEY_SECRET
         generateValue: true
+      # Set to goong in the dashboard after adding DIKE_GOONG_API_KEY (REST key).
+      - key: DIKE_ROUTING_PROVIDER
+        value: disabled
+      - key: DIKE_ROUTING_CACHE_KEY_SECRET
+        generateValue: true

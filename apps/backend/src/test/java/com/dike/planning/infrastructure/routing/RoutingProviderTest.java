@@ -1,6 +1,7 @@
 package com.dike.planning.infrastructure.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dike.planning.domain.PlaceSnapshot;
@@ -73,6 +74,56 @@ class RoutingProviderTest {
                         properties("goong", "https://rsapi.goong.io", "key"), demo, environment)
                     .run(null))
         .hasMessageContaining("contribution policy");
+  }
+
+  @Test
+  void demoGoongRequiresTheOfficialHttpsApiAndConfiguredKey() {
+    var environment = new MockEnvironment().withProperty("dike.environment", "demo");
+    var contribution =
+        new ContributionProperties(
+            true,
+            BigDecimal.valueOf(25_000),
+            BigDecimal.valueOf(2),
+            BigDecimal.valueOf(8),
+            BigDecimal.ZERO,
+            BigDecimal.valueOf(10_000));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                new RoutingConfiguration()
+                    .validateRoutingConfiguration(
+                        properties("disabled", "https://rsapi.goong.io", "local-not-configured"),
+                        contribution,
+                        environment)
+                    .run(null));
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                new RoutingConfiguration()
+                    .validateRoutingConfiguration(
+                        properties("goong", "https://rsapi.goong.io", "backend-rest-key"),
+                        contribution,
+                        environment)
+                    .run(null));
+    for (String host :
+        java.util.List.of("http://rsapi.goong.io", "https://unexpected.example.test")) {
+      assertThatThrownBy(
+              () ->
+                  new RoutingConfiguration()
+                      .validateRoutingConfiguration(
+                          properties("goong", host, "backend-rest-key"), contribution, environment)
+                      .run(null))
+          .hasMessageContaining("Secure Goong");
+    }
+    assertThatThrownBy(
+            () ->
+                new RoutingConfiguration()
+                    .validateRoutingConfiguration(
+                        properties("goong", "https://rsapi.goong.io", "local-not-configured"),
+                        contribution,
+                        environment)
+                    .run(null))
+        .hasMessageContaining("Secure Goong");
   }
 
   private RoutingProperties properties(String provider, String baseUrl, String key) {

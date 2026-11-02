@@ -10,8 +10,10 @@ Không dùng `infra/render.yaml` cho demo vì blueprint đó tạo worker trả 
 
 - Google login, session first-party qua Vercel, cookie HTTPS `__Host-DIKE_SESSION`.
 - Thành viên mới giữ quyền thông thường; không giả lập VERIFIED_MEMBER/APPROVED_DRIVER.
-- OTP, upload/download file và API định tuyến bị chặn với `DEMO_FEATURE_DISABLED`.
-  Adapter OTP và routing disabled không liên hệ nhà cung cấp và không tạo kết quả giả.
+- OTP và upload/download file bị chặn với `DEMO_FEATURE_DISABLED`.
+  API định tuyến mặc định cũng bị chặn; có thể bật riêng Goong theo
+  [hướng dẫn Goong demo](goong-demo.md). Khi routing disabled, adapter không liên
+  hệ nhà cung cấp và không tạo kết quả giả.
 - Không cần R2/S3. Readiness demo chỉ kiểm tra MongoDB và Redis; health indicator
   storage không được đăng ký trong profile demo.
 - Redis dùng hostname nội bộ `red-dbgs50cs728c73c8o6n0`, port 6379, cùng Render

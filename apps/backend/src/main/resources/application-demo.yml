@@ -40,9 +40,11 @@ dike:
   realtime:
     websocket-url: ${DIKE_WEBSOCKET_URL:wss://${RENDER_EXTERNAL_HOSTNAME}/ws}
     allowed-origins: ${DIKE_REALTIME_ALLOWED_ORIGINS}
-  # No routing API calls or charges in the restricted demo.
+  # Opt in only after configuring the backend Goong REST key and its account quota.
   routing:
-    provider: disabled
+    provider: ${DIKE_ROUTING_PROVIDER:disabled}
+    # Google-authenticated demo members can plan routes without enabling OTP.
+    allow-unverified-members: true
 
 management:
   endpoint:

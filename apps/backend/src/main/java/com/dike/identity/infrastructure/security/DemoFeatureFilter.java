@@ -9,6 +9,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Public demos cannot issue upload grants, send SMS, or use developer login endpoints. */
 final class DemoFeatureFilter extends OncePerRequestFilter {
+  private final boolean routingEnabled;
+
+  DemoFeatureFilter() {
+    this(false);
+  }
+
+  DemoFeatureFilter(boolean routingEnabled) {
+    this.routingEnabled = routingEnabled;
+  }
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -18,7 +28,7 @@ final class DemoFeatureFilter extends OncePerRequestFilter {
         || blocked(path, "/api/v1/auth/otp")
         || blocked(path, "/api/v1/auth/test")
         || blocked(path, "/api/v1/auth/dev")
-        || blocked(path, "/api/v1/routing")) {
+        || (!routingEnabled && blocked(path, "/api/v1/routing"))) {
       SecurityErrorWriter.write(
           request,
           response,

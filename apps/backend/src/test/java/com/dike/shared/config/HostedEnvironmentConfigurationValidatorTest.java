@@ -70,6 +70,32 @@ class HostedEnvironmentConfigurationValidatorTest {
   }
 
   @Test
+  void demoCanOptInToGoongWithBackendSecrets() {
+    var environment =
+        validDemo()
+            .withProperty("dike.routing.provider", "goong")
+            .withProperty(
+                "dike.routing.cache-key-secret",
+                "demo-cache-secret-at-least-thirty-two-characters");
+    assertThatNoException()
+        .isThrownBy(() -> new HostedEnvironmentConfigurationValidator(environment).run(null));
+    environment.setProperty("dike.routing.api-key", "local-not-configured");
+    assertThatThrownBy(() -> new HostedEnvironmentConfigurationValidator(environment).run(null))
+        .hasMessageContaining("dike.routing.api-key");
+  }
+
+  @Test
+  void demoRoutingRejectsFakeProvidersAndWeakCacheSecrets() {
+    var environment = validDemo().withProperty("dike.routing.provider", "fake");
+    assertThatThrownBy(() -> new HostedEnvironmentConfigurationValidator(environment).run(null))
+        .hasMessageContaining("dike.routing.provider");
+    environment.setProperty("dike.routing.provider", "goong");
+    environment.setProperty("dike.routing.cache-key-secret", "short");
+    assertThatThrownBy(() -> new HostedEnvironmentConfigurationValidator(environment).run(null))
+        .hasMessageContaining("dike.routing.cache-key-secret");
+  }
+
+  @Test
   void demoCannotBeMixedWithProductionProfiles() {
     var environment = validDemo();
     environment.setActiveProfiles("production", "demo", "combined");

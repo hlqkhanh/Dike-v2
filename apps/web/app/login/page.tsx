@@ -33,8 +33,8 @@ export default async function LoginPage({
           {process.env.DIKE_WEB_DEMO === "true" ? (
             <p role="note" className="login-subtitle">
               Bản demo miễn phí: đăng nhập Google và khám phá với quyền thành
-              viên. OTP, tải file và tạo lộ trình hiện không khả dụng. Lần truy
-              cập đầu có thể cần chờ dịch vụ khởi động.
+              viên. OTP và tải file hiện không khả dụng. Lần truy cập đầu có thể
+              cần chờ dịch vụ khởi động.
             </p>
           ) : null}
 

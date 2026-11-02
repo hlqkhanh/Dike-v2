@@ -12,6 +12,41 @@ class DemoFeatureFilterTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
+        "/api/v1/routing/place-sessions",
+        "/api/v1/routing/places",
+        "/api/v1/routing/places/resolve",
+        "/api/v1/routing/routes",
+        "/api/v1/routing/estimates"
+      })
+  void configuredGoongReachesTheNormalAuthenticatedRoutingChain(String path) throws Exception {
+    var request = new MockHttpServletRequest("POST", path);
+    request.setServletPath(path);
+    var chain = new MockFilterChain();
+    new DemoFeatureFilter(true).doFilter(request, new MockHttpServletResponse(), chain);
+    assertThat(chain.getRequest()).isSameAs(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/api/v1/files/uploads",
+        "/api/v1/auth/otp",
+        "/api/v1/auth/dev/mobile",
+        "/api/v1/auth/test/otp/id"
+      })
+  void enablingRoutingDoesNotEnableOtherRestrictedFeatures(String path) throws Exception {
+    var request = new MockHttpServletRequest("POST", path);
+    request.setServletPath(path);
+    var response = new MockHttpServletResponse();
+    var chain = new MockFilterChain();
+    new DemoFeatureFilter(true).doFilter(request, response, chain);
+    assertThat(response.getStatus()).isEqualTo(503);
+    assertThat(chain.getRequest()).isNull();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
         "/api/v1/files/uploads",
         "/api/v1/files/f1/download-url",
         "/api/v1/auth/otp",

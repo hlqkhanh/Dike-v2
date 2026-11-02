@@ -143,7 +143,9 @@ public class SecurityConfiguration {
       Environment environment)
       throws Exception {
     if ("demo".equals(environment.getProperty("dike.environment"))) {
-      http.addFilterBefore(new DemoFeatureFilter(), CsrfFilter.class);
+      http.addFilterBefore(
+          new DemoFeatureFilter("goong".equals(environment.getProperty("dike.routing.provider"))),
+          CsrfFilter.class);
     }
     var authorizationResolver =
         new PkceAuthorizationRequestResolver(
