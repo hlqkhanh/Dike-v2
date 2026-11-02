@@ -28,6 +28,7 @@ export function DetailPage({
   refreshing,
   art,
   backgroundColor,
+  compact = false,
 }: PropsWithChildren<{
   title: string;
   subtitle?: string;
@@ -36,6 +37,7 @@ export function DetailPage({
   refreshing?: boolean;
   art?: PageArt;
   backgroundColor?: string;
+  compact?: boolean;
 }>) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffset = useRef(0);
@@ -85,7 +87,10 @@ export function DetailPage({
           }}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            compact && styles.compactContent,
+          ]}
           refreshControl={
             onRefresh ? (
               <RefreshControl
@@ -96,21 +101,25 @@ export function DetailPage({
             ) : undefined
           }
         >
-          <View style={styles.top}>
+          <View style={[styles.top, compact && styles.compactTop]}>
             <Pressable
               accessibilityLabel="Quay lại"
               accessibilityRole="button"
               onPress={() =>
                 router.canGoBack() ? router.back() : router.replace("/(tabs)")
               }
-              style={styles.back}
+              style={[styles.back, compact && styles.compactBack]}
             >
               <Icon name="arrow-back" />
             </Pressable>
             <View style={styles.heading}>
               <Text
                 accessibilityRole="header"
-                style={[styles.title, art ? { fontSize: 16 } : null]}
+                style={[
+                  styles.title,
+                  art ? { fontSize: 16 } : null,
+                  compact && { fontSize: 18 },
+                ]}
               >
                 {art ? "Hành trình cùng Diké" : title}
               </Text>
@@ -169,6 +178,9 @@ export const detailStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   safe: { backgroundColor: theme.colors.canvas, flex: 1 },
   content: { gap: 18, padding: 20, paddingBottom: 40 },
+  compactContent: { padding: 0, paddingTop: 8, paddingBottom: 24, gap: 0 },
+  compactTop: { paddingHorizontal: 12, gap: 10, marginBottom: 0 },
+  compactBack: { width: 36, height: 36, borderRadius: 18 },
   top: { alignItems: "center", flexDirection: "row", gap: 12, marginBottom: 4 },
   back: {
     alignItems: "center",

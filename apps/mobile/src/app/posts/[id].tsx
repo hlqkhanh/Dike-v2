@@ -1,5 +1,11 @@
-import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
@@ -7,36 +13,38 @@ import type {
   JourneyConversation,
   PickupCheck,
   PlaceResponse,
+  RouteResponse,
   RidePostResponse,
-  RidePostRoute,
   RidePostView,
   RidePostDraftSource,
 } from "@dike/api-client-ts";
-import { DetailPage } from "@/components/DetailPage";
+import { PostDetailStage } from "@/components/PostDetailStage";
+import { ReportSheet } from "@/components/ReportSheet";
 import { ResourceState } from "@/components/ResourceState";
 import { PlacePicker } from "@/components/PlacePicker";
-import { ReportSheet } from "@/components/ReportSheet";
 import {
-  Avatar,
-  Badge,
   BottomSheet,
   Button,
-  Card,
   ErrorText,
-  Field,
+  TextInput,
   Icon,
   Text,
   ui,
 } from "@/components/ui";
-import { useMobileApi, dateTime, money, statusLabel } from "@/core/hooks";
+import { useMobileApi, dateTime, statusLabel } from "@/core/hooks";
 import { useSession } from "@/core/session";
-import { RouteMapSurface } from "@/components/RouteMapSurface";
-import { RideProgress } from "@/components/RideProgress";
+import { PostRequestComment } from "@/components/PostRequestComment";
+import { splitPlaceLabel } from "@/core/place-label";
 import { theme } from "@/core/theme";
 export default function PostDetail() {
-  const { id = "", responseId } = useLocalSearchParams<{
+  const {
+    id = "",
+    responseId,
+    action,
+  } = useLocalSearchParams<{
     id: string;
     responseId?: string;
+    action?: string;
   }>();
   const api = useMobileApi();
   const client = useQueryClient();
@@ -49,6 +57,16 @@ export default function PostDetail() {
     | undefined
   >(undefined);
   const [publishConfirm, setPublishConfirm] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [close, setClose] = useState(false);
+  const [report, setReport] = useState(false);
+  const [sheetExpansion, setSheetExpansion] = useState(0);
+  const [selectedId, setSelectedId] = useState<string>();
+  const [selectionSignal, setSelectionSignal] = useState(0);
+  const [refreshSignal, setRefreshSignal] = useState(0);
+  const initialSnap = useRef<0 | 1 | 2>(
+    action === "request" || responseId ? 2 : 1,
+  ).current;
   const refreshLists = () => {
     for (const key of [
       "mobile-my-posts",
@@ -60,19 +78,19 @@ export default function PostDetail() {
       void client.invalidateQueries({ queryKey: [key] });
   };
   const { session } = useSession();
-  const [open, setOpen] = useState(false);
-  const [report, setReport] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
   const [message, setMessage] = useState("");
+  const [pickupText, setPickupText] = useState("");
+  const [dropoffText, setDropoffText] = useState("");
   const [pickup, setPickup] = useState<PlaceResponse>();
   const [dropoff, setDropoff] = useState<PlaceResponse>();
+  const [previewPickup, setPreviewPickup] = useState<PlaceResponse>();
+  const [previewDropoff, setPreviewDropoff] = useState<PlaceResponse>();
   const [check, setCheck] = useState<PickupCheck>();
   const [decision, setDecision] = useState<{
     response: RidePostResponse;
     value: string;
   }>();
-  const [close, setClose] = useState(false);
-  const [mapFailed, setMapFailed] = useState(false);
-  const [mapAttempt, setMapAttempt] = useState(0);
   const post = useQuery({
     queryKey: ["mobile-post", id],
     queryFn: () => api.post(id),
@@ -82,38 +100,118 @@ export default function PostDetail() {
     queryFn: () => api.postResponses(id),
     refetchInterval: 10000,
   });
-  const route = useQuery({
-    queryKey: ["mobile-post-route", id],
-    queryFn: () => api.call<RidePostRoute>(`/ride-posts/${id}/route`),
-  });
   const data = post.data;
   const own = data?.ownerId === session?.user.id;
-  const active = responses.data?.some(
+  const visibleResponses = (responses.data ?? []).filter(
+    (r) =>
+      r.status !== "WITHDRAWN" && (own || r.requesterId === session?.user.id),
+  );
+  const selected = visibleResponses.find((r) => r.id === selectedId);
+  const confirmedStatuses = [
+    "ACCEPTED",
+    "DRIVER_STARTED",
+    "DRIVER_ARRIVED",
+    "COMPLETED",
+  ];
+  const confirmedResponses = visibleResponses.filter((r) =>
+    confirmedStatuses.includes(r.status),
+  );
+  const confirmedResponse =
+    confirmedResponses.find((r) => r.id === selectedId) ??
+    confirmedResponses.find((r) => r.id === responseId) ??
+    confirmedResponses[0];
+  const active = visibleResponses.some(
     (r) =>
       r.requesterId === session?.user.id &&
       !["REJECTED", "WITHDRAWN"].includes(r.status),
   );
-  const validate = useMutation({
-    mutationFn: async () => {
-      setCheck(undefined);
-      setCheck(
-        await api.call<PickupCheck>(`/ride-posts/${id}/pickup-checks`, "POST", {
-          pickupPlaceRef: pickup?.placeRef,
-          dropoffPlaceRef: dropoff?.placeRef,
-          useDriverPickup: !pickup,
-          useDriverDropoff: !dropoff,
-        }),
-      );
-    },
+  const viewerPassenger = data?.type === "OFFER_RIDE";
+  const requestAccent = viewerPassenger
+    ? theme.colors.passengerInk
+    : theme.colors.primary;
+  const requestSoft = viewerPassenger ? theme.colors.passengerSoft : "#eaf7f0";
+  const preview = useQuery<PickupCheck | RouteResponse>({
+    queryKey: [
+      "post-request-preview",
+      id,
+      data?.type,
+      previewPickup?.placeRef,
+      previewDropoff?.placeRef,
+    ],
+    enabled:
+      !!data &&
+      !own &&
+      !active &&
+      (viewerPassenger
+        ? !!(previewPickup || previewDropoff)
+        : !!(previewPickup && previewDropoff)),
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () =>
+      viewerPassenger
+        ? api.call<PickupCheck>(`/ride-posts/${id}/pickup-checks`, "POST", {
+            pickupPlaceRef: previewPickup?.placeRef,
+            dropoffPlaceRef: previewDropoff?.placeRef,
+            useDriverPickup: !previewPickup,
+            useDriverDropoff: !previewDropoff,
+          })
+        : api.call<RouteResponse>("/routing/routes", "POST", {
+            originPlaceRef: previewPickup!.placeRef,
+            destinationPlaceRef: previewDropoff!.placeRef,
+            vehicleMode: data?.vehicleType === "CAR" ? "CAR" : "MOTORBIKE",
+          }),
   });
+  useEffect(() => {
+    if (action !== "request" || !data || !responses.isSuccess) return;
+    setSheetExpansion((value) => value + 1);
+    router.setParams({ action: undefined });
+  }, [action, data, responses.isSuccess]);
   const request = useMutation({
-    mutationFn: () =>
-      api.call<RidePostResponse>(`/ride-posts/${id}/responses`, "POST", {
-        message: message.trim(),
-        pickupCheckId: check?.id,
-      }),
+    mutationFn: async () => {
+      let checked: PickupCheck | undefined;
+      if (data?.type === "OFFER_RIDE") {
+        checked = await api.call<PickupCheck>(
+          `/ride-posts/${id}/pickup-checks`,
+          "POST",
+          {
+            pickupPlaceRef: pickup?.placeRef,
+            dropoffPlaceRef: dropoff?.placeRef,
+            useDriverPickup: !pickup,
+            useDriverDropoff: !dropoff,
+          },
+        );
+        setCheck(checked);
+        if (!checked.compatible)
+          throw new Error(
+            checked.reason || "Địa điểm chưa phù hợp với tuyến đi.",
+          );
+      }
+      const locations =
+        data?.type === "NEED_RIDE"
+          ? [
+              pickup
+                ? "Điểm đi: " + splitPlaceLabel(pickup.displayLabel).name
+                : "",
+              dropoff
+                ? "Điểm đến: " + splitPlaceLabel(dropoff.displayLabel).name
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n")
+          : "";
+      const requestMessage = [locations, message.trim()]
+        .filter(Boolean)
+        .join("\n");
+      if (requestMessage.length > 300)
+        throw new Error("Lời nhắn và địa điểm không được vượt quá 300 ký tự.");
+      return api.call<RidePostResponse>(`/ride-posts/${id}/responses`, "POST", {
+        message: requestMessage,
+        pickupCheckId: checked?.id,
+      });
+    },
     onSuccess: () => {
-      setOpen(false);
+      setMessage("");
+      setShowMessage(false);
       void responses.refetch();
       refreshLists();
     },
@@ -126,6 +224,22 @@ export default function PostDetail() {
         { version: decision!.response.version, decision: decision!.value },
       ),
     onSuccess: () => {
+      if (decision?.value === "WITHDRAWN") {
+        client.setQueryData<RidePostResponse[]>(
+          ["mobile-post-responses", id],
+          (rows) => rows?.filter((r) => r.id !== decision.response.id),
+        );
+        setSelectedId(undefined);
+        setPreviewPickup(undefined);
+        setPreviewDropoff(undefined);
+        setPickup(undefined);
+        setDropoff(undefined);
+        setPickupText("");
+        setDropoffText("");
+        setCheck(undefined);
+        setMessage("");
+        setShowMessage(false);
+      }
       setDecision(undefined);
       void responses.refetch();
       void post.refetch();
@@ -135,7 +249,7 @@ export default function PostDetail() {
   const closePost = useMutation({
     mutationFn: () =>
       api.call<RidePostView>(
-        `/ride-posts/${id}/close`,
+        "/ride-posts/" + id + "/close",
         "POST",
         { version: data!.version },
         randomUUID(),
@@ -194,157 +308,34 @@ export default function PostDetail() {
       router.push({ pathname: "/chat/[id]", params: { id: c.id } }),
   });
   return (
-    <DetailPage
-      title="Chi tiết hành trình"
-      backgroundColor={theme.colors.canvas}
-      onRefresh={() => {
-        void post.refetch();
-        setMapFailed(false);
-        void responses.refetch();
+    <PostDetailStage
+      post={data}
+      own={own}
+      confirmedResponse={confirmedResponse}
+      onMenu={() => setMenuOpen(true)}
+      initialSnap={initialSnap}
+      expandSignal={sheetExpansion}
+      refreshSignal={refreshSignal}
+      selected={selected}
+      draftPickup={previewPickup}
+      draftDropoff={previewDropoff}
+      draftCheck={
+        viewerPassenger ? (preview.data as PickupCheck | undefined) : undefined
+      }
+      draftRoute={
+        !viewerPassenger
+          ? (preview.data as RouteResponse | undefined)
+          : undefined
+      }
+      selectionSignal={selectionSignal}
+      onClearSelection={() => setSelectedId(undefined)}
+      onDecision={(value) => {
+        if (selected) setDecision({ response: selected, value });
       }}
-      refreshing={post.isRefetching}
     >
       <ResourceState query={post}>
         {data ? (
           <>
-            <Card style={styles.profileCard}>
-              <View style={styles.ownerRow}>
-                <Avatar
-                  name={data.ownerDisplayName}
-                  uri={data.ownerAvatarUrl}
-                  size={68}
-                />
-                <View style={styles.ownerIdentity}>
-                  <Text style={styles.ownerName}>{data.ownerDisplayName}</Text>
-                  <Text style={styles.ownerRole}>
-                    {data.type === "NEED_RIDE" ? "Cần đi ké" : "Có chỗ trống"}
-                  </Text>
-                  <Badge label={statusLabel(data.status)} />
-                </View>
-                <Pressable
-                  accessibilityLabel="Xem hồ sơ người đăng"
-                  accessibilityRole="button"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/user/[id]",
-                      params: { id: data.ownerId },
-                    })
-                  }
-                  style={styles.profileLink}
-                >
-                  <Icon name="person-outline" size={18} />
-                  <Text style={styles.profileLinkText}>Xem hồ sơ</Text>
-                  <Icon name="chevron-forward" size={17} />
-                </Pressable>
-              </View>
-            </Card>
-            <View
-              style={styles.map}
-              accessibilityLabel="Bản đồ tuyến đường thực tế"
-            >
-              {route.isPending ? (
-                <ActivityIndicator color={theme.colors.primary} />
-              ) : mapFailed || !route.data?.geometry?.length ? (
-                <View style={styles.mapFallback}>
-                  <Icon
-                    name="map-outline"
-                    size={24}
-                    color={theme.colors.inkMuted}
-                  />
-                  <Text style={ui.muted}>Chưa tải được bản đồ</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setMapFailed(false);
-                      setMapAttempt((value) => value + 1);
-                      void route.refetch();
-                    }}
-                    style={styles.retryMap}
-                  >
-                    <Text style={styles.profileLinkText}>Thử lại</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <RouteMapSurface
-                  key={mapAttempt}
-                  geometry={route.data.geometry}
-                  onError={() => setMapFailed(true)}
-                />
-              )}
-            </View>
-            <Card style={styles.journeyCard}>
-              <View style={styles.routePanel}>
-                <View style={styles.routeRail}>
-                  <View style={styles.originMarker} />
-                  <View style={styles.routeLine} />
-                  <View style={styles.destinationMarker}>
-                    <Icon name="flag" size={15} color="#fff" />
-                  </View>
-                </View>
-                <View style={styles.routeCopy}>
-                  <View style={styles.routeStop}>
-                    <Text style={styles.routeLabel}>ĐIỂM ĐI</Text>
-                    <Text style={styles.routeValue}>{data.originLabel}</Text>
-                  </View>
-                  <View style={styles.routeDivider} />
-                  <View style={styles.routeStop}>
-                    <Text style={styles.routeLabel}>ĐIỂM ĐẾN</Text>
-                    <Text style={styles.routeValue}>
-                      {data.destinationLabel}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.metaGrid}>
-                <View style={styles.metaItem}>
-                  <Icon name="calendar-outline" size={24} />
-                  <View style={styles.metaCopy}>
-                    <Text style={styles.metaValue}>
-                      {dateTime(data.departureAt)}
-                    </Text>
-                    <Text style={styles.metaLabel}>Thời gian đi</Text>
-                  </View>
-                </View>
-                <View style={styles.metaItem}>
-                  <Icon
-                    name={
-                      data.vehicleType === "CAR"
-                        ? "car-outline"
-                        : "bicycle-outline"
-                    }
-                    size={24}
-                  />
-                  <View style={styles.metaCopy}>
-                    <Text style={styles.metaValue}>
-                      {data.vehicleType === "CAR" ? "Ô tô" : "Xe máy"}
-                    </Text>
-                    <Text style={styles.metaLabel}>Phương tiện</Text>
-                  </View>
-                </View>
-                <View style={styles.metaItem}>
-                  <Icon name="navigate-outline" size={24} />
-                  <View style={styles.metaCopy}>
-                    <Text style={styles.metaValue}>
-                      {route.data
-                        ? `${(route.data.distanceMeters / 1000).toFixed(1)} km · ${Math.ceil(route.data.durationSeconds / 60)} phút`
-                        : "Đang tải..."}
-                    </Text>
-                    <Text style={styles.metaLabel}>Quãng đường</Text>
-                  </View>
-                </View>
-                <View style={styles.metaItem}>
-                  <Icon name="people-outline" size={24} />
-                  <View style={styles.metaCopy}>
-                    <Text style={styles.metaValue}>
-                      {data.remainingSeats} chỗ ·{" "}
-                      {money(data.contributionPerKm)}/km
-                    </Text>
-                    <Text style={styles.metaLabel}>Số chỗ / Chi phí</Text>
-                  </View>
-                </View>
-              </View>
-              {data.note ? <Text style={styles.note}>{data.note}</Text> : null}
-            </Card>
             {own ? (
               <>
                 {data.status === "DRAFT" ? (
@@ -362,248 +353,354 @@ export default function PostDetail() {
                     </Text>
                   </>
                 ) : null}
-                <Button
-                  label="Đóng bài đăng"
-                  icon="trash-outline"
-                  disabled={!["DRAFT", "OPEN"].includes(data.status)}
-                  onPress={() => setClose(true)}
-                />
               </>
-            ) : (
-              <>
-                <View style={styles.actionRow}>
-                  <View style={styles.actionCell}>
-                    <Button
-                      label={
-                        active
-                          ? "Đã gửi"
-                          : data.type === "NEED_RIDE"
-                            ? "Đề nghị chở"
-                            : "Đi ké"
-                      }
-                      icon={
-                        data.type === "NEED_RIDE"
-                          ? "car-outline"
-                          : "people-outline"
-                      }
-                      disabled={active || data.status !== "OPEN"}
-                      onPress={() => setOpen(true)}
-                    />
-                  </View>
-                  <View style={styles.actionCell}>
-                    <Button
-                      label="Nhắn tin"
-                      icon="chatbubble-ellipses-outline"
-                      variant="secondary"
-                      pending={discuss.isPending}
-                      onPress={() => discuss.mutate()}
-                    />
-                  </View>
-                </View>
-                <ErrorText error={discuss.error} />
-              </>
-            )}
-            <Card style={styles.connectionSection}>
-              <View style={styles.connectionHeader}>
-                <View style={styles.connectionTitle}>
-                  <Icon name="people" size={23} />
-                  <Text style={styles.connectionHeading}>
-                    {own ? "Yêu cầu kết nối" : "Yêu cầu của bạn"}
+            ) : active ? null : (
+              <View style={styles.composer} testID="post-request-composer">
+                <View style={styles.requestHeader}>
+                  <Text style={[styles.connectionHeading, { flex: 1 }]}>
+                    {active ? "Đã gửi yêu cầu" : "Yêu cầu ngay"}
                   </Text>
+                  <View
+                    style={[
+                      styles.requestRole,
+                      { backgroundColor: requestSoft },
+                    ]}
+                  >
+                    <Icon
+                      name={viewerPassenger ? "person-outline" : "car-outline"}
+                      size={14}
+                      color={requestAccent}
+                    />
+                    <Text
+                      style={[styles.requestRoleText, { color: requestAccent }]}
+                    >
+                      {viewerPassenger ? "Tôi đi ké" : "Tôi chở"}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Nhắn tin"
+                    onPress={() => discuss.mutate()}
+                    style={[
+                      styles.textAction,
+                      { flex: 1, justifyContent: "flex-end" },
+                    ]}
+                  >
+                    <Icon
+                      name="chatbubble-ellipses-outline"
+                      size={17}
+                      color={requestAccent}
+                    />
+                    <Text
+                      style={[styles.textActionLabel, { color: requestAccent }]}
+                    >
+                      Nhắn tin
+                    </Text>
+                  </Pressable>
                 </View>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countText}>
-                    {responses.data?.length ?? 0}
-                  </Text>
-                </View>
-              </View>
-              <ResourceState query={responses}>
-                {responses.data?.length === 0 ? (
-                  <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
-                ) : null}
-                {responses.data
-                  ?.slice()
-                  .sort(
-                    (a, b) =>
-                      Number(b.id === responseId) - Number(a.id === responseId),
-                  )
-                  .map((r) => {
-                    return (
-                      <View key={r.id} style={styles.responseCard}>
-                        <View style={ui.row}>
-                          <Avatar
-                            name={r.requesterDisplayName}
-                            uri={r.requesterAvatarUrl}
-                          />
-                          <Text
-                            style={[ui.sectionTitle, { flex: 1, fontSize: 16 }]}
-                          >
-                            {r.requesterDisplayName}
-                          </Text>
+                {!active && data.status === "OPEN" ? (
+                  <>
+                    <View style={styles.placeEntries}>
+                      <View style={styles.placeEntry}>
+                        <View pointerEvents="none" style={styles.entryRail}>
+                          <View style={styles.entryOriginLine} />
+                          <View style={styles.entryOriginDot} />
                         </View>
-                        <Badge label={statusLabel(r.status)} />
-                        {r.message ? (
-                          <Text style={ui.muted}>{r.message}</Text>
-                        ) : null}
-                        {r.pickupCheck ? (
-                          <Text style={ui.muted}>
-                            Đón lúc {dateTime(r.pickupCheck.pickupAt)} ·{" "}
-                            {r.pickupCheck.pickup.displayLabel}
-                          </Text>
-                        ) : null}
-                        {[
-                          "ACCEPTED",
-                          "DRIVER_STARTED",
-                          "DRIVER_ARRIVED",
-                          "COMPLETED",
-                        ].includes(r.status) ? (
-                          <RideProgress
-                            response={r}
-                            currentUserId={session?.user.id}
-                            onAdvance={(value) =>
-                              setDecision({ response: r, value })
+                        <PlacePicker
+                          label="Điểm đi"
+                          compact
+                          accentColor="#dcb84b"
+                          dashed
+                          hideLeadingIcon
+                          containerStyle={{ flex: 1 }}
+                          leadingIcon="navigate-circle-outline"
+                          onInputChange={(text) => {
+                            setPickupText(text);
+                            if (!text.trim()) setPreviewPickup(undefined);
+                          }}
+                          onFocus={() =>
+                            setSheetExpansion((value) => value + 1)
+                          }
+                          value={pickup}
+                          disabled={request.isPending}
+                          onChange={(place) => {
+                            setPickup(place);
+                            if (place) {
+                              setPickupText(place.displayLabel);
+                              setPreviewPickup(place);
+                              Keyboard.dismiss();
+                              setSelectionSignal((value) => value + 1);
                             }
-                          />
-                        ) : null}
-                        {r.status === "PENDING" ? (
-                          own ? (
-                            <>
-                              <Button
-                                label="Chấp nhận"
-                                onPress={() =>
-                                  setDecision({
-                                    response: r,
-                                    value: "ACCEPTED",
-                                  })
-                                }
-                              />
-                              <Button
-                                label="Từ chối"
-                                variant="secondary"
-                                onPress={() =>
-                                  setDecision({
-                                    response: r,
-                                    value: "REJECTED",
-                                  })
-                                }
-                              />
-                            </>
-                          ) : (
-                            <Button
-                              label="Rút yêu cầu"
-                              variant="secondary"
-                              onPress={() =>
-                                setDecision({ response: r, value: "WITHDRAWN" })
-                              }
-                            />
-                          )
-                        ) : null}
-                        {r.conversationId ? (
-                          <Button
-                            label="Mở trò chuyện"
-                            variant="secondary"
-                            onPress={() =>
-                              router.push({
-                                pathname: "/chat/[id]",
-                                params: { id: r.conversationId! },
-                              })
-                            }
-                          />
-                        ) : null}
+                            setCheck(undefined);
+                          }}
+                        />
                       </View>
-                    );
-                  })}
-              </ResourceState>
-            </Card>
-            {!own ? (
-              <Button
-                label="Báo cáo bài đăng"
-                variant="secondary"
-                onPress={() => setReport(true)}
-              />
+                      <View style={styles.placeEntry}>
+                        <View pointerEvents="none" style={styles.entryRail}>
+                          <View style={styles.entryDestinationLine} />
+                          <View style={styles.entryDestinationDot} />
+                        </View>
+                        <PlacePicker
+                          label="Điểm đến"
+                          compact
+                          accentColor={theme.colors.primary}
+                          dashed
+                          hideLeadingIcon
+                          containerStyle={{ flex: 1 }}
+                          leadingIcon="flag-outline"
+                          onInputChange={(text) => {
+                            setDropoffText(text);
+                            if (!text.trim()) setPreviewDropoff(undefined);
+                          }}
+                          onFocus={() =>
+                            setSheetExpansion((value) => value + 1)
+                          }
+                          value={dropoff}
+                          disabled={request.isPending}
+                          onChange={(place) => {
+                            setDropoff(place);
+                            if (place) {
+                              setDropoffText(place.displayLabel);
+                              setPreviewDropoff(place);
+                              Keyboard.dismiss();
+                              setSelectionSignal((value) => value + 1);
+                            }
+                            setCheck(undefined);
+                          }}
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.requestHelpRow}>
+                      <Text style={[styles.requestHint, { flex: 1 }]}>
+                        Để trống để dùng địa điểm của bài đăng.
+                      </Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"
+                        }
+                        aria-expanded={showMessage}
+                        onPress={() => {
+                          if (showMessage) Keyboard.dismiss();
+                          setShowMessage((value) => !value);
+                        }}
+                        style={styles.noteToggle}
+                      >
+                        <Icon
+                          name={showMessage ? "remove" : "add"}
+                          size={15}
+                          color={requestAccent}
+                        />
+                        <Text
+                          style={[
+                            styles.noteToggleText,
+                            { color: requestAccent },
+                          ]}
+                        >
+                          {showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    {check && !check.compatible ? (
+                      <Text style={styles.requestHint}>{check.reason}</Text>
+                    ) : null}
+                    {showMessage ? (
+                      <TextInput
+                        accessibilityLabel="Lời nhắn"
+                        autoFocus
+                        onFocus={() => setSheetExpansion((value) => value + 1)}
+                        value={message}
+                        onChangeText={setMessage}
+                        multiline
+                        maxLength={300}
+                        placeholder="Nhắn gì đó cho chủ bài..."
+                        placeholderTextColor={theme.colors.inkMuted}
+                        style={[ui.input, styles.messageInput]}
+                      />
+                    ) : null}
+                    <ErrorText error={request.error} />
+                    {preview.isFetching ? (
+                      <Text style={styles.requestHint}>
+                        Đang cập nhật tuyến đi…
+                      </Text>
+                    ) : null}
+                    <ErrorText error={preview.error} />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Gửi yêu cầu"
+                      disabled={
+                        request.isPending ||
+                        responses.isPending ||
+                        (!!pickupText.trim() && !pickup) ||
+                        (!!dropoffText.trim() && !dropoff)
+                      }
+                      onPress={() => request.mutate()}
+                      style={[
+                        styles.sendRequest,
+                        {
+                          backgroundColor: viewerPassenger
+                            ? "#f5cf6c"
+                            : theme.colors.primary,
+                        },
+                        (request.isPending ||
+                          responses.isPending ||
+                          (!!pickupText.trim() && !pickup) ||
+                          (!!dropoffText.trim() && !dropoff)) && {
+                          opacity: 0.5,
+                        },
+                      ]}
+                    >
+                      {request.isPending ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Icon
+                          name="paper-plane-outline"
+                          size={18}
+                          color="#fff"
+                        />
+                      )}
+                      <Text style={[styles.sendRequestText, { color: "#fff" }]}>
+                        Gửi yêu cầu
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={ui.muted}>
+                    {active
+                      ? "Theo dõi phản hồi của bạn bên dưới."
+                      : "Bài đăng đã ngừng nhận yêu cầu."}
+                  </Text>
+                )}
+                <ErrorText error={discuss.error} />
+              </View>
+            )}
+            {own || !!visibleResponses.length ? (
+              <View
+                style={[styles.connectionSection, !own && styles.sentSection]}
+                testID="post-connections"
+              >
+                <Pressable
+                  testID="requests-background"
+                  style={StyleSheet.absoluteFill}
+                  accessibilityRole="button"
+                  accessibilityLabel="Bỏ chọn yêu cầu"
+                  onPress={() => setSelectedId(undefined)}
+                />
+                {own ? (
+                  <View pointerEvents="none" style={styles.connectionHeader}>
+                    <View style={styles.connectionTitle}>
+                      <Icon name="people-outline" size={18} />
+                      <Text style={styles.connectionHeading}>
+                        {confirmedResponse
+                          ? "Kết nối hành trình"
+                          : own
+                            ? "Yêu cầu kết nối"
+                            : "Yêu cầu của bạn"}
+                      </Text>
+                    </View>
+                    <View style={styles.countBadge}>
+                      <Text style={styles.countText}>
+                        {visibleResponses.length}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+                {!own ? <ErrorText error={discuss.error} /> : null}
+                <ResourceState query={responses}>
+                  {visibleResponses.length === 0 ? (
+                    <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
+                  ) : null}
+                  {visibleResponses
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        Number(b.id === responseId) -
+                        Number(a.id === responseId),
+                    )
+                    .map((r) => (
+                      <PostRequestComment
+                        key={r.id}
+                        response={r}
+                        post={data}
+                        own={own}
+                        journey={confirmedStatuses.includes(r.status)}
+                        onChat={own ? undefined : () => discuss.mutate()}
+                        chatPending={discuss.isPending}
+                        selected={r.id === selectedId}
+                        onSelect={() => {
+                          setSelectedId((current) =>
+                            current === r.id ? undefined : r.id,
+                          );
+                          if (selectedId !== r.id)
+                            setSelectionSignal((value) => value + 1);
+                        }}
+                        viewerId={session?.user.id}
+                        onDecision={(response, value) =>
+                          setDecision({ response, value })
+                        }
+                      />
+                    ))}
+                </ResourceState>
+              </View>
             ) : null}
           </>
         ) : null}
       </ResourceState>
+
       <BottomSheet
-        visible={open}
-        title="Kết nối hành trình"
-        onClose={() => {
-          if (!request.isPending) setOpen(false);
-        }}
+        visible={menuOpen}
+        title="Tùy chọn bài đăng"
+        onClose={() => setMenuOpen(false)}
       >
-        {data?.type === "OFFER_RIDE" ? (
-          <>
-            <Text style={ui.muted}>
-              Mặc định đi cùng toàn tuyến của tài xế. Bạn có thể chọn điểm đón
-              và xuống khác, rồi kiểm tra độ phù hợp.
-            </Text>
-            <PlacePicker
-              label="Điểm đón khác (tùy chọn)"
-              disabled={validate.isPending || request.isPending}
-              value={pickup}
-              onChange={(p) => {
-                setPickup(p);
-                setCheck(undefined);
-              }}
-            />
-            <PlacePicker
-              label="Điểm xuống khác (tùy chọn)"
-              disabled={validate.isPending || request.isPending}
-              value={dropoff}
-              onChange={(p) => {
-                setDropoff(p);
-                setCheck(undefined);
-              }}
-            />
-            <Button
-              label="Kiểm tra điểm đón"
-              variant="secondary"
-              pending={validate.isPending}
-              onPress={() => validate.mutate()}
-            />
-            {check ? (
-              <Text style={ui.muted}>
-                {check.compatible
-                  ? `Phù hợp · Đón ${dateTime(check.pickupAt)}`
-                  : `Chưa phù hợp: ${check.reason}`}
-              </Text>
-            ) : null}
-            <ErrorText error={validate.error} />
-          </>
+        <Button
+          label="Xem hồ sơ người đăng"
+          icon="person-outline"
+          variant="secondary"
+          onPress={() => {
+            setMenuOpen(false);
+            if (data)
+              router.push({
+                pathname: "/user/[id]",
+                params: { id: data.ownerId },
+              });
+          }}
+        />
+        <Button
+          label="Làm mới hành trình"
+          icon="refresh-outline"
+          variant="secondary"
+          onPress={() => {
+            setMenuOpen(false);
+            setRefreshSignal((value) => value + 1);
+            void post.refetch();
+            void responses.refetch();
+            void client.invalidateQueries({
+              queryKey: ["mobile-post-route", id],
+            });
+          }}
+        />
+        {own && data && ["DRAFT", "OPEN"].includes(data.status) ? (
+          <Button
+            label="Đóng bài đăng"
+            icon="trash-outline"
+            variant="danger"
+            onPress={() => {
+              setMenuOpen(false);
+              setClose(true);
+            }}
+          />
         ) : null}
-        <Field
-          label="Lời nhắn"
-          value={message}
-          onChangeText={setMessage}
-          multiline
-          maxLength={300}
-        />
-        <ErrorText error={request.error} />
-        <Button
-          label="Gửi yêu cầu"
-          pending={request.isPending}
-          disabled={
-            data?.type === "OFFER_RIDE" &&
-            (!check?.compatible || Date.parse(check.expiresAt) <= Date.now())
-          }
-          onPress={() => request.mutate()}
-        />
-      </BottomSheet>
-      <BottomSheet
-        visible={!!decision}
-        title="Xác nhận cập nhật"
-        onClose={() => setDecision(undefined)}
-      >
-        <Text style={ui.muted}>
-          Chuyển yêu cầu sang trạng thái: {statusLabel(decision?.value || "")}
-        </Text>
-        <ErrorText error={decide.error} />
-        <Button
-          label="Xác nhận"
-          pending={decide.isPending}
-          onPress={() => decide.mutate()}
-        />
+        {!own ? (
+          <Button
+            label="Báo cáo bài đăng"
+            icon="flag-outline"
+            variant="secondary"
+            onPress={() => {
+              setMenuOpen(false);
+              setReport(true);
+            }}
+          />
+        ) : null}
       </BottomSheet>
       <BottomSheet
         visible={close}
@@ -625,6 +722,22 @@ export default function PostDetail() {
         targetId={id}
         targetType="POST"
       />
+      <BottomSheet
+        visible={!!decision}
+        title="Xác nhận cập nhật"
+        onClose={() => setDecision(undefined)}
+      >
+        <Text style={ui.muted}>
+          Chuyển yêu cầu sang trạng thái: {statusLabel(decision?.value || "")}
+        </Text>
+        <ErrorText error={decide.error} />
+        <Button
+          label="Xác nhận"
+          pending={decide.isPending}
+          onPress={() => decide.mutate()}
+        />
+      </BottomSheet>
+
       <BottomSheet
         visible={publishConfirm}
         title="Đăng bản nháp này?"
@@ -650,156 +763,143 @@ export default function PostDetail() {
           onPress={() => publishDraft.mutate()}
         />
       </BottomSheet>
-    </DetailPage>
+    </PostDetailStage>
   );
 }
 
 const styles = StyleSheet.create({
-  actionCell: { flex: 1, minWidth: 0 },
-  actionRow: {
-    alignItems: "stretch",
+  composer: {
+    marginBottom: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    gap: 8,
+  },
+  requestHelpRow: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  map: {
     alignItems: "center",
-    backgroundColor: theme.colors.surfaceMuted,
-    borderColor: "#fff",
-    borderRadius: 24,
-    borderWidth: 4,
-    height: 224,
-    justifyContent: "center",
-    overflow: "hidden",
-    width: "100%",
+    justifyContent: "space-between",
+    gap: 8,
   },
-  mapFallback: {
-    alignItems: "center",
-    gap: theme.spacing.xs,
-    justifyContent: "center",
-  },
-  metaGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: theme.spacing.sm,
-  },
-  metaItem: {
-    alignItems: "center",
-    backgroundColor: "#f1faf6",
-    borderRadius: 18,
-    flexDirection: "row",
-    gap: 10,
-    minHeight: 72,
-    minWidth: 0,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    width: "48%",
-  },
-  metaCopy: { flex: 1, minWidth: 0 },
-  metaValue: {
-    color: theme.colors.ink,
-    fontSize: 13,
-    fontWeight: "800",
-    lineHeight: 18,
-  },
-  metaLabel: { color: theme.colors.inkMuted, fontSize: 10, marginTop: 2 },
-  note: {
-    borderTopColor: theme.colors.border,
-    borderTopWidth: 1,
-    color: theme.colors.inkMuted,
-    fontSize: 13,
-    lineHeight: 20,
-    paddingTop: theme.spacing.md,
-  },
-  ownerIdentity: { flex: 1, gap: 4, minWidth: 0 },
-  ownerName: { color: theme.colors.ink, fontSize: 19, fontWeight: "900" },
-  ownerRole: { color: theme.colors.inkMuted, fontSize: 13 },
-  ownerRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  profileCard: { padding: 18, borderRadius: 24 },
-  profileLink: {
-    alignItems: "center",
-    backgroundColor: theme.colors.surfaceMuted,
-    borderRadius: theme.radius.pill,
-    flexDirection: "row",
-    gap: 2,
+  messageInput: {
     minHeight: 48,
-    paddingHorizontal: 13,
+    maxHeight: 80,
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    textAlignVertical: "top",
   },
-  profileLinkText: {
-    color: theme.colors.primary,
-    fontSize: 13,
-    fontWeight: "800",
+  noteToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    minHeight: 28,
+    flexShrink: 0,
   },
-  retryMap: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+  noteToggleText: { fontSize: 11, fontWeight: "600" },
+  placeEntries: { gap: 12 },
+  placeEntry: { flexDirection: "row", alignItems: "stretch", gap: 8 },
+  entryRail: { width: 14, alignItems: "center", justifyContent: "center" },
+  entryOriginLine: {
+    position: "absolute",
+    width: 2,
+    top: "50%",
+    bottom: -6,
+    backgroundColor: "#dcb84b",
   },
-  journeyCard: { padding: 16, borderRadius: 24, gap: 16 },
-  routePanel: { flexDirection: "row", gap: 13 },
-  routeRail: { width: 28, alignItems: "center", paddingVertical: 4 },
-  originMarker: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 3,
-    borderColor: theme.colors.primary,
+  entryDestinationLine: {
+    position: "absolute",
+    width: 2,
+    top: -6,
+    bottom: "50%",
+    backgroundColor: theme.colors.primary,
+  },
+  entryOriginDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: "#dcb84b",
     backgroundColor: "#fff",
   },
-  routeLine: { flex: 1, width: 2, minHeight: 48, backgroundColor: "#a9dccb" },
-  destinationMarker: {
-    width: 24,
-    height: 24,
+  entryDestinationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.primary,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  requestRole: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  requestRoleText: { fontSize: 10, fontWeight: "700" },
+  sendRequest: {
+    minHeight: 46,
+    borderRadius: 23,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.passenger,
+    gap: 8,
   },
-  routeCopy: { flex: 1, gap: 12 },
-  routeStop: { gap: 5, minHeight: 58, justifyContent: "center" },
-  routeLabel: {
+  sendRequestText: { fontSize: 13, fontWeight: "700" },
+  requestHint: { fontSize: 10, lineHeight: 15, color: theme.colors.inkMuted },
+  textAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 32,
+  },
+  textActionLabel: {
     color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 0.7,
+    fontSize: 12,
+    fontWeight: "600",
   },
-  routeValue: {
-    color: theme.colors.ink,
-    fontSize: 15,
-    lineHeight: 21,
-    fontWeight: "800",
+  sentSection: { paddingHorizontal: 0, paddingVertical: 0, borderTopWidth: 0 },
+  connectionSection: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e9eeeb",
   },
-  routeDivider: { height: 1, backgroundColor: theme.colors.border },
-  connectionSection: { borderRadius: 24, padding: 14, gap: 12 },
   connectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  connectionTitle: { flexDirection: "row", alignItems: "center", gap: 9 },
+  connectionTitle: { flexDirection: "row", alignItems: "center", gap: 7 },
   connectionHeading: {
     color: theme.colors.ink,
-    fontSize: 18,
-    fontWeight: "900",
+    fontSize: 14,
+    fontWeight: "700",
   },
   countBadge: {
-    minWidth: 34,
-    height: 34,
-    paddingHorizontal: 10,
-    borderRadius: 17,
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 7,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#e8f7f1",
   },
-  countText: { color: theme.colors.primary, fontSize: 14, fontWeight: "900" },
+  countText: { color: theme.colors.primary, fontSize: 12, fontWeight: "700" },
   responseCard: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    padding: 13,
-    gap: 10,
+    borderRadius: 14,
+    backgroundColor: "#f4f6f5",
+    padding: 10,
+    gap: 8,
   },
 });

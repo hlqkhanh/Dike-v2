@@ -25,7 +25,13 @@ export default function SignIn() {
   } = useSession();
   const [error, setError] = useState<unknown>();
   const [pending, setPending] = useState(false);
-  if (session?.authenticated) return <Redirect href="/(tabs)" />;
+  if (session?.authenticated) {
+    if (session.user.nextAction === "REVIEW_CONSENT")
+      return <Redirect href="/settings/consent" />;
+    if (["SUBMIT_PHONE", "VERIFY_PHONE"].includes(session.user.nextAction))
+      return <Redirect href="/onboarding/phone" />;
+    return <Redirect href="/(tabs)" />;
+  }
   async function submit(persona?: LocalPersona) {
     setPending(true);
     setError(undefined);

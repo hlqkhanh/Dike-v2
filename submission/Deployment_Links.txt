@@ -1,0 +1,8 @@
+Dike Deployed Applications
+
+Web application: https://dike-v2.vercel.app
+Backend API: https://dike-api-demo.onrender.com
+Liveness: https://dike-api-demo.onrender.com/actuator/health/liveness
+Readiness: https://dike-api-demo.onrender.com/actuator/health/readiness
+OpenAPI: https://dike-api-demo.onrender.com/api/openapi.json
+

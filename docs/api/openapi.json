@@ -7894,6 +7894,16 @@
           "driverDestinationLabel": {
             "type": "string",
             "nullable": true
+          },
+          "sharedDistanceMeters": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "estimatedAmountVnd": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         }
       },
@@ -8387,6 +8397,10 @@
           },
           "pickupCheck": {
             "$ref": "#/components/schemas/PickupCheck"
+          },
+          "requestSummary": {
+            "$ref": "#/components/schemas/RideRequestSummary",
+            "nullable": true
           }
         }
       },
@@ -8420,6 +8434,35 @@
             "format": "double",
             "minimum": -180,
             "maximum": 180
+          }
+        }
+      },
+      "RideRequestSummary": {
+        "type": "object",
+        "properties": {
+          "pickupChanged": {
+            "type": "boolean"
+          },
+          "dropoffChanged": {
+            "type": "boolean"
+          },
+          "extraMeters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "extraSeconds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sharedDistanceMeters": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "estimatedAmountVnd": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         }
       }

@@ -1,6 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState, type ComponentProps, type PropsWithChildren } from "react";
+import {
+  useState,
+  type ComponentProps,
+  type ComponentPropsWithRef,
+  type PropsWithChildren,
+} from "react";
 import {
   ActivityIndicator,
   Image,
@@ -11,10 +16,11 @@ import {
   ScrollView,
   StyleSheet,
   Text as NativeText,
-  TextInput,
+  TextInput as NativeTextInput,
   View,
   type ColorValue,
   type TextProps,
+  type TextStyle,
   type TextInputProps,
   type ViewStyle,
   type StyleProp,
@@ -23,28 +29,38 @@ import { theme } from "@/core/theme";
 import { avatarSource } from "@/core/avatar-source";
 import { useReducedMotion } from "@/core/accessibility";
 
-export function Text({ style, ...props }: TextProps) {
+function typographyStyle(style: StyleProp<TextStyle>): TextStyle {
   const flat = StyleSheet.flatten(style);
-  const weight = Number(flat?.fontWeight ?? 400);
+  const weight =
+    flat?.fontWeight === "bold" ? 700 : Number(flat?.fontWeight ?? 400);
+  const fontFamily =
+    weight >= 800
+      ? theme.font.heavy
+      : weight >= 700
+        ? theme.font.bold
+        : weight >= 600
+          ? theme.font.semibold
+          : weight >= 500
+            ? theme.font.medium
+            : theme.font.regular;
+  // Each loaded family is a specific weight; avoid synthetic bold on native.
+  return { ...flat, fontFamily, fontWeight: "normal" };
+}
+
+export function Text({ style, ...props }: TextProps) {
   return (
     <NativeText
       {...props}
-      style={[
-        {
-          fontFamily:
-            weight >= 800
-              ? theme.font.heavy
-              : weight >= 600
-                ? theme.font.bold
-                : weight >= 500
-                  ? theme.font.medium
-                  : theme.font.regular,
-          color: theme.colors.ink,
-        },
-        style,
-      ]}
+      style={[{ color: theme.colors.ink }, typographyStyle(style)]}
     />
   );
+}
+
+export function TextInput({
+  style,
+  ...props
+}: ComponentPropsWithRef<typeof NativeTextInput>) {
+  return <NativeTextInput {...props} style={typographyStyle(style)} />;
 }
 export type IconName = ComponentProps<typeof Ionicons>["name"];
 export function Icon({

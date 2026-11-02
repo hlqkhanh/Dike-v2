@@ -1,4 +1,5 @@
-import { RidePostCard } from "@/components/RidePostCard";
+import { MapViewportProvider } from "@/core/map-viewport";
+import { RidePostCard, RidePostFeed } from "@/components/RidePostCard";
 import { ActivePostResponses } from "@/components/ActivePostResponses";
 import { LinearGradient } from "expo-linear-gradient";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +12,6 @@ import {
   Pressable,
   StyleSheet,
   View,
-  TextInput,
   RefreshControl,
   useWindowDimensions,
 } from "react-native";
@@ -27,6 +27,7 @@ import {
   Icon,
   LoadingCards,
   Text,
+  TextInput,
 } from "@/components/ui";
 import { useMobileApi } from "@/core/hooks";
 import { useSession } from "@/core/session";
@@ -76,267 +77,272 @@ export default function Discover() {
     return <Redirect href="/onboarding/location" />;
   return (
     <View style={styles.page}>
-      <Animated.ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },
-        )}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={query.isRefetching && !query.isFetchingNextPage}
-            onRefresh={() => {
-              void query.refetch();
-              void client.invalidateQueries({
-                queryKey: ["mobile-active-responses"],
-              });
-            }}
-            tintColor={h.primary}
-          />
-        }
-      >
-        <View style={styles.hero}>
-          <Animated.Image
-            source={homeAssets.homeBanner}
-            resizeMode="cover"
-            style={[
-              styles.heroImage,
-              { transform: [{ translateY: pinnedTranslateY }] },
-            ]}
-          />
-          <View style={[styles.heroContent, { paddingTop: insets.top + 14 }]}>
-            <Animated.View
+      <MapViewportProvider scrollY={scrollY}>
+        <Animated.ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true },
+          )}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={query.isRefetching && !query.isFetchingNextPage}
+              onRefresh={() => {
+                void query.refetch();
+                void client.invalidateQueries({
+                  queryKey: ["mobile-active-responses"],
+                });
+              }}
+              tintColor={h.primary}
+            />
+          }
+        >
+          <View style={styles.hero}>
+            <Animated.Image
+              source={homeAssets.homeBanner}
+              resizeMode="cover"
               style={[
-                styles.pinnedHeader,
+                styles.heroImage,
                 { transform: [{ translateY: pinnedTranslateY }] },
               ]}
-            >
-              <View style={styles.brandRow}>
-                <Image
-                  source={homeAssets.logo}
-                  accessibilityLabel="Logo Diké"
-                  resizeMode="contain"
-                  style={styles.logo}
-                />
-                <Text style={styles.brand}>Diké</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Thông báo"
-                  onPress={() => router.push("/notifications")}
-                  style={styles.bell}
-                >
-                  <View style={styles.bellSurface}>
-                    <Icon
-                      name="notifications-outline"
-                      size={21}
-                      color={h.ink}
-                    />
-                  </View>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Mở trang cá nhân"
-                  onPress={() => router.push("/(tabs)/profile")}
-                  style={styles.profileButton}
-                >
-                  <Avatar
-                    name={session?.user.displayName}
-                    uri={session?.user.avatarUrl}
-                    size={34}
-                  />
-                </Pressable>
-              </View>
-              <View style={styles.search}>
-                <View pointerEvents="none" style={styles.searchGlass}>
-                  <LinearGradient
-                    colors={[
-                      "rgba(255,255,255,0.48)",
-                      "rgba(232,249,242,0.16)",
-                      "rgba(255,255,255,0.32)",
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                </View>
-                <Icon name="search-outline" size={25} color={h.routeInk} />
-                <TextInput
-                  accessibilityLabel="Tìm hành trình"
-                  placeholder="Bạn muốn đi đâu, ăn gì?"
-                  placeholderTextColor={h.muted}
-                  value={search}
-                  onChangeText={setSearch}
-                  style={styles.searchInput}
-                  returnKeyType="search"
-                />
-                <View style={styles.searchEnd}>
-                  <Icon name="location-outline" size={23} color={h.surface} />
-                </View>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Thay đổi điểm đi mặc định"
-                onPress={() => router.push("/onboarding/location")}
-                style={styles.locationBar}
-              >
-                <Icon name="location-outline" size={20} color={h.primary} />
-                <Text numberOfLines={1} style={styles.locationText}>
-                  {places.preferences.pickup?.displayLabel ??
-                    "Chọn điểm đi của bạn"}
-                </Text>
-                <Icon name="chevron-forward" size={18} color={h.muted} />
-              </Pressable>
-            </Animated.View>
-            <View
-              style={{
-                height: Math.max(260, windowHeight * 0.38),
-              }}
             />
-          </View>
-        </View>
-        <View style={styles.content}>
-          <View style={styles.features}>
-            <FeatureCard
-              driver
-              onPress={() =>
-                router.push({
-                  pathname: "/create-trip",
-                  params: { mode: "driver" },
-                })
-              }
-            />
-            <FeatureCard
-              onPress={() =>
-                router.push({
-                  pathname: "/create-trip",
-                  params: { mode: "passenger" },
-                })
-              }
-            />
-          </View>
-          <View style={styles.filterBar}>
-            {/* 3 bộ lọc gọn gàng dạng segmented control */}
-            <View style={styles.segmentedControl}>
-              {[
-                ["ALL", "Tất cả"],
-                ["OFFER_RIDE", "Tôi chở"],
-                ["NEED_RIDE", "Tôi đi ké"],
-              ].map(([value, label]) => {
-                const selected = filter === value;
-                return (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={label}
-                    onPress={() => setFilter(value)}
-                    style={[
-                      styles.segmentPill,
-                      selected && styles.segmentPillActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.segmentText,
-                        selected && styles.segmentTextActive,
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Nút lọc ngày khởi hành ngang hàng */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Lọc ngày khởi hành"
-              onPress={() => setShowDate(!showDate)}
-              style={[
-                styles.dateButton,
-                Boolean(date) && styles.dateButtonActive,
-              ]}
-            >
-              <Icon
-                name="calendar-outline"
-                size={15}
-                color={date ? "#0d8a68" : "#475569"}
-              />
-              <Text
-                numberOfLines={1}
+            <View style={[styles.heroContent, { paddingTop: insets.top + 14 }]}>
+              <Animated.View
                 style={[
-                  styles.dateText,
-                  Boolean(date) && styles.dateTextActive,
+                  styles.pinnedHeader,
+                  { transform: [{ translateY: pinnedTranslateY }] },
                 ]}
               >
-                {date || "Lọc ngày"}
-              </Text>
-              {date ? (
+                <View style={styles.brandRow}>
+                  <Image
+                    source={homeAssets.logo}
+                    accessibilityLabel="Logo Diké"
+                    resizeMode="contain"
+                    style={styles.logo}
+                  />
+                  <Text style={styles.brand}>Diké</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Thông báo"
+                    onPress={() => router.push("/notifications")}
+                    style={styles.bell}
+                  >
+                    <View style={styles.bellSurface}>
+                      <Icon
+                        name="notifications-outline"
+                        size={21}
+                        color={h.ink}
+                      />
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Mở trang cá nhân"
+                    onPress={() => router.push("/(tabs)/profile")}
+                    style={styles.profileButton}
+                  >
+                    <Avatar
+                      name={session?.user.displayName}
+                      uri={session?.user.avatarUrl}
+                      size={34}
+                    />
+                  </Pressable>
+                </View>
+                <View style={styles.search}>
+                  <View pointerEvents="none" style={styles.searchGlass}>
+                    <LinearGradient
+                      colors={[
+                        "rgba(255,255,255,0.48)",
+                        "rgba(232,249,242,0.16)",
+                        "rgba(255,255,255,0.32)",
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  </View>
+                  <Icon name="search-outline" size={25} color={h.routeInk} />
+                  <TextInput
+                    accessibilityLabel="Tìm hành trình"
+                    placeholder="Bạn muốn đi đâu, ăn gì?"
+                    placeholderTextColor={h.muted}
+                    value={search}
+                    onChangeText={setSearch}
+                    style={styles.searchInput}
+                    returnKeyType="search"
+                  />
+                  <View style={styles.searchEnd}>
+                    <Icon name="location-outline" size={23} color={h.surface} />
+                  </View>
+                </View>
                 <Pressable
-                  hitSlop={8}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setDate("");
-                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Thay đổi điểm đi mặc định"
+                  onPress={() => router.push("/onboarding/location")}
+                  style={styles.locationBar}
                 >
-                  <Icon name="close-circle" size={15} color="#0d8a68" />
+                  <Icon name="location-outline" size={20} color={h.primary} />
+                  <Text numberOfLines={1} style={styles.locationText}>
+                    {places.preferences.pickup?.displayLabel ??
+                      "Chọn điểm đi của bạn"}
+                  </Text>
+                  <Icon name="chevron-forward" size={18} color={h.muted} />
                 </Pressable>
-              ) : null}
-            </Pressable>
-          </View>
-          {showDate ? (
-            <Field
-              label="Ngày khởi hành"
-              value={date}
-              onChangeText={setDate}
-              placeholder="Ví dụ 19/10/2026, xóa để bỏ lọc"
-              keyboardType="numbers-and-punctuation"
-            />
-          ) : null}
-          {query.isLoading ? (
-            <LoadingCards />
-          ) : query.isError ? (
-            <EmptyState
-              title="Chưa tải được hành trình"
-              icon="cloud-offline-outline"
-              description="Kiểm tra kết nối và thử lại."
-              onRetry={() => void query.refetch()}
-            />
-          ) : posts.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Image
-                source={homeAssets.journey}
-                resizeMode="contain"
-                style={styles.emptyArt}
+              </Animated.View>
+              <View
+                style={{
+                  height: Math.max(260, windowHeight * 0.38),
+                }}
               />
-              <Text style={styles.emptyTitle}>Chưa có chuyến phù hợp</Text>
-              <Text style={styles.emptyDescription}>
-                Thử thay đổi bộ lọc hoặc tạo hành trình của bạn.
-              </Text>
             </View>
-          ) : (
-            posts.map((p) => (
-              <RidePostCard
-                key={p.id}
-                post={p}
-                viewerId={session?.user.id}
-                onChanged={() => void query.refetch()}
+          </View>
+          <View style={styles.content}>
+            <View style={styles.features}>
+              <FeatureCard
+                driver
+                onPress={() =>
+                  router.push({
+                    pathname: "/create-trip",
+                    params: { mode: "driver" },
+                  })
+                }
               />
-            ))
-          )}
-          {query.hasNextPage ? (
-            <Button
-              label="Xem thêm hành trình"
-              variant="secondary"
-              pending={query.isFetchingNextPage}
-              onPress={() => void query.fetchNextPage()}
-            />
-          ) : null}
-        </View>
-      </Animated.ScrollView>
+              <FeatureCard
+                onPress={() =>
+                  router.push({
+                    pathname: "/create-trip",
+                    params: { mode: "passenger" },
+                  })
+                }
+              />
+            </View>
+            <View style={styles.filterBar}>
+              {/* 3 bộ lọc gọn gàng dạng segmented control */}
+              <View style={styles.segmentedControl}>
+                {[
+                  ["ALL", "Tất cả"],
+                  ["OFFER_RIDE", "Tôi chở"],
+                  ["NEED_RIDE", "Tôi đi ké"],
+                ].map(([value, label]) => {
+                  const selected = filter === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={label}
+                      onPress={() => setFilter(value)}
+                      style={[
+                        styles.segmentPill,
+                        selected && styles.segmentPillActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentText,
+                          selected && styles.segmentTextActive,
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Nút lọc ngày khởi hành ngang hàng */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Lọc ngày khởi hành"
+                onPress={() => setShowDate(!showDate)}
+                style={[
+                  styles.dateButton,
+                  Boolean(date) && styles.dateButtonActive,
+                ]}
+              >
+                <Icon
+                  name="calendar-outline"
+                  size={15}
+                  color={date ? "#0d8a68" : "#475569"}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.dateText,
+                    Boolean(date) && styles.dateTextActive,
+                  ]}
+                >
+                  {date || "Lọc ngày"}
+                </Text>
+                {date ? (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setDate("");
+                    }}
+                  >
+                    <Icon name="close-circle" size={15} color="#0d8a68" />
+                  </Pressable>
+                ) : null}
+              </Pressable>
+            </View>
+            {showDate ? (
+              <Field
+                label="Ngày khởi hành"
+                value={date}
+                onChangeText={setDate}
+                placeholder="Ví dụ 19/10/2026, xóa để bỏ lọc"
+                keyboardType="numbers-and-punctuation"
+              />
+            ) : null}
+            {query.isLoading ? (
+              <LoadingCards />
+            ) : query.isError ? (
+              <EmptyState
+                title="Chưa tải được hành trình"
+                icon="cloud-offline-outline"
+                description="Kiểm tra kết nối và thử lại."
+                onRetry={() => void query.refetch()}
+              />
+            ) : posts.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Image
+                  source={homeAssets.journey}
+                  resizeMode="contain"
+                  style={styles.emptyArt}
+                />
+                <Text style={styles.emptyTitle}>Chưa có chuyến phù hợp</Text>
+                <Text style={styles.emptyDescription}>
+                  Thử thay đổi bộ lọc hoặc tạo hành trình của bạn.
+                </Text>
+              </View>
+            ) : (
+              <RidePostFeed>
+                {posts.map((p) => (
+                  <RidePostCard
+                    key={p.id}
+                    post={p}
+                    fullWidth
+                    viewerId={session?.user.id}
+                    onChanged={() => void query.refetch()}
+                  />
+                ))}
+              </RidePostFeed>
+            )}
+            {query.hasNextPage ? (
+              <Button
+                label="Xem thêm hành trình"
+                variant="secondary"
+                pending={query.isFetchingNextPage}
+                onPress={() => void query.fetchNextPage()}
+              />
+            ) : null}
+          </View>
+        </Animated.ScrollView>
+      </MapViewportProvider>
       <ActivePostResponses floating bottomOffset={84 + insets.bottom} />
     </View>
   );

@@ -6,7 +6,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { MyProfileResponse, RidePostPage } from "@dike/api-client-ts";
 import { Screen } from "@/components/Screen";
 import { ResourceState } from "@/components/ResourceState";
-import { RidePostCard } from "@/components/RidePostCard";
+import { RidePostCard, RidePostFeed } from "@/components/RidePostCard";
 import { Avatar, Badge, Button, Card, Icon, Text } from "@/components/ui";
 import { pageAssets } from "@/core/assets";
 import { useMobileApi, useResource } from "@/core/hooks";
@@ -149,18 +149,21 @@ export default function Profile() {
 
       <ResourceState query={posts}>
         {ownPosts.length ? (
-          ownPosts.map((post) => (
-            <RidePostCard
-              key={post.id}
-              post={post}
-              viewerId={user?.id}
-              onChanged={() =>
-                setHiddenPostIds((current) =>
-                  current.includes(post.id) ? current : [...current, post.id],
-                )
-              }
-            />
-          ))
+          <RidePostFeed inset={20}>
+            {ownPosts.map((post) => (
+              <RidePostCard
+                key={post.id}
+                fullWidth
+                post={post}
+                viewerId={user?.id}
+                onChanged={() =>
+                  setHiddenPostIds((current) =>
+                    current.includes(post.id) ? current : [...current, post.id],
+                  )
+                }
+              />
+            ))}
+          </RidePostFeed>
         ) : (
           <Card style={styles.emptyCard}>
             <Icon name="map-outline" size={30} />

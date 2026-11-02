@@ -51,7 +51,10 @@ class PickupCompatibilityServiceTest {
     when(post.type()).thenReturn("OFFER_RIDE");
     when(post.status()).thenReturn("OPEN");
     when(post.ownerId()).thenReturn("driver");
+    when(post.originLabel()).thenReturn("A");
+    when(post.destinationLabel()).thenReturn("C");
     when(post.version()).thenReturn(4L);
+    when(post.contributionPerKm()).thenReturn(2000L);
     when(posts.detail("passenger", "post")).thenReturn(post);
     when(mongo.findById("post", Document.class, "ride_posts"))
         .thenReturn(new Document("sourceId", "trip"));
@@ -109,6 +112,8 @@ class PickupCompatibilityServiceTest {
         service.check("passenger", "post", new PickupCompatibilityService.Input(null, null, null));
     assertThat(result.pickup()).isEqualTo(a);
     assertThat(result.dropoff()).isEqualTo(c);
+    assertThat(result.sharedDistanceMeters()).isEqualTo(10000L);
+    assertThat(result.estimatedAmountVnd()).isEqualTo(20000L);
     assertThat(result.extraMeters()).isZero();
     assertThat(result.extraSeconds()).isZero();
     assertThat(result.compatible()).isTrue();
@@ -126,6 +131,8 @@ class PickupCompatibilityServiceTest {
                 null, null, null, null, "resolved-dropoff", false, false));
     assertThat(result.pickup()).isEqualTo(a);
     assertThat(result.dropoff()).isEqualTo(b);
+    assertThat(result.sharedDistanceMeters()).isEqualTo(3000L);
+    assertThat(result.estimatedAmountVnd()).isEqualTo(6000L);
     assertThat(result.arrivalAt()).isEqualTo(departure.plusSeconds(400));
     assertThat(result.extraMeters()).isEqualTo(500);
     assertThat(result.extraSeconds()).isEqualTo(200);
@@ -346,5 +353,28 @@ class PickupCompatibilityServiceTest {
     clearInvocations(mongo);
     assertThatThrownBy(this::check).isInstanceOf(ApiException.class);
     verify(mongo, never()).insert(any(PickupCompatibilityService.View.class), eq("pickup_checks"));
+  }
+
+  @Test
+  void responseSummaryUsesSharedDistanceAndOnlyFlagsTheChangedEndpoint() {
+    var checked = check();
+    clearInvocations(provider);
+    var summary = service.summary("passenger", "post", checked);
+    assertThat(summary.pickupChanged()).isTrue();
+    assertThat(summary.dropoffChanged()).isFalse();
+    assertThat(summary.sharedDistanceMeters()).isEqualTo(7500L);
+    assertThat(summary.estimatedAmountVnd()).isEqualTo(15000L);
+    assertThat(summary.extraMeters()).isEqualTo(500L);
+    assertThat(summary.extraSeconds()).isEqualTo(200L);
+    verifyNoInteractions(provider);
+  }
+
+  @Test
+  void fullRouteSummaryUsesThePostRateWithoutExtraDirections() {
+    var summary = service.summary("passenger", "post", null);
+    assertThat(summary.pickupChanged()).isFalse();
+    assertThat(summary.dropoffChanged()).isFalse();
+    assertThat(summary.estimatedAmountVnd()).isEqualTo(20000L);
+    verifyNoInteractions(provider);
   }
 }

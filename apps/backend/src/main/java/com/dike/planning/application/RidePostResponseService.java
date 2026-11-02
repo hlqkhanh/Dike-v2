@@ -62,7 +62,8 @@ public class RidePostResponseService {
       Instant createdAt,
       Instant updatedAt,
       long version,
-      PickupCompatibilityService.View pickupCheck) {}
+      PickupCompatibilityService.View pickupCheck,
+      PickupCompatibilityService.Summary requestSummary) {}
 
   public View create(String actor, String postId, String message, String pickupCheckId) {
     posts.requireReadable(actor, postId);
@@ -163,6 +164,8 @@ public class RidePostResponseService {
             Query.query(
                     Criteria.where("postId")
                         .is(postId)
+                        .and("status")
+                        .ne("WITHDRAWN")
                         .orOperator(
                             Criteria.where("ownerId").is(actor),
                             Criteria.where("requesterId").is(actor)))
@@ -201,7 +204,7 @@ public class RidePostResponseService {
       throw new ApiException(
           HttpStatus.BAD_REQUEST, "INVALID_RESPONSE_DIRECTION", "Bộ lọc không hợp lệ");
     String participantField = "sent".equals(direction) ? "requesterId" : "ownerId";
-    var criteria = Criteria.where(participantField).is(actor);
+    var criteria = Criteria.where(participantField).is(actor).and("status").ne("WITHDRAWN");
     if (cursor != null && !cursor.isBlank()) {
       var anchor =
           mongo.findOne(
@@ -362,6 +365,10 @@ public class RidePostResponseService {
     boolean matched =
         List.of("ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED").contains(status);
     String companionId = actor.equals(ownerId) ? requesterId : ownerId;
+    var check =
+        value.get("pickupCheck") instanceof Document evidence
+            ? mongo.getConverter().read(PickupCompatibilityService.View.class, evidence)
+            : null;
     return new View(
         value.getString("_id"),
         value.getString("postId"),
@@ -377,9 +384,8 @@ public class RidePostResponseService {
         value.getDate("createdAt").toInstant(),
         value.getDate("updatedAt").toInstant(),
         ((Number) value.get("version")).longValue(),
-        value.get("pickupCheck") instanceof Document check
-            ? mongo.getConverter().read(PickupCompatibilityService.View.class, check)
-            : null);
+        check,
+        pickups.summary(actor, value.getString("postId"), check));
   }
 
   private static ApiException missing() {

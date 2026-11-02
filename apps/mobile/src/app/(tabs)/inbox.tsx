@@ -5,12 +5,18 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, EmptyState, Icon, LoadingCards, Text } from "@/components/ui";
+import {
+  Avatar,
+  EmptyState,
+  Icon,
+  LoadingCards,
+  Text,
+  TextInput,
+} from "@/components/ui";
 import { useMobileApi } from "@/core/hooks";
 import { homeTheme as h } from "@/core/home-theme";
 import { theme } from "@/core/theme";

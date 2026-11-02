@@ -839,6 +839,8 @@ export type PickupCheck = {
   dropoff?: PlaceSnapshot;
   dropoffIndex?: number;
   driverDestinationLabel?: string;
+  sharedDistanceMeters?: number;
+  estimatedAmountVnd?: number;
 };
 
 export type RidePostRoute = {
@@ -1013,6 +1015,7 @@ export type RidePostInboxItem = {
   updatedAt: string;
   version: number;
   pickupCheck?: PickupCheck;
+  requestSummary?: RideRequestSummary;
 };
 
 export type RidePostInboxPage = {
@@ -1023,4 +1026,13 @@ export type RidePostInboxPage = {
 export type ReversePlace = {
   latitude: number;
   longitude: number;
+};
+
+export type RideRequestSummary = {
+  pickupChanged: boolean;
+  dropoffChanged: boolean;
+  extraMeters: number;
+  extraSeconds: number;
+  sharedDistanceMeters?: number;
+  estimatedAmountVnd?: number;
 };

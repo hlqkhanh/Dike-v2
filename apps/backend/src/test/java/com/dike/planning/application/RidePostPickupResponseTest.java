@@ -36,6 +36,22 @@ class RidePostPickupResponseTest {
           pickups);
 
   @Test
+  void postResponsesAreParticipantScopedAndHideWithdrawnRequests() {
+    when(mongo.find(any(Query.class), eq(Document.class), eq("ride_post_responses")))
+        .thenReturn(List.of());
+    assertThat(responses.list("visitor", "post")).isEmpty();
+    var query = ArgumentCaptor.forClass(Query.class);
+    verify(mongo).find(query.capture(), eq(Document.class), eq("ride_post_responses"));
+    var filter = query.getValue().getQueryObject();
+    assertThat(filter.getString("postId")).isEqualTo("post");
+    assertThat(filter.get("status", Document.class)).isEqualTo(new Document("$ne", "WITHDRAWN"));
+    assertThat(filter.getList("$or", Document.class))
+        .containsExactly(
+            new Document("ownerId", "visitor"), new Document("requesterId", "visitor"));
+    verify(posts).requireReadable("visitor", "post");
+  }
+
+  @Test
   void activeResponsesReturnCurrentUsersConfirmedMatches() {
     var accepted =
         new Document("_id", "request")
@@ -79,6 +95,8 @@ class RidePostPickupResponseTest {
     verify(mongo).find(query.capture(), eq(Document.class), eq("ride_post_responses"));
     assertThat(query.getValue().getQueryObject().getString("requesterId")).isEqualTo("passenger");
     assertThat(query.getValue().getLimit()).isEqualTo(2);
+    assertThat(query.getValue().getQueryObject().get("status", Document.class))
+        .isEqualTo(new Document("$ne", "WITHDRAWN"));
     assertThat(query.getValue().getSortObject().toJson()).contains("createdAt", "_id");
     verify(posts).requireReadable("passenger", "post");
   }

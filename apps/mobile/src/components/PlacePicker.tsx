@@ -4,10 +4,16 @@ import type {
 } from "@dike/api-client-ts";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { useMobileApi } from "@/core/hooks";
 import { theme } from "@/core/theme";
-import { ErrorText, Icon, Text, ui } from "./ui";
+import { ErrorText, Icon, Text, TextInput, ui, type IconName } from "./ui";
 
 export function PlacePicker({
   label,
@@ -17,6 +23,12 @@ export function PlacePicker({
   autoFocus,
   compact,
   onFocus,
+  onInputChange,
+  accentColor,
+  leadingIcon,
+  hideLeadingIcon,
+  dashed,
+  containerStyle,
 }: {
   label: string;
   value?: PlaceResponse;
@@ -25,6 +37,12 @@ export function PlacePicker({
   autoFocus?: boolean;
   compact?: boolean;
   onFocus?: () => void;
+  onInputChange?: (text: string) => void;
+  accentColor?: string;
+  leadingIcon?: IconName;
+  hideLeadingIcon?: boolean;
+  dashed?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }) {
   const api = useMobileApi();
   const [text, setText] = useState("");
@@ -75,28 +93,44 @@ export function PlacePicker({
     search.isPending;
   const buttonDisabled = value ? !!disabled : cannotSearch;
   return (
-    <View style={styles.group}>
+    <View style={[styles.group, containerStyle]}>
       {!compact ? <Text style={ui.label}>{label}</Text> : null}
       <View
         style={[
           styles.searchBox,
           value && styles.searchBoxSelected,
           compact && styles.compactBox,
+          accentColor && { borderColor: accentColor },
+          dashed && { borderStyle: "dashed" },
         ]}
       >
-        <Icon
-          name={
-            value ? "checkmark-circle" : compact ? "stop" : "location-outline"
-          }
-          size={20}
-          color={
-            compact
-              ? label === "Điểm đi"
-                ? theme.destination.ink
-                : theme.destination.marker
-              : theme.colors.primary
-          }
-        />
+        {!hideLeadingIcon ? (
+          <View
+            style={
+              compact
+                ? [
+                    styles.iconCircle,
+                    {
+                      backgroundColor: accentColor
+                        ? accentColor + "14"
+                        : "#eef7f3",
+                    },
+                  ]
+                : undefined
+            }
+          >
+            <Icon
+              name={
+                leadingIcon ??
+                (label === "Điểm đến"
+                  ? "flag-outline"
+                  : "navigate-circle-outline")
+              }
+              size={22}
+              color={accentColor ?? theme.colors.primary}
+            />
+          </View>
+        ) : null}
         <TextInput
           accessibilityLabel={label}
           autoFocus={autoFocus}
@@ -106,6 +140,7 @@ export function PlacePicker({
           onChangeText={(q) => {
             revision.current++;
             setText(q);
+            onInputChange?.(q);
             onChange(undefined);
             setSuggestions([]);
           }}
@@ -146,6 +181,7 @@ export function PlacePicker({
             ]}
           >
             <Icon
+              color={accentColor}
               name={
                 value
                   ? "pencil"
@@ -174,7 +210,7 @@ export function PlacePicker({
             pressed && styles.pressed,
           ]}
         >
-          <Icon name="location-outline" size={18} />
+          <Icon name="location-outline" size={18} color={accentColor} />
           <View style={styles.suggestionText}>
             <Text style={styles.suggestionTitle}>
               {p.mainText || p.displayLabel}
@@ -189,6 +225,13 @@ export function PlacePicker({
 }
 
 const styles = StyleSheet.create({
+  iconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   compactBox: {
     minHeight: theme.destination.inputHeight,
     borderColor: theme.destination.accent,

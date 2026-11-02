@@ -192,8 +192,7 @@ public class PaymentAcknowledgementService {
             : mongo.findById(routeId, org.bson.Document.class, "route_snapshots");
     Number distance = route == null ? null : (Number) route.get("distanceMeters");
     if (distance == null) return 0;
-    return Math.max(
-        0, Math.round(CONTRIBUTION_PER_KM_VND * distance.doubleValue() / 1000d));
+    return Math.max(0, Math.round(CONTRIBUTION_PER_KM_VND * distance.doubleValue() / 1000d));
   }
 
   private void ensureEligible(Participant booking) {

@@ -8,6 +8,7 @@ import type {
   PostSourceCreate,
   RidePostRoute,
   PickupCheck,
+  RideRequestSummary,
   PickupCheckInput,
   DraftAgain,
   TripStops,
@@ -62,6 +63,7 @@ export type RidePostResponse = {
   updatedAt: string;
   version: number;
   pickupCheck?: PickupCheck | null;
+  requestSummary?: RideRequestSummary | null;
 };
 
 export type CreateRidePostInput = Omit<RidePostCreate, "communityId"> & {

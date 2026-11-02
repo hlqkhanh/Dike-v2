@@ -94,7 +94,9 @@ public class PickupCompatibilityService {
       Instant expiresAt,
       PlaceSnapshot dropoff,
       int dropoffIndex,
-      String driverDestinationLabel) {}
+      String driverDestinationLabel,
+      Long sharedDistanceMeters,
+      Long estimatedAmountVnd) {}
 
   public View check(String actor, String postId, Input input) {
     var post = posts.detail(actor, postId);
@@ -151,6 +153,7 @@ public class PickupCompatibilityService {
     int pickupIndex;
     int dropoffIndex;
     long passengerSeconds;
+    long sharedDistanceMeters;
     try {
       if (near(pickup, dropoff))
         throw error(
@@ -165,10 +168,12 @@ public class PickupCompatibilityService {
         pickupIndex = 0;
         dropoffIndex = geometry.size() - 1;
         passengerSeconds = seconds;
+        sharedDistanceMeters = base.distanceMeters();
       } else {
         var first =
             near(pickup, base.origin()) ? null : leg(base.origin(), pickup, base.vehicleMode());
         var shared = leg(pickup, dropoff, base.vehicleMode());
+        sharedDistanceMeters = shared.distanceMeters();
         var tail =
             near(dropoff, base.destination())
                 ? null
@@ -235,8 +240,67 @@ public class PickupCompatibilityService {
             now.plus(Duration.ofMinutes(5)),
             dropoff,
             dropoffIndex,
-            base.destination().displayLabel());
+            base.destination().displayLabel(),
+            sharedDistanceMeters,
+            estimate(post.contributionPerKm(), sharedDistanceMeters));
     return mongo.insert(result, "pickup_checks");
+  }
+
+  @io.swagger.v3.oas.annotations.media.Schema(name = "RideRequestSummary")
+  public record Summary(
+      boolean pickupChanged,
+      boolean dropoffChanged,
+      long extraMeters,
+      long extraSeconds,
+      Long sharedDistanceMeters,
+      Long estimatedAmountVnd) {}
+
+  public Summary summary(String actor, String postId, View check) {
+    var post = posts.detail(actor, postId);
+    boolean pickupChanged =
+        check != null && !check.pickup().displayLabel().equals(post.originLabel());
+    boolean dropoffChanged =
+        check != null && !check.destinationLabel().equals(post.destinationLabel());
+    Long distance = check == null ? null : check.sharedDistanceMeters();
+    Long amount = check == null ? null : check.estimatedAmountVnd();
+    try {
+      var base = routes.snapshot(actor, postId);
+      if (check != null) {
+        pickupChanged = !near(check.pickup(), base.origin());
+        var dropoff = check.dropoff();
+        if (dropoff != null) {
+          dropoffChanged = !near(dropoff, base.destination());
+          if (distance == null) {
+            distance =
+                !pickupChanged && !dropoffChanged
+                    ? base.distanceMeters()
+                    : leg(check.pickup(), dropoff, base.vehicleMode()).distanceMeters();
+          }
+        } else if (!dropoffChanged && distance == null) {
+          distance =
+              !pickupChanged
+                  ? base.distanceMeters()
+                  : leg(check.pickup(), base.destination(), base.vehicleMode()).distanceMeters();
+        }
+      } else {
+        distance = base.distanceMeters();
+      }
+    } catch (ApiException | RoutingProviderException ignored) {
+      // Older responses remain readable if routing is temporarily unavailable.
+    }
+    if (amount == null && distance != null && "OFFER_RIDE".equals(post.type()))
+      amount = estimate(post.contributionPerKm(), distance);
+    return new Summary(
+        pickupChanged,
+        dropoffChanged,
+        check == null ? 0 : check.extraMeters(),
+        check == null ? 0 : check.extraSeconds(),
+        distance,
+        amount);
+  }
+
+  private static long estimate(long perKmVnd, long distanceMeters) {
+    return Math.max(0, Math.round(perKmVnd * (distanceMeters / 1000d)));
   }
 
   public View require(String actor, String postId, String checkId) {

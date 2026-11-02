@@ -1,12 +1,17 @@
 import type { RoutePoint } from "@dike/api-client-ts";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
   TurboModuleRegistry,
   View,
 } from "react-native";
-import { routeMapHtml } from "@/core/route-map-html";
+import type { WebView as NativeWebView } from "react-native-webview";
+import {
+  routeMapHtml,
+  type RouteMapPresentation,
+  type RouteMapViewport,
+} from "@/core/route-map-html";
 import { homeTheme as h } from "@/core/home-theme";
 import { theme } from "@/core/theme";
 import { Text } from "./ui";
@@ -22,30 +27,63 @@ export function RouteMapSurface({
   geometry,
   onError,
   onPick,
+  onMapPress,
   interactive,
+  passenger = false,
+  presentation,
+  viewport,
 }: {
   geometry: RoutePoint[];
   onError: () => void;
+  onMapPress?: () => void;
   onPick?: (point: RoutePoint) => void;
   interactive?: boolean;
+  passenger?: boolean;
+  presentation?: RouteMapPresentation;
+  viewport?: RouteMapViewport;
 }) {
+  const frame = useRef<NativeWebView>(null);
   const selectable = !!onPick;
   const isInteractive = interactive !== undefined ? interactive : selectable;
   const [ready, setReady] = useState(false);
   const html = useMemo(
-    () => routeMapHtml(geometry, selectable, isInteractive),
-    [geometry, selectable, isInteractive],
+    () =>
+      routeMapHtml(
+        geometry,
+        selectable,
+        isInteractive,
+        passenger,
+        presentation,
+      ),
+    [geometry, selectable, isInteractive, passenger, presentation],
   );
   useEffect(() => {
     setReady(false);
   }, [html]);
+  useEffect(() => {
+    if (ready && viewport)
+      frame.current?.injectJavaScript(
+        "window.dikeSetViewport?.(" + JSON.stringify(viewport) + ");true;",
+      );
+  }, [ready, viewport]);
+  const source = useMemo(
+    () => ({ html, baseUrl: "https://tiles.openfreemap.org/" }),
+    [html],
+  );
   if (!TurboModuleRegistry.get("RNCWebViewModule"))
     return <Text style={styles.upgrade}>Cập nhật ứng dụng để xem bản đồ</Text>;
   return (
     <View style={styles.map}>
-      <Suspense fallback={<ActivityIndicator color={h.primary} />}>
+      <Suspense
+        fallback={
+          <ActivityIndicator
+            color={passenger ? theme.colors.passengerInk : h.primary}
+          />
+        }
+      >
         <WebView
-          source={{ html, baseUrl: "https://tiles.openfreemap.org/" }}
+          ref={frame}
+          source={source}
           originWhitelist={["*"]}
           style={styles.map}
           containerStyle={styles.map}
@@ -53,10 +91,14 @@ export function RouteMapSurface({
           scrollEnabled={false}
           bounces={false}
           setSupportMultipleWindows={false}
+          mixedContentMode="compatibility"
+          cacheEnabled
           onError={onError}
           onMessage={(event) => {
             try {
               const message = JSON.parse(event.nativeEvent.data);
+              if (message.source === "dike-route-map" && message.type === "tap")
+                onMapPress?.();
               if (
                 message.source === "dike-route-map" &&
                 message.type === "error"
@@ -85,9 +127,15 @@ export function RouteMapSurface({
       {!ready ? (
         <View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.loading]}
+          style={[
+            StyleSheet.absoluteFill,
+            styles.loading,
+            passenger && { backgroundColor: theme.colors.passengerSoft },
+          ]}
         >
-          <ActivityIndicator color={h.primary} />
+          <ActivityIndicator
+            color={passenger ? theme.colors.passengerInk : h.primary}
+          />
           <Text style={styles.label}>Đang tải bản đồ…</Text>
         </View>
       ) : null}

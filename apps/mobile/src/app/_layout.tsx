@@ -5,21 +5,25 @@ import { useState } from "react";
 import { useFonts } from "expo-font";
 import { PlusJakartaSans_400Regular } from "@expo-google-fonts/plus-jakarta-sans/400Regular";
 import { PlusJakartaSans_500Medium } from "@expo-google-fonts/plus-jakarta-sans/500Medium";
+import { PlusJakartaSans_600SemiBold } from "@expo-google-fonts/plus-jakarta-sans/600SemiBold";
 import { PlusJakartaSans_700Bold } from "@expo-google-fonts/plus-jakarta-sans/700Bold";
 import { PlusJakartaSans_800ExtraBold } from "@expo-google-fonts/plus-jakarta-sans/800ExtraBold";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { theme } from "@/core/theme";
+
 import { SessionProvider, useSession } from "@/core/session";
 import { SessionLoading } from "@/components/SessionLoading";
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Jakarta: PlusJakartaSans_400Regular,
-    JakartaMedium: PlusJakartaSans_500Medium,
-    JakartaBold: PlusJakartaSans_700Bold,
-    JakartaExtraBold: PlusJakartaSans_800ExtraBold,
+    [theme.font.regular]: PlusJakartaSans_400Regular,
+    [theme.font.medium]: PlusJakartaSans_500Medium,
+    [theme.font.semibold]: PlusJakartaSans_600SemiBold,
+    [theme.font.bold]: PlusJakartaSans_700Bold,
+    [theme.font.heavy]: PlusJakartaSans_800ExtraBold,
     ...Ionicons.font,
   });
   const [queryClient] = useState(
