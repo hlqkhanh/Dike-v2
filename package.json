@@ -44,9 +44,9 @@
     "@eslint/js": "9.39.5",
     "eslint": "9.39.5",
     "lint-staged": "16.2.6",
-    "markdownlint-cli2": "0.18.1",
-    "prettier": "3.6.2",
-    "typescript-eslint": "8.71.0"
+    "markdownlint-cli2": "0.24.0",
+    "prettier": "3.9.10",
+    "typescript-eslint": "8.72.1"
   },
   "lint-staged": {
     "*.{css,js,mjs,ts,tsx,md,json,jsonc,yaml,yml}": "prettier --write"
