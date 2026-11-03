@@ -56,7 +56,7 @@ function Editor({
   onSaved: () => void;
 }) {
   const api = useMobileApi();
-  const { refresh } = useSession();
+  const { refresh, session } = useSession();
   const [name, setName] = useState(data.displayName);
   const [bio, setBio] = useState(data.bio || "");
   const [facebook, setFacebook] = useState(data.facebookUrl || "");
@@ -75,7 +75,12 @@ function Editor({
   });
   return (
     <Card>
-      <Avatar name={data.displayName} uri={data.avatarUrl} size={76} />
+      <Avatar
+        userId={session?.user.id}
+        name={data.displayName}
+        uri={data.avatarUrl}
+        size={76}
+      />
       <Field
         label="Tên hiển thị"
         value={name}

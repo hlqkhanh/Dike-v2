@@ -5,10 +5,13 @@ import type {
   PaymentAcknowledgement,
   RidePayment,
   RidePostResponse,
+  RidePostView,
+  RoutePoint,
 } from "@dike/api-client-ts";
 import { BottomSheet, Button, ErrorText, Icon, Text } from "./ui";
 import { money, useMobileApi } from "@/core/hooks";
 import { theme } from "@/core/theme";
+import { JourneyTrail } from "./JourneyTrail";
 
 const PRICE_PER_KM_VND = 2_000;
 const steps = [
@@ -22,22 +25,29 @@ const steps = [
   { status: "COMPLETED", label: "Hoàn thành", icon: "navigate" as const },
   { status: "PAYMENT", label: "Thanh toán", icon: "card-outline" as const },
 ] as const;
-const nextStatus: Record<string, { status: string; label: string }> = {
-  ACCEPTED: { status: "DRIVER_STARTED", label: "Bắt đầu đi" },
-  DRIVER_STARTED: { status: "DRIVER_ARRIVED", label: "Đã đến điểm đón" },
-  DRIVER_ARRIVED: { status: "COMPLETED", label: "Hoàn thành chuyến" },
-};
+export const nextRideStatus: Record<string, { status: string; label: string }> =
+  {
+    ACCEPTED: { status: "DRIVER_STARTED", label: "Bắt đầu đi" },
+    DRIVER_STARTED: { status: "DRIVER_ARRIVED", label: "Đã đến điểm đón" },
+    DRIVER_ARRIVED: { status: "COMPLETED", label: "Hoàn thành chuyến" },
+  };
 type PaymentMethod = "CASH" | "BANK";
 
 export function RideProgress({
   response,
   currentUserId,
   paymentComplete = false,
+  embedded = false,
+  journeyPost,
+  journeyGeometry,
   onAdvance,
 }: {
   response: RidePostResponse;
   currentUserId?: string;
   paymentComplete?: boolean;
+  embedded?: boolean;
+  journeyPost?: RidePostView;
+  journeyGeometry?: RoutePoint[];
   onAdvance: (status: string) => void;
 }) {
   const api = useMobileApi();
@@ -58,7 +68,7 @@ export function RideProgress({
   const activeIndex = steps.findIndex(
     (step) => step.status === response.status,
   );
-  const next = nextStatus[response.status];
+  const next = nextRideStatus[response.status];
   const cashPayment = useQuery({
     queryKey: ["mobile-cash-payment", response.id],
     queryFn: () =>
@@ -114,57 +124,78 @@ export function RideProgress({
   };
 
   return (
-    <View style={styles.shell} accessibilityLabel="Tiến độ chuyến đi">
-      <View style={styles.header}>
-        <View style={styles.headerTitle}>
-          <Icon name="git-branch-outline" size={17} />
-          <Text style={styles.title}>Tiến độ chuyến đi</Text>
+    <View
+      style={[styles.shell, embedded && styles.embedded]}
+      accessibilityLabel="Tiến độ chuyến đi"
+    >
+      {!journeyPost ? (
+        <View style={styles.header}>
+          <View style={styles.headerTitle}>
+            <Icon name="git-branch-outline" size={17} />
+            <Text style={styles.title}>Tiến độ chuyến đi</Text>
+          </View>
+          <Text style={styles.current}>
+            {response.status === "COMPLETED"
+              ? paid
+                ? "Đã thanh toán"
+                : passengerReportedPaid
+                  ? "Chờ xác nhận"
+                  : "Chờ thanh toán"
+              : steps[Math.max(0, activeIndex)]?.label}
+          </Text>
         </View>
-        <Text style={styles.current}>
-          {response.status === "COMPLETED"
-            ? paid
-              ? "Đã thanh toán"
-              : passengerReportedPaid
-                ? "Chờ xác nhận"
-                : "Chờ thanh toán"
-            : steps[Math.max(0, activeIndex)]?.label}
-        </Text>
-      </View>
-      <View style={styles.steps}>
-        {steps.map((step, index) => {
-          const complete =
-            step.status === "PAYMENT" ? paid : activeIndex >= index;
-          return (
-            <View key={step.status} style={styles.step}>
-              {index > 0 ? (
-                <View
-                  style={[styles.lineBefore, complete && styles.lineComplete]}
-                />
-              ) : null}
-              <View style={[styles.circle, complete && styles.circleComplete]}>
-                <Icon
-                  name={step.icon}
-                  size={13}
-                  color={complete ? "#fff" : theme.colors.inkMuted}
-                />
-              </View>
-              <Text
-                numberOfLines={2}
-                style={[styles.stepLabel, complete && styles.stepLabelComplete]}
-              >
-                {step.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-      {driver && next ? (
-        <Button
-          label={next.label}
-          icon="arrow-forward"
-          onPress={() => onAdvance(next.status)}
+      ) : null}
+      {journeyPost ? (
+        <JourneyTrail
+          post={journeyPost}
+          response={response}
+          geometry={journeyGeometry}
+          paid={paid}
         />
-      ) : !driver && response.status !== "COMPLETED" ? (
+      ) : (
+        <View style={styles.steps}>
+          {steps.map((step, index) => {
+            const complete =
+              step.status === "PAYMENT" ? paid : activeIndex >= index;
+            return (
+              <View key={step.status} style={styles.step}>
+                {index > 0 ? (
+                  <View
+                    style={[styles.lineBefore, complete && styles.lineComplete]}
+                  />
+                ) : null}
+                <View
+                  style={[styles.circle, complete && styles.circleComplete]}
+                >
+                  <Icon
+                    name={step.icon}
+                    size={13}
+                    color={complete ? "#fff" : theme.colors.inkMuted}
+                  />
+                </View>
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    styles.stepLabel,
+                    complete && styles.stepLabelComplete,
+                  ]}
+                >
+                  {step.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+      {driver && next ? (
+        journeyPost ? null : (
+          <Button
+            label={next.label}
+            icon="arrow-forward"
+            onPress={() => onAdvance(next.status)}
+          />
+        )
+      ) : !driver && response.status !== "COMPLETED" && !embedded ? (
         <Notice
           icon="notifications-outline"
           text="Bạn sẽ nhận thông báo khi người chở cập nhật hành trình."
@@ -366,6 +397,13 @@ function PaymentMethodCard({
 }
 
 const styles = StyleSheet.create({
+  embedded: {
+    borderWidth: 0,
+    borderRadius: 0,
+    padding: 0,
+    backgroundColor: "transparent",
+    gap: 10,
+  },
   shell: {
     borderWidth: 1,
     borderColor: "#cfe9df",

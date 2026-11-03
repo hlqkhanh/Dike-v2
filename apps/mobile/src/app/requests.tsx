@@ -443,7 +443,16 @@ function RequestCard({
       {/* Top Header Row: User Name & Status Badge */}
       <View style={styles.cardHeaderRow}>
         <View style={styles.userNameBox}>
-          <Text style={styles.userNameText}>
+          <Text
+            userId={
+              isSample
+                ? undefined
+                : direction === "received"
+                  ? item.requesterId
+                  : item.ownerId
+            }
+            style={styles.userNameText}
+          >
             {direction === "received"
               ? item.requesterDisplayName
               : (post?.ownerDisplayName ?? "Người đăng bài")}

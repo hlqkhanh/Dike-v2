@@ -91,6 +91,7 @@ export function RidePostCard({
       >
         <View style={styles.header}>
           <Avatar
+            userId={post.ownerId}
             name={post.ownerDisplayName}
             uri={post.ownerAvatarUrl}
             size={40}
@@ -99,16 +100,7 @@ export function RidePostCard({
             <Text
               numberOfLines={1}
               style={styles.ownerName}
-              accessibilityRole={detailed ? "link" : undefined}
-              onPress={
-                detailed
-                  ? () =>
-                      router.push({
-                        pathname: "/user/[id]",
-                        params: { id: post.ownerId },
-                      })
-                  : undefined
-              }
+              userId={post.ownerId}
             >
               {post.ownerDisplayName}
             </Text>

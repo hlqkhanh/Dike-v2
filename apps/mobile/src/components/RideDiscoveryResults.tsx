@@ -26,11 +26,14 @@ export function RideDiscoveryResults({
         return (
           <Card key={item.post.id}>
             <Avatar
+              userId={item.post.ownerId}
               name={item.post.ownerDisplayName}
               uri={item.post.ownerAvatarUrl}
               size={44}
             />
-            <Text style={ui.sectionTitle}>{item.post.ownerDisplayName}</Text>
+            <Text userId={item.post.ownerId} style={ui.sectionTitle}>
+              {item.post.ownerDisplayName}
+            </Text>
             <Badge
               label={
                 offset === 0

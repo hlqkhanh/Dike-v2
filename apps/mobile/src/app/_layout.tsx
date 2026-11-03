@@ -95,6 +95,7 @@ function SessionNavigator() {
               "my-posts",
               "requests",
               "posts/[id]",
+              "route-map",
               "schedules",
               "schedules/edit",
               "settings",

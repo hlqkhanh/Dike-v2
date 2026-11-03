@@ -18,7 +18,10 @@ import type {
   RidePostView,
   RidePostDraftSource,
 } from "@dike/api-client-ts";
-import { PostDetailStage } from "@/components/PostDetailStage";
+import {
+  PostDetailStage,
+  JourneyDetailsContent,
+} from "@/components/PostDetailStage";
 import { ReportSheet } from "@/components/ReportSheet";
 import { ResourceState } from "@/components/ResourceState";
 import { PlacePicker } from "@/components/PlacePicker";
@@ -34,6 +37,7 @@ import {
 import { useMobileApi, dateTime, statusLabel } from "@/core/hooks";
 import { useSession } from "@/core/session";
 import { PostRequestComment } from "@/components/PostRequestComment";
+import { RideProgress } from "@/components/RideProgress";
 import { splitPlaceLabel } from "@/core/place-label";
 import { theme } from "@/core/theme";
 export default function PostDetail() {
@@ -312,6 +316,28 @@ export default function PostDetail() {
       post={data}
       own={own}
       confirmedResponse={confirmedResponse}
+      onJourneyChat={() => discuss.mutate()}
+      chatPending={discuss.isPending}
+      onJourneyAdvance={(value) => {
+        if (confirmedResponse)
+          setDecision({ response: confirmedResponse, value });
+      }}
+      journeyProgress={
+        confirmedResponse
+          ? (ownerGeometry) => (
+              <RideProgress
+                response={confirmedResponse}
+                currentUserId={session?.user.id}
+                embedded
+                journeyPost={data}
+                journeyGeometry={ownerGeometry}
+                onAdvance={(value) =>
+                  setDecision({ response: confirmedResponse, value })
+                }
+              />
+            )
+          : undefined
+      }
       onMenu={() => setMenuOpen(true)}
       initialSnap={initialSnap}
       expandSignal={sheetExpansion}
@@ -333,319 +359,338 @@ export default function PostDetail() {
         if (selected) setDecision({ response: selected, value });
       }}
     >
-      <ResourceState query={post}>
-        {data ? (
-          <>
-            {own ? (
-              <>
-                {data.status === "DRAFT" ? (
-                  <>
-                    <Button
-                      label="Đăng bản nháp"
-                      disabled={
-                        new Date(data.expiresAt).getTime() <= Date.now()
-                      }
-                      onPress={() => setPublishConfirm(true)}
-                    />
-                    <Text style={ui.muted}>
-                      Kiểm tra lại tuyến, giờ đi và phạm vi hiển thị trước khi
-                      đăng. Bản nháp hết hạn cần tạo lại hành trình.
-                    </Text>
-                  </>
-                ) : null}
-              </>
-            ) : active ? null : (
-              <View style={styles.composer} testID="post-request-composer">
-                <View style={styles.requestHeader}>
-                  <Text style={[styles.connectionHeading, { flex: 1 }]}>
-                    {active ? "Đã gửi yêu cầu" : "Yêu cầu ngay"}
-                  </Text>
-                  <View
-                    style={[
-                      styles.requestRole,
-                      { backgroundColor: requestSoft },
-                    ]}
-                  >
-                    <Icon
-                      name={viewerPassenger ? "person-outline" : "car-outline"}
-                      size={14}
-                      color={requestAccent}
-                    />
-                    <Text
-                      style={[styles.requestRoleText, { color: requestAccent }]}
-                    >
-                      {viewerPassenger ? "Tôi đi ké" : "Tôi chở"}
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Nhắn tin"
-                    onPress={() => discuss.mutate()}
-                    style={[
-                      styles.textAction,
-                      { flex: 1, justifyContent: "flex-end" },
-                    ]}
-                  >
-                    <Icon
-                      name="chatbubble-ellipses-outline"
-                      size={17}
-                      color={requestAccent}
-                    />
-                    <Text
-                      style={[styles.textActionLabel, { color: requestAccent }]}
-                    >
-                      Nhắn tin
-                    </Text>
-                  </Pressable>
-                </View>
-                {!active && data.status === "OPEN" ? (
-                  <>
-                    <View style={styles.placeEntries}>
-                      <View style={styles.placeEntry}>
-                        <View pointerEvents="none" style={styles.entryRail}>
-                          <View style={styles.entryOriginLine} />
-                          <View style={styles.entryOriginDot} />
-                        </View>
-                        <PlacePicker
-                          label="Điểm đi"
-                          compact
-                          accentColor="#dcb84b"
-                          dashed
-                          hideLeadingIcon
-                          containerStyle={{ flex: 1 }}
-                          leadingIcon="navigate-circle-outline"
-                          onInputChange={(text) => {
-                            setPickupText(text);
-                            if (!text.trim()) setPreviewPickup(undefined);
-                          }}
-                          onFocus={() =>
-                            setSheetExpansion((value) => value + 1)
-                          }
-                          value={pickup}
-                          disabled={request.isPending}
-                          onChange={(place) => {
-                            setPickup(place);
-                            if (place) {
-                              setPickupText(place.displayLabel);
-                              setPreviewPickup(place);
-                              Keyboard.dismiss();
-                              setSelectionSignal((value) => value + 1);
-                            }
-                            setCheck(undefined);
-                          }}
-                        />
-                      </View>
-                      <View style={styles.placeEntry}>
-                        <View pointerEvents="none" style={styles.entryRail}>
-                          <View style={styles.entryDestinationLine} />
-                          <View style={styles.entryDestinationDot} />
-                        </View>
-                        <PlacePicker
-                          label="Điểm đến"
-                          compact
-                          accentColor={theme.colors.primary}
-                          dashed
-                          hideLeadingIcon
-                          containerStyle={{ flex: 1 }}
-                          leadingIcon="flag-outline"
-                          onInputChange={(text) => {
-                            setDropoffText(text);
-                            if (!text.trim()) setPreviewDropoff(undefined);
-                          }}
-                          onFocus={() =>
-                            setSheetExpansion((value) => value + 1)
-                          }
-                          value={dropoff}
-                          disabled={request.isPending}
-                          onChange={(place) => {
-                            setDropoff(place);
-                            if (place) {
-                              setDropoffText(place.displayLabel);
-                              setPreviewDropoff(place);
-                              Keyboard.dismiss();
-                              setSelectionSignal((value) => value + 1);
-                            }
-                            setCheck(undefined);
-                          }}
-                        />
-                      </View>
-                    </View>
-                    <View style={styles.requestHelpRow}>
-                      <Text style={[styles.requestHint, { flex: 1 }]}>
-                        Để trống để dùng địa điểm của bài đăng.
-                      </Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"
+      <JourneyDetailsContent>
+        <ResourceState query={post}>
+          {data ? (
+            <>
+              {own ? (
+                <>
+                  {data.status === "DRAFT" ? (
+                    <>
+                      <Button
+                        label="Đăng bản nháp"
+                        disabled={
+                          new Date(data.expiresAt).getTime() <= Date.now()
                         }
-                        aria-expanded={showMessage}
-                        onPress={() => {
-                          if (showMessage) Keyboard.dismiss();
-                          setShowMessage((value) => !value);
-                        }}
-                        style={styles.noteToggle}
-                      >
-                        <Icon
-                          name={showMessage ? "remove" : "add"}
-                          size={15}
-                          color={requestAccent}
-                        />
-                        <Text
-                          style={[
-                            styles.noteToggleText,
-                            { color: requestAccent },
-                          ]}
-                        >
-                          {showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    {check && !check.compatible ? (
-                      <Text style={styles.requestHint}>{check.reason}</Text>
-                    ) : null}
-                    {showMessage ? (
-                      <TextInput
-                        accessibilityLabel="Lời nhắn"
-                        autoFocus
-                        onFocus={() => setSheetExpansion((value) => value + 1)}
-                        value={message}
-                        onChangeText={setMessage}
-                        multiline
-                        maxLength={300}
-                        placeholder="Nhắn gì đó cho chủ bài..."
-                        placeholderTextColor={theme.colors.inkMuted}
-                        style={[ui.input, styles.messageInput]}
+                        onPress={() => setPublishConfirm(true)}
                       />
-                    ) : null}
-                    <ErrorText error={request.error} />
-                    {preview.isFetching ? (
-                      <Text style={styles.requestHint}>
-                        Đang cập nhật tuyến đi…
+                      <Text style={ui.muted}>
+                        Kiểm tra lại tuyến, giờ đi và phạm vi hiển thị trước khi
+                        đăng. Bản nháp hết hạn cần tạo lại hành trình.
                       </Text>
-                    ) : null}
-                    <ErrorText error={preview.error} />
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Gửi yêu cầu"
-                      disabled={
-                        request.isPending ||
-                        responses.isPending ||
-                        (!!pickupText.trim() && !pickup) ||
-                        (!!dropoffText.trim() && !dropoff)
-                      }
-                      onPress={() => request.mutate()}
+                    </>
+                  ) : null}
+                </>
+              ) : active ? null : (
+                <View style={styles.composer} testID="post-request-composer">
+                  <View style={styles.requestHeader}>
+                    <Text style={[styles.connectionHeading, { flex: 1 }]}>
+                      {active ? "Đã gửi yêu cầu" : "Yêu cầu ngay"}
+                    </Text>
+                    <View
                       style={[
-                        styles.sendRequest,
-                        {
-                          backgroundColor: viewerPassenger
-                            ? "#f5cf6c"
-                            : theme.colors.primary,
-                        },
-                        (request.isPending ||
-                          responses.isPending ||
-                          (!!pickupText.trim() && !pickup) ||
-                          (!!dropoffText.trim() && !dropoff)) && {
-                          opacity: 0.5,
-                        },
+                        styles.requestRole,
+                        { backgroundColor: requestSoft },
                       ]}
                     >
-                      {request.isPending ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Icon
-                          name="paper-plane-outline"
-                          size={18}
-                          color="#fff"
-                        />
-                      )}
-                      <Text style={[styles.sendRequestText, { color: "#fff" }]}>
-                        Gửi yêu cầu
+                      <Icon
+                        name={
+                          viewerPassenger ? "person-outline" : "car-outline"
+                        }
+                        size={14}
+                        color={requestAccent}
+                      />
+                      <Text
+                        style={[
+                          styles.requestRoleText,
+                          { color: requestAccent },
+                        ]}
+                      >
+                        {viewerPassenger ? "Tôi đi ké" : "Tôi chở"}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Nhắn tin"
+                      onPress={() => discuss.mutate()}
+                      style={[
+                        styles.textAction,
+                        { flex: 1, justifyContent: "flex-end" },
+                      ]}
+                    >
+                      <Icon
+                        name="chatbubble-ellipses-outline"
+                        size={17}
+                        color={requestAccent}
+                      />
+                      <Text
+                        style={[
+                          styles.textActionLabel,
+                          { color: requestAccent },
+                        ]}
+                      >
+                        Nhắn tin
                       </Text>
                     </Pressable>
-                  </>
-                ) : (
-                  <Text style={ui.muted}>
-                    {active
-                      ? "Theo dõi phản hồi của bạn bên dưới."
-                      : "Bài đăng đã ngừng nhận yêu cầu."}
-                  </Text>
-                )}
-                <ErrorText error={discuss.error} />
-              </View>
-            )}
-            {own || !!visibleResponses.length ? (
-              <View
-                style={[styles.connectionSection, !own && styles.sentSection]}
-                testID="post-connections"
-              >
-                <Pressable
-                  testID="requests-background"
-                  style={StyleSheet.absoluteFill}
-                  accessibilityRole="button"
-                  accessibilityLabel="Bỏ chọn yêu cầu"
-                  onPress={() => setSelectedId(undefined)}
-                />
-                {own ? (
-                  <View pointerEvents="none" style={styles.connectionHeader}>
-                    <View style={styles.connectionTitle}>
-                      <Icon name="people-outline" size={18} />
-                      <Text style={styles.connectionHeading}>
-                        {confirmedResponse
-                          ? "Kết nối hành trình"
-                          : own
-                            ? "Yêu cầu kết nối"
-                            : "Yêu cầu của bạn"}
-                      </Text>
-                    </View>
-                    <View style={styles.countBadge}>
-                      <Text style={styles.countText}>
-                        {visibleResponses.length}
-                      </Text>
-                    </View>
                   </View>
-                ) : null}
-                {!own ? <ErrorText error={discuss.error} /> : null}
-                <ResourceState query={responses}>
-                  {visibleResponses.length === 0 ? (
-                    <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
-                  ) : null}
-                  {visibleResponses
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        Number(b.id === responseId) -
-                        Number(a.id === responseId),
-                    )
-                    .map((r) => (
-                      <PostRequestComment
-                        key={r.id}
-                        response={r}
-                        post={data}
-                        own={own}
-                        journey={confirmedStatuses.includes(r.status)}
-                        onChat={own ? undefined : () => discuss.mutate()}
-                        chatPending={discuss.isPending}
-                        selected={r.id === selectedId}
-                        onSelect={() => {
-                          setSelectedId((current) =>
-                            current === r.id ? undefined : r.id,
-                          );
-                          if (selectedId !== r.id)
-                            setSelectionSignal((value) => value + 1);
-                        }}
-                        viewerId={session?.user.id}
-                        onDecision={(response, value) =>
-                          setDecision({ response, value })
+                  {!active && data.status === "OPEN" ? (
+                    <>
+                      <View style={styles.placeEntries}>
+                        <View style={styles.placeEntry}>
+                          <View pointerEvents="none" style={styles.entryRail}>
+                            <View style={styles.entryOriginLine} />
+                            <View style={styles.entryOriginDot} />
+                          </View>
+                          <PlacePicker
+                            label="Điểm đi"
+                            compact
+                            accentColor="#dcb84b"
+                            dashed
+                            hideLeadingIcon
+                            containerStyle={{ flex: 1 }}
+                            leadingIcon="navigate-circle-outline"
+                            onInputChange={(text) => {
+                              setPickupText(text);
+                              if (!text.trim()) setPreviewPickup(undefined);
+                            }}
+                            onFocus={() =>
+                              setSheetExpansion((value) => value + 1)
+                            }
+                            value={pickup}
+                            disabled={request.isPending}
+                            onChange={(place) => {
+                              setPickup(place);
+                              if (place) {
+                                setPickupText(place.displayLabel);
+                                setPreviewPickup(place);
+                                Keyboard.dismiss();
+                                setSelectionSignal((value) => value + 1);
+                              }
+                              setCheck(undefined);
+                            }}
+                          />
+                        </View>
+                        <View style={styles.placeEntry}>
+                          <View pointerEvents="none" style={styles.entryRail}>
+                            <View style={styles.entryDestinationLine} />
+                            <View style={styles.entryDestinationDot} />
+                          </View>
+                          <PlacePicker
+                            label="Điểm đến"
+                            compact
+                            accentColor={theme.colors.primary}
+                            dashed
+                            hideLeadingIcon
+                            containerStyle={{ flex: 1 }}
+                            leadingIcon="flag-outline"
+                            onInputChange={(text) => {
+                              setDropoffText(text);
+                              if (!text.trim()) setPreviewDropoff(undefined);
+                            }}
+                            onFocus={() =>
+                              setSheetExpansion((value) => value + 1)
+                            }
+                            value={dropoff}
+                            disabled={request.isPending}
+                            onChange={(place) => {
+                              setDropoff(place);
+                              if (place) {
+                                setDropoffText(place.displayLabel);
+                                setPreviewDropoff(place);
+                                Keyboard.dismiss();
+                                setSelectionSignal((value) => value + 1);
+                              }
+                              setCheck(undefined);
+                            }}
+                          />
+                        </View>
+                      </View>
+                      <View style={styles.requestHelpRow}>
+                        <Text style={[styles.requestHint, { flex: 1 }]}>
+                          Để trống để dùng địa điểm của bài đăng.
+                        </Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"
+                          }
+                          aria-expanded={showMessage}
+                          onPress={() => {
+                            if (showMessage) Keyboard.dismiss();
+                            setShowMessage((value) => !value);
+                          }}
+                          style={styles.noteToggle}
+                        >
+                          <Icon
+                            name={showMessage ? "remove" : "add"}
+                            size={15}
+                            color={requestAccent}
+                          />
+                          <Text
+                            style={[
+                              styles.noteToggleText,
+                              { color: requestAccent },
+                            ]}
+                          >
+                            {showMessage ? "Ẩn lời nhắn" : "Thêm lời nhắn"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      {check && !check.compatible ? (
+                        <Text style={styles.requestHint}>{check.reason}</Text>
+                      ) : null}
+                      {showMessage ? (
+                        <TextInput
+                          accessibilityLabel="Lời nhắn"
+                          autoFocus
+                          onFocus={() =>
+                            setSheetExpansion((value) => value + 1)
+                          }
+                          value={message}
+                          onChangeText={setMessage}
+                          multiline
+                          maxLength={300}
+                          placeholder="Nhắn gì đó cho chủ bài..."
+                          placeholderTextColor={theme.colors.inkMuted}
+                          style={[ui.input, styles.messageInput]}
+                        />
+                      ) : null}
+                      <ErrorText error={request.error} />
+                      {preview.isFetching ? (
+                        <Text style={styles.requestHint}>
+                          Đang cập nhật tuyến đi…
+                        </Text>
+                      ) : null}
+                      <ErrorText error={preview.error} />
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Gửi yêu cầu"
+                        disabled={
+                          request.isPending ||
+                          responses.isPending ||
+                          (!!pickupText.trim() && !pickup) ||
+                          (!!dropoffText.trim() && !dropoff)
                         }
-                      />
-                    ))}
-                </ResourceState>
-              </View>
-            ) : null}
-          </>
-        ) : null}
-      </ResourceState>
+                        onPress={() => request.mutate()}
+                        style={[
+                          styles.sendRequest,
+                          {
+                            backgroundColor: viewerPassenger
+                              ? "#f5cf6c"
+                              : theme.colors.primary,
+                          },
+                          (request.isPending ||
+                            responses.isPending ||
+                            (!!pickupText.trim() && !pickup) ||
+                            (!!dropoffText.trim() && !dropoff)) && {
+                            opacity: 0.5,
+                          },
+                        ]}
+                      >
+                        {request.isPending ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Icon
+                            name="paper-plane-outline"
+                            size={18}
+                            color="#fff"
+                          />
+                        )}
+                        <Text
+                          style={[styles.sendRequestText, { color: "#fff" }]}
+                        >
+                          Gửi yêu cầu
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <Text style={ui.muted}>
+                      {active
+                        ? "Theo dõi phản hồi của bạn bên dưới."
+                        : "Bài đăng đã ngừng nhận yêu cầu."}
+                    </Text>
+                  )}
+                  <ErrorText error={discuss.error} />
+                </View>
+              )}
+              {own || !!visibleResponses.length ? (
+                <View
+                  style={[
+                    styles.connectionSection,
+                    !own && styles.sentSection,
+                    confirmedResponse && { backgroundColor: "transparent" },
+                  ]}
+                  testID="post-connections"
+                >
+                  <Pressable
+                    testID="requests-background"
+                    style={StyleSheet.absoluteFill}
+                    accessibilityRole="button"
+                    accessibilityLabel="Bỏ chọn yêu cầu"
+                    onPress={() => setSelectedId(undefined)}
+                  />
+                  {own ? (
+                    <View pointerEvents="none" style={styles.connectionHeader}>
+                      <View style={styles.connectionTitle}>
+                        <Icon name="people-outline" size={18} />
+                        <Text style={styles.connectionHeading}>
+                          {confirmedResponse
+                            ? "Kết nối hành trình"
+                            : own
+                              ? "Yêu cầu kết nối"
+                              : "Yêu cầu của bạn"}
+                        </Text>
+                      </View>
+                      <View style={styles.countBadge}>
+                        <Text style={styles.countText}>
+                          {visibleResponses.length}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+                  {!own ? <ErrorText error={discuss.error} /> : null}
+                  <ResourceState query={responses}>
+                    {visibleResponses.length === 0 ? (
+                      <Text style={ui.muted}>Chưa có yêu cầu kết nối.</Text>
+                    ) : null}
+                    {visibleResponses
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          Number(b.id === responseId) -
+                          Number(a.id === responseId),
+                      )
+                      .map((r) => (
+                        <PostRequestComment
+                          key={r.id}
+                          response={r}
+                          post={data}
+                          own={own}
+                          journey={confirmedStatuses.includes(r.status)}
+                          progressInHeader={r.id === confirmedResponse?.id}
+                          onChat={own ? undefined : () => discuss.mutate()}
+                          chatPending={discuss.isPending}
+                          selected={r.id === selectedId}
+                          onSelect={() => {
+                            setSelectedId((current) =>
+                              current === r.id ? undefined : r.id,
+                            );
+                            if (selectedId !== r.id)
+                              setSelectionSignal((value) => value + 1);
+                          }}
+                          viewerId={session?.user.id}
+                          onDecision={(response, value) =>
+                            setDecision({ response, value })
+                          }
+                        />
+                      ))}
+                  </ResourceState>
+                </View>
+              ) : null}
+            </>
+          ) : null}
+        </ResourceState>
+      </JourneyDetailsContent>
 
       <BottomSheet
         visible={menuOpen}

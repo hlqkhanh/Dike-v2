@@ -215,12 +215,20 @@ export default function Chat() {
             <Icon name="arrow-back" />
           </Pressable>
           <Avatar
+            userId={info.data?.participantIds.find(
+              (participantId) => participantId !== session?.user.id,
+            )}
             size={48}
             name={info.data?.recipientDisplayName}
             uri={info.data?.recipientAvatarUrl}
           />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: "800" }}>
+            <Text
+              userId={info.data?.participantIds.find(
+                (participantId) => participantId !== session?.user.id,
+              )}
+              style={{ fontSize: 16, fontWeight: "800" }}
+            >
               {info.data?.recipientDisplayName || "Tin nhắn"}
             </Text>
             <Text style={[ui.muted, { fontSize: 11 }]}>Người cùng đường</Text>

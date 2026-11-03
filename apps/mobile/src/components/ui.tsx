@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -47,10 +48,23 @@ function typographyStyle(style: StyleProp<TextStyle>): TextStyle {
   return { ...flat, fontFamily, fontWeight: "normal" };
 }
 
-export function Text({ style, ...props }: TextProps) {
+export function Text({
+  style,
+  userId,
+  ...props
+}: TextProps & { userId?: string }) {
   return (
     <NativeText
       {...props}
+      {...(userId
+        ? {
+            accessibilityRole: "link" as const,
+            onPress: (event: import("react-native").GestureResponderEvent) => {
+              event.stopPropagation();
+              router.push({ pathname: "/user/[id]", params: { id: userId } });
+            },
+          }
+        : {})}
       style={[{ color: theme.colors.ink }, typographyStyle(style)]}
     />
   );
@@ -194,51 +208,69 @@ export function Chip({
   );
 }
 export function Avatar({
+  userId,
   name,
   uri,
   size = 46,
 }: {
+  userId?: string;
   name?: string;
   uri?: string | null;
   size?: number;
 }) {
   const [failedUri, setFailedUri] = useState<string | null | undefined>();
   const source = avatarSource(uri);
-  return source && failedUri !== uri ? (
-    <Image
-      accessibilityLabel={name || "Ảnh đại diện"}
-      source={source}
-      onError={() => setFailedUri(uri)}
-      resizeMode="cover"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        flexShrink: 0,
-      }}
-    />
-  ) : (
-    <View
-      style={{
-        width: size,
-        height: size,
-        flexShrink: 0,
-        borderRadius: size / 2,
-        backgroundColor: "#dbf2e6",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text
+  const content =
+    source && failedUri !== uri ? (
+      <Image
+        accessibilityLabel={name || "Ảnh đại diện"}
+        source={source}
+        onError={() => setFailedUri(uri)}
+        resizeMode="cover"
         style={{
-          fontSize: size * 0.38,
-          fontWeight: "800",
-          color: theme.colors.primary,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          flexShrink: 0,
+        }}
+      />
+    ) : (
+      <View
+        style={{
+          width: size,
+          height: size,
+          flexShrink: 0,
+          borderRadius: size / 2,
+          backgroundColor: "#dbf2e6",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        {name?.trim().charAt(0).toUpperCase() || "D"}
-      </Text>
-    </View>
+        <Text
+          style={{
+            fontSize: size * 0.38,
+            fontWeight: "800",
+            color: theme.colors.primary,
+          }}
+        >
+          {name?.trim().charAt(0).toUpperCase() || "D"}
+        </Text>
+      </View>
+    );
+  return userId ? (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={"Xem trang cá nhân " + (name ?? "")}
+      onPress={(event) => {
+        event.stopPropagation();
+        router.push({ pathname: "/user/[id]", params: { id: userId } });
+      }}
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      {content}
+    </Pressable>
+  ) : (
+    content
   );
 }
 export function Badge({ label, gold }: { label: string; gold?: boolean }) {

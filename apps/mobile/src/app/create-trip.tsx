@@ -1352,12 +1352,13 @@ export default function CreateTrip() {
             </View>
             <View style={styles.previewHeader}>
               <Avatar
+                userId={session?.user.id}
                 name={session?.user.displayName || "Bạn"}
                 uri={session?.user.avatarUrl}
                 size={40}
               />
               <View style={styles.previewIdentity}>
-                <Text style={styles.previewName}>
+                <Text userId={session?.user.id} style={styles.previewName}>
                   {session?.user.displayName || "Bài đăng của bạn"}
                 </Text>
                 <View style={styles.previewInline}>
@@ -1590,8 +1591,11 @@ export default function CreateTrip() {
         }}
       >
         <Text style={ui.muted}>
-          Gửi tới {responsePost?.ownerDisplayName}. Bài đang soạn của bạn sẽ
-          chưa được đăng.
+          Gửi tới{" "}
+          <Text userId={responsePost?.ownerId}>
+            {responsePost?.ownerDisplayName}
+          </Text>
+          . Bài đang soạn của bạn sẽ chưa được đăng.
         </Text>
         {responsePost ? (
           <RouteCard

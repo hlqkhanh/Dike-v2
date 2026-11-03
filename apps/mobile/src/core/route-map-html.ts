@@ -11,6 +11,7 @@ export type RouteMapViewport = { topInset: number; bottomInset: number };
 export type RouteMapPresentation = {
   topInset?: number;
   showLabels?: boolean;
+  allowSatellite?: boolean;
   memberColors?: boolean;
   directionMarkers?: boolean;
   owner?: RouteMapMember;
@@ -70,7 +71,7 @@ export function routeMapHtml(
 html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#edf1ee}
 .maplibregl-ctrl-attrib{font-size:8px!important;line-height:12px!important}
 .maplibregl-ctrl-bottom-right{bottom:${bottomInset}px;right:0}
-.maplibregl-ctrl-top-right{top:${topInset + 12}px;right:12px;display:flex;flex-direction:column;gap:8px}
+.maplibregl-ctrl-top-right{top:${topInset + 12}px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .maplibregl-ctrl-group{border-radius:12px!important;box-shadow:0 4px 14px rgba(0,0,0,0.12)!important;border:1px solid rgba(0,0,0,0.06)!important;overflow:hidden;background:#ffffff!important;margin:0!important}
 .maplibregl-ctrl-group button{width:38px!important;height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .maplibregl-ctrl-group button:active{background-color:#eef4f1!important}
@@ -195,6 +196,9 @@ try {
     if(member.avatarUrl&&/^(https?:|data:image\\/)/.test(member.avatarUrl)){
      var photo=document.createElement('img');photo.src=member.avatarUrl;photo.alt=member.name;photo.referrerPolicy='no-referrer';photo.onerror=fallback;person.replaceChildren(photo);
     }
+    person.setAttribute('role','link');person.setAttribute('aria-label','Xem trang cá nhân '+member.name);person.tabIndex=0;person.style.cursor='pointer';
+    function openProfile(event){event.stopPropagation();var message=JSON.stringify({source:'dike-route-map',type:'profile',userId:member.id});if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(message);else window.parent.postMessage(message,'*');}
+    person.addEventListener('click',openProfile);person.addEventListener('keydown',function(event){if(event.key==='Enter'||event.key===' '){event.preventDefault();openProfile(event);}});
     face.appendChild(person);
    });
    element.appendChild(face);return element;
@@ -238,6 +242,22 @@ try {
    fitContainer.appendChild(fitBtn);
    var topRight=document.querySelector('.maplibregl-ctrl-top-right');
    if(topRight){topRight.prepend(fitContainer);}
+   if(${presentation?.allowSatellite ?? false}){
+    var satelliteAdded=false;var satelliteVisible=false;
+    var layerBtn=document.createElement('button');layerBtn.type='button';layerBtn.className='dike-layer-btn';
+    layerBtn.textContent='Vệ tinh';layerBtn.setAttribute('aria-label','Xem bản đồ vệ tinh');layerBtn.setAttribute('aria-pressed','false');
+    layerBtn.style.cssText='width:auto!important;min-width:72px;padding:0 10px;color:#087d61;font:600 12px sans-serif';
+    layerBtn.onclick=function(){
+     if(!satelliteAdded){
+      map.addSource('satellite',{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community'});
+      map.addLayer({id:'satellite',type:'raster',source:'satellite',layout:{visibility:'none'}},'route-outline');satelliteAdded=true;
+     }
+     satelliteVisible=!satelliteVisible;map.setLayoutProperty('satellite','visibility',satelliteVisible?'visible':'none');
+     document.body.dataset.layer=satelliteVisible?'satellite':'map';layerBtn.setAttribute('aria-pressed',String(satelliteVisible));
+     layerBtn.textContent=satelliteVisible?'Bản đồ':'Vệ tinh';
+    };
+    var layerContainer=document.createElement('div');layerContainer.className='maplibregl-ctrl maplibregl-ctrl-group';layerContainer.appendChild(layerBtn);if(topRight)topRight.appendChild(layerContainer);
+   }
   }
   var attribution=document.querySelector('.maplibregl-ctrl-attrib');if(attribution){attribution.classList.remove('maplibregl-compact-show');attribution.removeAttribute('open');}
   map.once('render',function(){collapseAttribution();ready()});map.triggerRepaint();

@@ -51,11 +51,18 @@ export function MergedJourneyStops({
               <View style={styles.heading}>
                 <Text style={styles.caption}>
                   {stop.kind === "origin" ? "Điểm đi" : "Điểm đến"} ·{" "}
-                  {stop.members.length > 1 ? "Cả hai" : stop.members[0].name}
+                  {stop.members.length > 1 ? (
+                    "Cả hai"
+                  ) : (
+                    <Text userId={stop.members[0].id} style={styles.caption}>
+                      {stop.members[0].name}
+                    </Text>
+                  )}
                 </Text>
                 <View style={styles.members}>
                   {stop.members.map((member) => (
                     <Avatar
+                      userId={member.id}
                       key={member.id}
                       size={18}
                       name={member.name}

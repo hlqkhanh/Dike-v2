@@ -25,7 +25,10 @@ export function PostResponseCard({
         {received ? "Yêu cầu nhận được" : "Yêu cầu đã gửi"} ·{" "}
         {statusLabel(r.status)}
       </Text>
-      <Text style={ui.sectionTitle}>
+      <Text
+        userId={received ? r.requesterId : r.ownerId}
+        style={ui.sectionTitle}
+      >
         {received
           ? r.requesterDisplayName
           : post.data?.ownerDisplayName || "Người đăng bài"}

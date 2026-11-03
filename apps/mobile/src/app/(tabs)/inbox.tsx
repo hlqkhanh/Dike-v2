@@ -20,6 +20,7 @@ import {
 import { useMobileApi } from "@/core/hooks";
 import { homeTheme as h } from "@/core/home-theme";
 import { theme } from "@/core/theme";
+import { useSession } from "@/core/session";
 
 function conversationTime(value?: string) {
   if (!value) return "";
@@ -50,6 +51,7 @@ function conversationTime(value?: string) {
 
 export default function Inbox() {
   const api = useMobileApi();
+  const { session } = useSession();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UNREAD" | "TRIP" | "DIRECT">(
     "ALL",
@@ -140,6 +142,9 @@ export default function Inbox() {
                 >
                   <View style={styles.recentAvatar}>
                     <Avatar
+                      userId={conversation.participantIds.find(
+                        (id) => id !== session?.user.id,
+                      )}
                       name={
                         conversation.recipientDisplayName || "Người cùng đường"
                       }
@@ -147,7 +152,13 @@ export default function Inbox() {
                       size={62}
                     />
                   </View>
-                  <Text numberOfLines={1} style={styles.recentName}>
+                  <Text
+                    userId={conversation.participantIds.find(
+                      (id) => id !== session?.user.id,
+                    )}
+                    numberOfLines={1}
+                    style={styles.recentName}
+                  >
                     {conversation.recipientDisplayName || "Người cùng đường"}
                   </Text>
                 </Pressable>
@@ -240,6 +251,9 @@ export default function Inbox() {
                   ]}
                 >
                   <Avatar
+                    userId={conversation.participantIds.find(
+                      (id) => id !== session?.user.id,
+                    )}
                     name={
                       conversation.recipientDisplayName || "Người cùng đường"
                     }
@@ -247,7 +261,13 @@ export default function Inbox() {
                     size={54}
                   />
                   <View style={styles.identity}>
-                    <Text numberOfLines={1} style={styles.name}>
+                    <Text
+                      userId={conversation.participantIds.find(
+                        (id) => id !== session?.user.id,
+                      )}
+                      numberOfLines={1}
+                      style={styles.name}
+                    >
                       {conversation.recipientDisplayName || "Người cùng đường"}
                     </Text>
                     <Text numberOfLines={1} style={styles.preview}>

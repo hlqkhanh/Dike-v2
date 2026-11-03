@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import type { RoutePoint } from "@dike/api-client-ts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -55,6 +56,17 @@ export function RouteMapSurface({
         return;
       try {
         const message = JSON.parse(event.data);
+        if (
+          message.source === "dike-route-map" &&
+          message.type === "profile" &&
+          typeof message.userId === "string" &&
+          message.userId.length > 0 &&
+          message.userId.length <= 128
+        )
+          router.push({
+            pathname: "/user/[id]",
+            params: { id: message.userId },
+          });
         if (message.source === "dike-route-map" && message.type === "tap")
           onMapPress?.();
         if (message.source === "dike-route-map" && message.type === "error")

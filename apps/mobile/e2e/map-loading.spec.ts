@@ -7,9 +7,10 @@ export function setWorkerUrl() {}
 export function setWorkerCount() {}
 export class LngLatBounds { extend() { return this; } }
 export class NavigationControl {}
-export class Marker { constructor(options){this.options=options;} setLngLat(point) { this.point=point;return this; } addTo() { if(this.options.element){this.options.element.dataset.coordinate=JSON.stringify(this.point);this.options.element.dataset.anchor=this.options.anchor;this.options.element.dataset.offset=JSON.stringify(this.options.offset);} (window.markerColors ||= []).push(this.options.color ?? this.options.element?.style.getPropertyValue("--pin-color")); if(this.options.element)document.getElementById("map").appendChild(this.options.element);return this; } }
+export class Marker { constructor(options){this.options=options;} setLngLat(point) { this.point=point;return this; } setOffset(offset) { this.offset=offset;return this; } addTo() { if(this.options.element){this.options.element.dataset.coordinate=JSON.stringify(this.point);this.options.element.dataset.anchor=this.options.anchor;this.options.element.dataset.offset=JSON.stringify(this.options.offset);} (window.markerColors ||= []).push(this.options.color ?? this.options.element?.style.getPropertyValue("--pin-color")); if(this.options.element)document.getElementById("map").appendChild(this.options.element);return this; } }
 export class Map {
-  constructor() {
+  constructor(options) {
+    window.mapOptions=options;this.sources={};this.layers={};
     this.events = {}; this.styleReady = false;
     window.mapInstance = Math.random(); window.testMap=this;
     setTimeout(() => {
@@ -21,7 +22,12 @@ export class Map {
   on(type, callback) { (this.events[type] ||= []).push(callback); return this; }
   once(type, callback) { const once = data => { this.events[type] = this.events[type].filter(c => c !== once); callback(data); }; return this.on(type, once); }
   isStyleLoaded() { return this.styleReady; }
-  resize() {} fitBounds() {} addSource() {} addLayer() {} addControl() {}
+  resize() {} fitBounds() {}
+  addSource(id, source) { this.sources[id]=source; }
+  addLayer(layer) { this.layers[layer.id]=layer; }
+  setLayoutProperty(id, key, value) { (this.layers[id].layout ||= {})[key]=value; }
+  addControl() { if(!document.querySelector('.maplibregl-ctrl-top-right')){const el=document.createElement('div');el.className='maplibregl-ctrl-top-right';document.getElementById('map').appendChild(el);} }
+
   project() { return {x:100}; } getContainer() { return document.getElementById("map"); }
   triggerRepaint() { setTimeout(() => this.emit('render'), 10); }
 }
@@ -66,6 +72,44 @@ async function maps(page: Page, count = 1, failFirst = false) {
   });
   return { requested };
 }
+
+test("feed avatar and name open the author profile without opening the post", async ({
+  page,
+}) => {
+  await maps(page);
+  await page.goto("/");
+  const card = page.getByTestId("ride-post-card").first();
+  await card
+    .getByRole("link", {
+      name: "Xem trang cá nhân " + post.ownerDisplayName,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(new RegExp("/user/" + post.ownerId + "$"));
+  await page.goBack();
+  await card.getByText(post.ownerDisplayName, { exact: true }).click();
+  await expect(page).toHaveURL(new RegExp("/user/" + post.ownerId + "$"));
+});
+
+test("conversation avatar and name open the companion profile", async ({
+  page,
+}) => {
+  await setup(page);
+  for (const path of ["/inbox", "/chat/conversation-1"]) {
+    await page.goto(path);
+    await page
+      .getByRole("link", { name: "Xem trang cá nhân Thu Hà", exact: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/user\/other$/);
+    await page.goto(path);
+    await page
+      .getByRole("link", { name: "Thu Hà", exact: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/user\/other$/);
+  }
+});
 
 test("feed mounts nearby maps and releases maps far offscreen", async ({
   page,
@@ -629,9 +673,85 @@ for (const type of ["OFFER_RIDE", "NEED_RIDE"]) {
         await expect(merged.getByTestId("merged-journey-stop")).toHaveCount(4);
         await expect(merged).toContainText("Companion pickup");
         await expect(merged).toContainText("Companion destination");
-        const card = page.getByTestId("request-comment-confirmed");
-        await expect(card.getByTestId("request-pickup")).toHaveCount(0);
-        await expect(card.getByTestId("request-dropoff")).toHaveCount(0);
+        const stopCards = merged.getByTestId("merged-journey-stop");
+        await expect(
+          stopCards.nth(0).getByTestId("journey-art-driver-origin"),
+        ).toBeVisible();
+        await expect(
+          stopCards.nth(1).getByTestId("journey-art-passenger-origin"),
+        ).toBeVisible();
+        await expect(
+          stopCards.nth(2).getByTestId("journey-art-passenger-destination"),
+        ).toBeVisible();
+        await expect(
+          stopCards.nth(3).getByTestId("journey-art-driver-destination"),
+        ).toBeVisible();
+        await expect(merged.getByText("Sẵn sàng đồng hành")).toHaveCount(0);
+        await expect(merged.getByText("Người chở khởi hành")).toHaveCount(0);
+        for (const state of ["ACCEPTED", "DRIVER_STARTED", "PAYMENT"]) {
+          await expect(
+            merged.getByTestId("journey-state-" + state),
+          ).toBeVisible();
+        }
+        await expect(
+          merged.getByTestId("journey-state-DRIVER_ARRIVED"),
+        ).toHaveCount(0);
+        await expect(merged.getByTestId("journey-state-COMPLETED")).toHaveCount(
+          0,
+        );
+        if (type === "OFFER_RIDE") {
+          await expect(
+            merged.getByText("7 Main Street", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            merged.getByText("8 Main Street", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            merged.getByRole("button", { name: /Xem địa chỉ|Ẩn địa chỉ/ }),
+          ).toHaveCount(0);
+        }
+        const card = page.getByTestId("confirmed-post-detail");
+        const progress = card.getByLabel("Tiến độ chuyến đi", { exact: true });
+        await expect(progress).toBeVisible();
+        await expect(progress.getByTestId("journey-trail")).toBeVisible();
+        const rider = progress.getByTestId("journey-rider");
+        await expect(rider).toHaveAttribute(
+          "aria-label",
+          "Vị trí hiện tại: Đã xác nhận",
+        );
+        const trailBox = await progress
+          .getByTestId("journey-trail")
+          .boundingBox();
+        const initialRiderBox = await rider.boundingBox();
+        const initialRiderY = initialRiderBox!.y - trailBox!.y;
+        await expect(card.getByTestId("journey-summary-details")).toHaveCount(
+          0,
+        );
+        await expect(
+          card.getByText("Hành trình của bạn", { exact: true }),
+        ).toHaveCount(0);
+        const confirmedComment = card.getByTestId("request-comment-confirmed");
+        await expect(
+          confirmedComment.getByTestId("request-pickup"),
+        ).toHaveCount(0);
+        await expect(
+          confirmedComment.getByTestId("request-dropoff"),
+        ).toHaveCount(0);
+        await expect(page.getByTestId("confirmed-route-map")).toHaveCount(0);
+        await card
+          .getByRole("button", { name: "Mở thông tin hành trình", exact: true })
+          .click();
+        await expect(card.getByTestId("journey-summary-details")).toBeVisible();
+        await expect(page.getByTestId("confirmed-route-map")).toBeVisible();
+        await expect(
+          card.getByRole("button", { name: "Xem bản đồ thực tế", exact: true }),
+        ).toHaveCount(0);
+        await expect(
+          confirmedComment.getByRole("button", {
+            name: "Mở trò chuyện",
+            exact: true,
+          }),
+        ).toHaveCount(0);
         const map = page
           .getByTestId("confirmed-route-map")
           .frameLocator("iframe");
@@ -651,6 +771,20 @@ for (const type of ["OFFER_RIDE", "NEED_RIDE"]) {
             path: "test-results/confirmed-trip-progress.png",
           });
         }
+        await card
+          .getByRole("button", {
+            name: "Thu gọn thông tin hành trình",
+            exact: true,
+          })
+          .click();
+        await expect(card.getByTestId("journey-summary-details")).toHaveCount(
+          0,
+        );
+        if (own && type === "OFFER_RIDE") {
+          await progress
+            .getByTestId("journey-trail")
+            .screenshot({ path: "test-results/journey-trail-cards.png" });
+        }
         const driver = (type === "OFFER_RIDE") === own;
         const start = card.getByRole("button", {
           name: "Bắt đầu đi",
@@ -662,6 +796,19 @@ for (const type of ["OFFER_RIDE", "NEED_RIDE"]) {
           await page
             .getByRole("button", { name: "Xác nhận", exact: true })
             .click();
+          await expect(rider).toHaveAttribute(
+            "aria-label",
+            "Vị trí hiện tại: Đang đến đón",
+          );
+          await expect
+            .poll(async () => {
+              const currentRiderBox = await rider.boundingBox();
+              const currentTrailBox = await progress
+                .getByTestId("journey-trail")
+                .boundingBox();
+              return currentRiderBox!.y - currentTrailBox!.y;
+            })
+            .toBeGreaterThan(initialRiderY + 30);
           await expect(
             card.getByRole("button", { name: "Đã đến điểm đón", exact: true }),
           ).toBeVisible();
@@ -671,12 +818,26 @@ for (const type of ["OFFER_RIDE", "NEED_RIDE"]) {
           await page
             .getByRole("button", { name: "Xác nhận", exact: true })
             .click();
+          await expect(rider).toHaveAttribute(
+            "aria-label",
+            "Vị trí hiện tại: " +
+              (type === "OFFER_RIDE"
+                ? "Companion pickup"
+                : post.originLabel.split(",")[0]),
+          );
           await card
             .getByRole("button", { name: "Hoàn thành chuyến", exact: true })
             .click();
           await page
             .getByRole("button", { name: "Xác nhận", exact: true })
             .click();
+          await expect(rider).toHaveAttribute(
+            "aria-label",
+            "Vị trí hiện tại: " +
+              (type === "OFFER_RIDE"
+                ? "Companion destination"
+                : post.destinationLabel.split(",")[0]),
+          );
           await expect(
             card.getByText("Đang chờ người đi ké xác nhận thanh toán."),
           ).toBeVisible();
@@ -691,10 +852,16 @@ for (const type of ["OFFER_RIDE", "NEED_RIDE"]) {
             card.getByText(
               "Bạn sẽ nhận thông báo khi người chở cập nhật hành trình.",
             ),
-          ).toBeVisible();
+          ).toHaveCount(0);
           expect(decisions).toEqual([]);
         }
         if (own) {
+          await card
+            .getByRole("button", {
+              name: "Mở thông tin hành trình",
+              exact: true,
+            })
+            .click();
           await page.getByTestId("select-request-pending-extra").click();
           await expect(page.getByTestId("request-decision-bar")).toBeVisible();
           await page
@@ -768,6 +935,48 @@ for (const [pickupIndex, dropoffIndex, expectedCount] of [
       const merged = page.getByTestId("merged-journey-stops");
       const fields = merged.getByTestId("merged-journey-stop");
       await expect(fields).toHaveCount(expectedCount);
+      await expect
+        .poll(async () => {
+          const sources = await fields.evaluateAll((cards) =>
+            cards
+              .map((card) =>
+                card
+                  .querySelector('[data-testid^="journey-art-"] img')
+                  ?.getAttribute("src"),
+              )
+              .filter(Boolean),
+          );
+          return new Set(sources).size;
+        })
+        .toBe(expectedCount);
+
+      await expect(
+        fields
+          .first()
+          .getByTestId(
+            "journey-art-" +
+              (pickupIndex === 0 ? "shared" : "driver") +
+              "-origin",
+          ),
+      ).toBeVisible();
+      await expect(
+        fields
+          .last()
+          .getByTestId(
+            "journey-art-" +
+              (dropoffIndex === 3 ? "shared" : "driver") +
+              "-destination",
+          ),
+      ).toBeVisible();
+      await expect(merged.getByTestId("journey-art-shared")).toHaveCount(
+        4 - expectedCount,
+      );
+      await expect(merged.getByTestId("journey-art-driver")).toHaveCount(
+        expectedCount - 2,
+      );
+      await expect(merged.getByTestId("journey-art-passenger")).toHaveCount(
+        expectedCount - 2,
+      );
       const expected = [
         post.originLabel,
         ...(pickupIndex !== 0 ? ["Rider pickup"] : []),
@@ -782,15 +991,80 @@ for (const [pickupIndex, dropoffIndex, expectedCount] of [
       await expect(merged.getByText(/Cả hai/)).toHaveCount(4 - expectedCount);
       await expect(page.getByTestId("request-pickup")).toHaveCount(0);
       await expect(page.getByTestId("request-dropoff")).toHaveCount(0);
-      await expect(
-        page.getByText("Tiến độ chuyến đi", { exact: true }),
-      ).toBeVisible();
+      await expect(page.getByTestId("journey-trail")).toBeVisible();
+      await page
+        .getByRole("button", { name: "Mở thông tin hành trình", exact: true })
+        .click();
+      await expect(page.getByTestId("confirmed-route-map")).toBeVisible();
       await expect(
         page
           .getByTestId("confirmed-route-map")
           .frameLocator("iframe")
           .locator("body"),
       ).toHaveAttribute("data-marker-count", String(expectedCount));
+      if (pickupIndex === 0 && dropoffIndex === 3) {
+        const preview = page
+          .getByTestId("confirmed-route-map")
+          .frameLocator("iframe");
+        await preview
+          .locator("body")
+          .evaluate(() =>
+            (
+              window as unknown as { testMap: { emit: (type: string) => void } }
+            ).testMap.emit("click"),
+          );
+        const expanded = page.getByTestId("expanded-route-map");
+        await expect(expanded).toBeVisible();
+        const map = expanded.frameLocator("iframe");
+        await expect(map.locator("body")).toHaveAttribute(
+          "data-marker-count",
+          String(expectedCount),
+        );
+        await expect(map.locator(".dike-map-label")).toHaveCount(expectedCount);
+        await expect(map.locator(".dike-map-label").first()).toHaveText(
+          post.originLabel.split(",")[0],
+        );
+        const memberLink = map.locator(".dike-marker-person").first();
+        const memberId = await memberLink.getAttribute("data-member");
+        await memberLink.click();
+        await expect(page).toHaveURL(new RegExp("/user/" + memberId + "$"));
+        await page.goBack();
+        await expect(expanded).toBeVisible();
+        const original = await map.locator("body").evaluate(() => {
+          const state = window as unknown as {
+            mapInstance: number;
+            mapOptions: { interactive: boolean };
+          };
+          return {
+            instance: state.mapInstance,
+            interactive: state.mapOptions.interactive,
+          };
+        });
+        expect(original.interactive).toBe(true);
+        const satellite = map.getByRole("button", {
+          name: "Xem bản đồ vệ tinh",
+          exact: true,
+        });
+        await satellite.click();
+        await expect(map.locator("body")).toHaveAttribute(
+          "data-layer",
+          "satellite",
+        );
+        await expect(satellite).toHaveAttribute("aria-pressed", "true");
+        expect(
+          await map
+            .locator("body")
+            .evaluate(
+              () => (window as unknown as { mapInstance: number }).mapInstance,
+            ),
+        ).toBe(original.instance);
+        await satellite.click();
+        await expect(map.locator("body")).toHaveAttribute("data-layer", "map");
+        await expanded
+          .getByRole("button", { name: "Quay lại", exact: true })
+          .click();
+        await expect(page.getByTestId("confirmed-post-detail")).toBeVisible();
+      }
       await page.screenshot({
         path:
           "test-results/merged-journey-" +

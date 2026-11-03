@@ -136,6 +136,7 @@ export function PostJourneyHeading({
       testID="post-summary-toggle"
     >
       <Avatar
+        userId={post?.ownerId}
         name={post?.ownerDisplayName}
         uri={post?.ownerAvatarUrl}
         size={28}
@@ -145,6 +146,7 @@ export function PostJourneyHeading({
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.85}
+          userId={post?.ownerId}
           style={styles.ownerName}
         >
           {post?.ownerDisplayName ?? "..."}

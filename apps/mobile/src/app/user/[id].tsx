@@ -143,7 +143,8 @@ export default function UserProfile() {
           reviews.data?.map((r) => (
             <Card key={r.id}>
               <Text style={{ fontSize: 15, fontWeight: "700" }}>
-                {r.reviewerDisplayName} · {r.stars}/5
+                <Text userId={r.reviewerId}>{r.reviewerDisplayName}</Text> ·{" "}
+                {r.stars}/5
               </Text>
               <Text style={ui.muted}>
                 {r.comment || "Không có lời nhận xét."}

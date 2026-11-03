@@ -19,6 +19,7 @@ export function PostRequestComment({
   onChat,
   chatPending = false,
   journey = false,
+  progressInHeader = false,
 }: {
   response: RidePostResponse;
   post: RidePostView;
@@ -29,6 +30,7 @@ export function PostRequestComment({
   onChat?: () => void;
   chatPending?: boolean;
   journey?: boolean;
+  progressInHeader?: boolean;
   onDecision: (response: RidePostResponse, value: string) => void;
 }) {
   const requesterPassenger = post.type === "OFFER_RIDE";
@@ -62,12 +64,14 @@ export function PostRequestComment({
       id: "dropoff",
     },
   ].filter((place) => place.changed && place.label);
+  if (progressInHeader && !visibleMessage) return null;
   return (
     <View
       style={[
         styles.comment,
         selected && styles.selected,
         !own && styles.flatComment,
+        progressInHeader && styles.flatComment,
       ]}
       testID={"request-comment-" + r.id}
     >
@@ -81,7 +85,15 @@ export function PostRequestComment({
           testID={"select-request-" + r.id}
         />
       ) : null}
-      {own ? (
+      {journey && !progressInHeader ? (
+        <RideProgress
+          response={r}
+          currentUserId={viewerId}
+          embedded
+          onAdvance={(value) => onDecision(r, value)}
+        />
+      ) : null}
+      {own && !progressInHeader ? (
         <View pointerEvents="box-none" style={styles.selectionHeading}>
           <Text style={styles.selectionText}>
             {selected ? "Đang xem tuyến" : ""}
@@ -89,27 +101,28 @@ export function PostRequestComment({
           {selected ? <Icon name="checkmark-circle" size={18} /> : null}
         </View>
       ) : null}
-      {own ? (
-        <View pointerEvents="none" style={styles.header}>
+      {own && !progressInHeader ? (
+        <View style={styles.header}>
           <Avatar
+            userId={r.requesterId}
             name={r.requesterDisplayName}
             uri={r.requesterAvatarUrl}
             size={36}
           />
           <View style={styles.identity}>
-            <Text style={styles.name}>{r.requesterDisplayName}</Text>
+            <Text userId={r.requesterId} style={styles.name}>
+              {r.requesterDisplayName}
+            </Text>
             <Text style={styles.status}>{statusLabel(r.status)}</Text>
           </View>
           <Text style={styles.time}>
             {dateTime(check?.pickupAt ?? r.createdAt)}
           </Text>
         </View>
-      ) : (
+      ) : !journey ? (
         <View pointerEvents="none" style={styles.summaryHeader}>
           <View style={styles.identity}>
-            <Text style={styles.name}>
-              {journey ? "Hành trình của bạn" : "Yêu cầu của bạn"}
-            </Text>
+            <Text style={styles.name}>Yêu cầu của bạn</Text>
             <View style={styles.pickupTime}>
               <Icon
                 name="time-outline"
@@ -140,7 +153,7 @@ export function PostRequestComment({
             </Text>
           </View>
         </View>
-      )}
+      ) : null}
       {visibleMessage ? (
         <Text pointerEvents="none" style={styles.message}>
           {visibleMessage}
@@ -196,51 +209,75 @@ export function PostRequestComment({
           ))}
         </View>
       ) : null}
-      <View pointerEvents="none" style={styles.badges} testID="request-badges">
-        <View style={styles.badge}>
-          <Icon
-            name="navigate-outline"
-            size={13}
-            color={theme.colors.inkMuted}
-          />
-          <Text numberOfLines={1} style={styles.badgeText}>
-            +
-            {(meters / 1000).toLocaleString("vi-VN", {
-              maximumFractionDigits: 2,
-            })}{" "}
-            km
+      {progressInHeader ? null : journey ? (
+        <View style={styles.journeySummary} testID="request-badges">
+          <Text style={styles.journeyDetour}>
+            {meters > 0 || seconds > 0
+              ? `Đi vòng +${(meters / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} km · +${Math.ceil(seconds / 60)} phút`
+              : "Cùng tuyến đường"}
           </Text>
+          <View style={styles.journeyPrice}>
+            <Text style={styles.time}>Dự tính</Text>
+            <Text style={styles.journeyAmount}>
+              {amount != null
+                ? money(amount)
+                : post.type === "NEED_RIDE"
+                  ? "Thỏa thuận"
+                  : "Chưa có giá"}
+            </Text>
+          </View>
         </View>
-        <View style={styles.badge}>
-          <Icon name="time-outline" size={13} color={theme.colors.inkMuted} />
-          <Text numberOfLines={1} style={styles.badgeText}>
-            +{Math.ceil(seconds / 60)} phút
-          </Text>
-        </View>
+      ) : (
         <View
-          style={[
-            styles.badge,
-            styles.priceBadge,
-            requesterPassenger && {
-              backgroundColor: theme.colors.passengerSoft,
-            },
-          ]}
+          pointerEvents="none"
+          style={styles.badges}
+          testID="request-badges"
         >
-          <Text
-            numberOfLines={2}
+          <View style={styles.badge}>
+            <Icon
+              name="navigate-outline"
+              size={13}
+              color={theme.colors.inkMuted}
+            />
+            <Text numberOfLines={1} style={styles.badgeText}>
+              +
+              {(meters / 1000).toLocaleString("vi-VN", {
+                maximumFractionDigits: 2,
+              })}{" "}
+              km
+            </Text>
+          </View>
+          <View style={styles.badge}>
+            <Icon name="time-outline" size={13} color={theme.colors.inkMuted} />
+            <Text numberOfLines={1} style={styles.badgeText}>
+              +{Math.ceil(seconds / 60)} phút
+            </Text>
+          </View>
+          <View
             style={[
-              styles.price,
-              requesterPassenger && { color: theme.colors.passengerInk },
+              styles.badge,
+              styles.priceBadge,
+              requesterPassenger && {
+                backgroundColor: theme.colors.passengerSoft,
+              },
             ]}
           >
-            {amount != null
-              ? "Dự tính " + money(amount)
-              : post.type === "NEED_RIDE"
-                ? "Thỏa thuận"
-                : "Chưa có giá dự tính"}
-          </Text>
+            <Text
+              numberOfLines={2}
+              style={[
+                styles.price,
+                requesterPassenger && { color: theme.colors.passengerInk },
+              ]}
+            >
+              {amount != null
+                ? "Dự tính " + money(amount)
+                : post.type === "NEED_RIDE"
+                  ? "Thỏa thuận"
+                  : "Chưa có giá dự tính"}
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
       <View style={styles.actions}>
         {r.status === "PENDING" ? (
           own ? null : (
@@ -257,7 +294,7 @@ export function PostRequestComment({
             </Pressable>
           )
         ) : null}
-        {r.conversationId || onChat ? (
+        {!progressInHeader && (r.conversationId || onChat) ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Mở trò chuyện"
@@ -273,35 +310,50 @@ export function PostRequestComment({
             style={[
               styles.action,
               !own && {
-                backgroundColor: requesterPassenger
-                  ? "#f5cf6c"
-                  : theme.colors.primary,
+                backgroundColor: journey
+                  ? "#edf7f2"
+                  : requesterPassenger
+                    ? "#f5cf6c"
+                    : theme.colors.primary,
               },
               chatPending && { opacity: 0.5 },
             ]}
           >
             {!own ? (
-              <Icon name="chatbubble-ellipses-outline" size={17} color="#fff" />
+              <Icon
+                name="chatbubble-ellipses-outline"
+                size={17}
+                color={journey ? theme.colors.primary : "#fff"}
+              />
             ) : null}
-            <Text style={[styles.actionText, !own && { color: "#fff" }]}>
+            <Text
+              style={[
+                styles.actionText,
+                !own && { color: journey ? theme.colors.primary : "#fff" },
+              ]}
+            >
               Nhắn tin
             </Text>
           </Pressable>
         ) : null}
       </View>
-      {["ACCEPTED", "DRIVER_STARTED", "DRIVER_ARRIVED", "COMPLETED"].includes(
-        r.status,
-      ) ? (
-        <RideProgress
-          response={r}
-          currentUserId={viewerId}
-          onAdvance={(value) => onDecision(r, value)}
-        />
-      ) : null}
     </View>
   );
 }
 const styles = StyleSheet.create({
+  journeySummary: { flexDirection: "row", alignItems: "center", gap: 12 },
+  journeyDetour: {
+    flex: 1,
+    color: theme.colors.inkMuted,
+    fontSize: 11,
+    lineHeight: 17,
+  },
+  journeyPrice: { alignItems: "flex-end", gap: 2 },
+  journeyAmount: {
+    color: theme.colors.primary,
+    fontSize: 17,
+    fontWeight: "700",
+  },
   flatComment: {
     borderWidth: 0,
     borderRadius: 0,
