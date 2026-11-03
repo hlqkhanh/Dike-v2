@@ -1,6 +1,7 @@
 "use client";
 import { MemberAvatar } from "../../app/components/member-avatar";
 import { PostRoute } from "./post-route";
+import { responseForRoute, sharesPostEndpoints } from "./post-route-data";
 import { PassengerRequest } from "./passenger-request";
 import { isActiveResponse, ResponseProgress } from "./response-progress";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,10 +80,13 @@ export function PostDetail({ id }: { id: string }) {
   const myResponse = responses.data?.find(
     (item) => item.requesterId === session.data?.user.id,
   );
-  const selectedResponse = responses.data?.find(
-    (item) => item.id === selectedResponseId && item.pickupCheck,
-  );
   const trackedResponse = responses.data?.find(isActiveResponse);
+  const mapResponse = responseForRoute(
+    responses.data ?? [],
+    post.data?.ownerId ?? "",
+    session.data?.user.id,
+    selectedResponseId,
+  );
   useEffect(() => {
     if (!post.data || !session.data || owner || post.data.status !== "OPEN")
       return;
@@ -391,7 +395,7 @@ export function PostDetail({ id }: { id: string }) {
                     ) : null}
                     {responses.data.map((item) => (
                       <article
-                        className={`feed-response-request is-${item.status.toLowerCase()} ${item.pickupCheck ? "has-pickup" : ""} ${selectedResponseId === item.id ? "is-map-selected" : ""}`}
+                        className={`feed-response-request is-${item.status.toLowerCase()} ${item.pickupCheck ? "has-pickup" : ""} ${mapResponse?.id === item.id ? "is-map-selected" : ""}`}
                         key={item.id}
                         tabIndex={item.pickupCheck ? 0 : undefined}
                         aria-label={
@@ -644,23 +648,24 @@ export function PostDetail({ id }: { id: string }) {
                   id={id}
                   origin={post.data.originLabel}
                   destination={post.data.destinationLabel}
-                  pickupCheck={selectedResponse?.pickupCheck ?? undefined}
+                  pickupCheck={mapResponse?.pickupCheck ?? undefined}
+                  sharedEndpoints={sharesPostEndpoints(mapResponse)}
                   driver={{
                     name: post.data.ownerDisplayName || "Người đăng chuyến",
                     avatarUrl: post.data.ownerAvatarUrl,
                   }}
                   passenger={
-                    selectedResponse
+                    mapResponse
                       ? {
                           name:
-                            selectedResponse.requesterDisplayName ||
+                            mapResponse.requesterDisplayName ||
                             "Thành viên Diké",
-                          avatarUrl: selectedResponse.requesterAvatarUrl,
+                          avatarUrl: mapResponse.requesterAvatarUrl,
                         }
                       : undefined
                   }
                 />
-                {!selectedResponse ? (
+                {!mapResponse?.pickupCheck ? (
                   <dl>
                     <div>
                       <dt>

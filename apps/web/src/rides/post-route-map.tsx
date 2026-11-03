@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Map, Marker, Popup, LngLatBounds, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { RidePostRoute } from "@dike/api-client-ts";
+import { journeyRouteSegments } from "./post-route-data";
 
 type MapMember = { name: string; avatarUrl?: string | null };
 function memberMarker(
@@ -170,39 +171,12 @@ export default function PostRouteMap({
     map.on("load", () => {
       setFailed(false);
       if (coordinates.length < 2) return;
-      const split =
-        pickup &&
-        typeof pickupIndex === "number" &&
-        pickupIndex >= 0 &&
-        pickupIndex < coordinates.length;
-      const hasDropoff =
-        split &&
-        typeof dropoffIndex === "number" &&
-        dropoffIndex >= pickupIndex &&
-        dropoffIndex < coordinates.length - 1;
-      const segments = split
-        ? [
-            {
-              coordinates: coordinates.slice(0, pickupIndex + 1),
-              color: "#e9bd52",
-            },
-            {
-              coordinates: coordinates.slice(
-                pickupIndex,
-                hasDropoff ? dropoffIndex + 1 : undefined,
-              ),
-              color: hasDropoff ? "#2563eb" : "#07966e",
-            },
-            ...(hasDropoff
-              ? [
-                  {
-                    coordinates: coordinates.slice(dropoffIndex),
-                    color: "#07966e",
-                  },
-                ]
-              : []),
-          ]
-        : [{ coordinates, color: routeColor }];
+      const segments = journeyRouteSegments(
+        coordinates,
+        pickup ? pickupIndex : undefined,
+        dropoffIndex,
+        routeColor,
+      );
       map.addSource("post-route", {
         type: "geojson",
         data: {

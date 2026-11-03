@@ -20067,3 +20067,40 @@ html:has(.journeys-hub) {
     flex-wrap: wrap;
   }
 }
+.post-route-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  color: #52665f;
+  font-size: 12px;
+}
+.post-route-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.post-route-legend i {
+  width: 20px;
+  height: 4px;
+  border-radius: 3px;
+}
+.post-route-legend .is-pickup {
+  background: #e9bd52;
+}
+.post-route-legend .is-shared {
+  background: #2563eb;
+}
+.post-route-legend .is-driver {
+  background: #07966e;
+}
+.post-route-shared-members {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13px;
+}

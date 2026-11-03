@@ -6,6 +6,7 @@ import { Clock3, Flag, MapPin } from "lucide-react";
 import { ApiError, type PickupCheck } from "@dike/api-client-ts";
 import { rideApi } from "./api";
 import { useAuthFailure } from "../auth/use-auth-failure";
+import { sharedEndpointStops } from "./post-route-data";
 
 const RouteMap = dynamic(() => import("./post-route-map"), {
   ssr: false,
@@ -17,6 +18,7 @@ export function PostRoute({
   origin,
   destination,
   pickupCheck,
+  sharedEndpoints = false,
   driver,
   passenger,
 }: {
@@ -24,6 +26,7 @@ export function PostRoute({
   origin: string;
   destination: string;
   pickupCheck?: PickupCheck;
+  sharedEndpoints?: boolean;
   driver?: { name: string; avatarUrl?: string | null };
   passenger?: { name: string; avatarUrl?: string | null };
 }) {
@@ -38,19 +41,24 @@ export function PostRoute({
     retryDelay: 3000,
   });
   useAuthFailure(route.error);
-  const selectedRoute = pickupCheck
-    ? {
-        geometry: pickupCheck.geometry,
-        distanceMeters: 0,
-        durationSeconds: 0,
-        provider: pickupCheck.provider,
-      }
-    : undefined;
+  const selectedRoute =
+    pickupCheck && pickupCheck.geometry.length >= 2
+      ? {
+          geometry: pickupCheck.geometry,
+          distanceMeters: 0,
+          durationSeconds: 0,
+          provider: pickupCheck.provider,
+        }
+      : undefined;
   const displayedRoute = selectedRoute ?? route.data;
-  const isLoading = !pickupCheck && route.isPending;
+  const isLoading = !selectedRoute && route.isPending;
   const hasRoute = Boolean(
     displayedRoute && displayedRoute.geometry.length >= 2,
   );
+  const sharedStops = sharedEndpoints
+    ? sharedEndpointStops(displayedRoute?.geometry ?? [], origin, destination)
+    : undefined;
+  const stops = selectedRoute ? pickupCheck : sharedStops;
   return (
     <div className="post-route-preview">
       {isLoading ? (
@@ -68,7 +76,7 @@ export function PostRoute({
                 ? "Yêu cầu này chưa có tuyến đường được lưu."
                 : "Bài đăng này chưa có tuyến đường được lưu."}
           </span>
-          {!pickupCheck ? (
+          {!selectedRoute ? (
             <button type="button" onClick={() => void route.refetch()}>
               Thử lại
             </button>
@@ -79,9 +87,11 @@ export function PostRoute({
           <RouteMap
             route={displayedRoute!}
             origin={origin}
-            destination={pickupCheck?.destinationLabel ?? destination}
-            pickup={pickupCheck?.pickup}
-            pickupIndex={pickupCheck?.pickupIndex}
+            destination={destination}
+            pickup={stops?.pickup}
+            pickupIndex={stops?.pickupIndex}
+            dropoff={stops?.dropoff}
+            dropoffIndex={stops?.dropoffIndex}
             driver={driver}
             passenger={passenger}
           />
@@ -105,20 +115,51 @@ export function PostRoute({
           )}
         </>
       )}
+      {sharedEndpoints ? (
+        <div className="post-route-shared-members" role="status">
+          <strong>
+            {driver?.name || "Người chở"} và{" "}
+            {passenger?.name || "Người đi cùng"}
+          </strong>
+          <span>Đi chung toàn tuyến · Chung điểm đón và điểm đến</span>
+        </div>
+      ) : null}
+      {pickupCheck && !selectedRoute && hasRoute ? (
+        <p className="post-route-demo" role="status">
+          Yêu cầu chưa lưu tuyến ghép. Bản đồ đang hiển thị tuyến của bài đăng.
+        </p>
+      ) : null}
       {pickupCheck ? (
         <div className="post-route-selected-details" aria-live="polite">
           <p>
             <MapPin size={18} aria-hidden="true" />
             <span>
-              <small>Điểm đón</small>
+              <small>Điểm đi của người chở</small>
+              <strong>{origin}</strong>
+            </span>
+          </p>
+          <p>
+            <MapPin size={18} aria-hidden="true" />
+            <span>
+              <small>Điểm đón người đi cùng</small>
               <strong>{pickupCheck.pickup.displayLabel}</strong>
             </span>
           </p>
           <p>
             <Flag size={18} aria-hidden="true" />
             <span>
-              <small>Điểm đến chung</small>
-              <strong>{pickupCheck.destinationLabel}</strong>
+              <small>Điểm trả người đi cùng</small>
+              <strong>
+                {pickupCheck.dropoff?.displayLabel ??
+                  pickupCheck.destinationLabel}
+              </strong>
+            </span>
+          </p>
+          <p>
+            <Flag size={18} aria-hidden="true" />
+            <span>
+              <small>Điểm đến của người chở</small>
+              <strong>{destination}</strong>
             </span>
           </p>
           <p>
@@ -141,6 +182,27 @@ export function PostRoute({
           </p>
         </div>
       )}
+      {stops ? (
+        <div className="post-route-legend" aria-label="Chú thích tuyến đường">
+          {stops.pickupIndex > 0 ? (
+            <span>
+              <i className="is-pickup" />
+              Người chở đến đón
+            </span>
+          ) : null}
+          <span>
+            <i className="is-shared" />
+            Đoạn đi chung
+          </span>
+          {stops.dropoffIndex != null &&
+          stops.dropoffIndex < (displayedRoute?.geometry.length ?? 0) - 1 ? (
+            <span>
+              <i className="is-driver" />
+              Người chở đi tiếp
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
