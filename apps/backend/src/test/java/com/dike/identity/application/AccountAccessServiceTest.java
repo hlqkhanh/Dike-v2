@@ -155,13 +155,21 @@ class AccountAccessServiceTest {
   @Test
   void verifiedLocalMemberAlsoReceivesSimulatedVehiclesAccess() {
     when(store.findUserById("user-1"))
-        .thenReturn(Optional.of(user(
-            AccountStatus.ACTIVE, PhoneStatus.VERIFIED, VerificationEvidence.REAL, Set.of())));
+        .thenReturn(
+            Optional.of(
+                user(
+                    AccountStatus.ACTIVE,
+                    PhoneStatus.VERIFIED,
+                    VerificationEvidence.REAL,
+                    Set.of())));
 
-    var snapshot = new AccountAccessService(
-        store, consents, environment("local")
-            .withProperty("dike.identity.simulated-full-access-enabled", "true"))
-        .require("user-1");
+    var snapshot =
+        new AccountAccessService(
+                store,
+                consents,
+                environment("local")
+                    .withProperty("dike.identity.simulated-full-access-enabled", "true"))
+            .require("user-1");
 
     assertThat(snapshot.authorities()).contains(AccountAuthority.APPROVED_DRIVER);
     assertThat(snapshot.accessMode()).isEqualTo(AccessMode.SIMULATED);
