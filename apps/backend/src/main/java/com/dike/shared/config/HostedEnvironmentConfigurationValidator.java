@@ -71,7 +71,8 @@ public final class HostedEnvironmentConfigurationValidator implements Applicatio
     requireValue("dike.auth.cookie.name", "__Host-DIKE_SESSION");
     requireValue("dike.otp.provider", "disabled");
     requireValue("dike.otp.send-enabled", "false");
-    requireValue("dike.routing.provider", "disabled");
+    requireValue("dike.routing.provider", "goong");
+    requireNonDefault("dike.routing.api-key", List.of("local-not-configured"));
     requireSecureUri("dike.auth.public-base-url");
     if (!required("dike.auth.public-base-url").startsWith("https://"))
       reject("dike.auth.public-base-url");

@@ -10,8 +10,9 @@ Không dùng `infra/render.yaml` cho demo vì blueprint đó tạo worker trả 
 
 - Google login, session first-party qua Vercel, cookie HTTPS `__Host-DIKE_SESSION`.
 - Thành viên mới giữ quyền thông thường; không giả lập VERIFIED_MEMBER/APPROVED_DRIVER.
-- OTP, upload/download file và API định tuyến bị chặn với `DEMO_FEATURE_DISABLED`.
-  Adapter OTP và routing disabled không liên hệ nhà cung cấp và không tạo kết quả giả.
+- OTP và upload/download file bị chặn với `DEMO_FEATURE_DISABLED`.
+  Định tuyến dùng Goong thật cho thành viên đã đăng nhập, không cần xác minh OTP.
+  API key Goong chỉ đặt trên backend; cache và giới hạn tần suất vẫn được áp dụng.
 - Không cần R2/S3. Readiness demo chỉ kiểm tra MongoDB và Redis; health indicator
   storage không được đăng ký trong profile demo.
 - Redis dùng hostname nội bộ `red-dbgs50cs728c73c8o6n0`, port 6379, cùng Render
@@ -20,8 +21,9 @@ Không dùng `infra/render.yaml` cho demo vì blueprint đó tạo worker trả 
   cho ứng dụng gọi `CONFIG GET/SET`. Không đổi quyền Redis để vượt hạn chế này.
 - Render tự cung cấp commit SHA và public hostname; profile demo dùng chúng cho
   service version và WebSocket URL. Không đoán tên miền trước khi tạo service.
-- Chỉ cần chủ tài khoản nhập MongoDB URI và Google client secret trên Render.
-  Hai OTP signing secrets được Blueprint sinh tự động, dù SMS đã bị vô hiệu hóa.
+- Chủ tài khoản nhập MongoDB URI, Google client secret và `DIKE_GOONG_API_KEY`
+  trên Render. Blueprint sinh `DIKE_ROUTING_CACHE_KEY_SECRET` và hai OTP signing
+  secrets tự động, dù SMS đã bị vô hiệu hóa.
 - Vercel cần `DIKE_WEB_DEMO=true` và `DIKE_API_INTERNAL_ORIGIN` bằng URL API thực tế;
   deploy frontend từ cùng nhánh/commit sau khi backend đã sẵn sàng.
 - Render Free có thể ngủ khi không có truy cập; worker cũng tạm dừng. Không quảng
@@ -29,6 +31,21 @@ Không dùng `infra/render.yaml` cho demo vì blueprint đó tạo worker trả 
 
 Không kết hợp profile demo với local, staging, production, api hoặc worker.
 Profile `combined` là profile workload duy nhất dùng cùng `demo`.
+
+## Sửa lỗi khởi động demo: dike.routing.provider
+
+Nếu log báo `Secure hosted configuration is required for property: dike.routing.provider`,
+image demo cũ yêu cầu routing bị tắt. Bản mới dùng Goong thật: cần push code mới
+và deploy commit chứa thay đổi validator, filter và profile demo cùng nhau.
+
+Trong Environment của service `dike-api-demo`, đặt `DIKE_ROUTING_PROVIDER=goong`,
+`DIKE_GOONG_API_KEY` bằng API key Goong thật, `DIKE_ROUTING_CACHE_KEY_SECRET` bằng
+secret ngẫu nhiên riêng và `DIKE_ROUTING_ALLOW_UNVERIFIED_MEMBERS=true`.
+Giữ `SPRING_PROFILES_ACTIVE=demo,combined`. Đồng bộ `infra/render-demo.yaml` nếu
+quản lý bằng Blueprint; cache secret sẽ được sinh tự động. Không commit API key.
+Chỉ đổi biến môi trường trên image cũ sẽ vẫn bị validator từ chối.
+Sau deploy, kiểm tra `/actuator/health/readiness` trả `UP` và tiến trình không còn
+thoát với status 1 sau dòng `Started DikeApplication`.
 
 ## Các yêu cầu riêng của staging (không áp dụng cho demo)
 
@@ -86,7 +103,9 @@ trên Render. Đã sửa lỗi khởi động `NOPERM config|get` bằng biến
 minh; profile demo mới ưu tiên `RENDER_GIT_COMMIT`. Render đã báo Live;
 liveness/readiness trả `UP`, OpenAPI kiểm tra thành công. Qua domain Vercel,
 OAuth chuyển đến Google với callback đúng, PKCE S256 và cookie Secure/HttpOnly;
-file/OTP/routing trả 503 `DEMO_FEATURE_DISABLED` như thiết kế.
+file/OTP/routing trả 503 `DEMO_FEATURE_DISABLED` theo thiết kế tại thời điểm đó.
+Routing ở bản mới đã chuyển sang Goong thật như cấu hình ở trên; cần kiểm tra lại
+luồng tìm địa điểm và tính tuyến sau khi deploy.
 
 Lần đăng nhập bằng trình duyệt quay về `OIDC_LOGIN_FAILED`, nên chưa xác nhận
 luồng đăng nhập hoàn tất. Bản chẩn đoán chỉ ghi mã OAuth từ danh sách cố định,

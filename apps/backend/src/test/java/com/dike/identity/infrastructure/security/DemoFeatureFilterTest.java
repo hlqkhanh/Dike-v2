@@ -17,8 +17,7 @@ class DemoFeatureFilterTest {
         "/api/v1/auth/otp",
         "/api/v1/auth/otp/id/verify",
         "/api/v1/auth/test/otp/id",
-        "/api/v1/auth/dev/mobile",
-        "/api/v1/routing/places"
+        "/api/v1/auth/dev/mobile"
       })
   void rejectsPaidAndDeveloperFeatures(String path) throws Exception {
     var request = new MockHttpServletRequest("POST", path);
@@ -39,9 +38,15 @@ class DemoFeatureFilterTest {
         "/api/v1/auth/session",
         "/api/v1/auth/phone",
         "/api/v1/auth/logout",
-        "/actuator/health/readiness"
+        "/actuator/health/readiness",
+        "/api/v1/routing/place-sessions",
+        "/api/v1/routing/places",
+        "/api/v1/routing/places/resolve",
+        "/api/v1/routing/places/reverse",
+        "/api/v1/routing/routes",
+        "/api/v1/routing/estimates"
       })
-  void preservesGoogleSessionAndHealthPaths(String path) throws Exception {
+  void preservesGoogleSessionHealthAndRoutingPaths(String path) throws Exception {
     var request = new MockHttpServletRequest("GET", path);
     request.setServletPath(path);
     var chain = new MockFilterChain();

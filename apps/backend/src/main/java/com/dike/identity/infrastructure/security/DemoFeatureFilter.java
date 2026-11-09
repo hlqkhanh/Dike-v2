@@ -17,8 +17,7 @@ final class DemoFeatureFilter extends OncePerRequestFilter {
     if (blocked(path, "/api/v1/files")
         || blocked(path, "/api/v1/auth/otp")
         || blocked(path, "/api/v1/auth/test")
-        || blocked(path, "/api/v1/auth/dev")
-        || blocked(path, "/api/v1/routing")) {
+        || blocked(path, "/api/v1/auth/dev")) {
       SecurityErrorWriter.write(
           request,
           response,

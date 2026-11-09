@@ -70,6 +70,14 @@ class HostedEnvironmentConfigurationValidatorTest {
   }
 
   @Test
+  void demoRequiresRealRoutingCredentials() {
+    var environment = validDemo().withProperty("dike.routing.api-key", "local-not-configured");
+    assertThatThrownBy(() -> new HostedEnvironmentConfigurationValidator(environment).run(null))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("dike.routing.api-key");
+  }
+
+  @Test
   void demoCannotBeMixedWithProductionProfiles() {
     var environment = validDemo();
     environment.setActiveProfiles("production", "demo", "combined");
@@ -101,7 +109,7 @@ class HostedEnvironmentConfigurationValidatorTest {
             .withProperty("dike.auth.cookie.name", "__Host-DIKE_SESSION")
             .withProperty("dike.otp.provider", "disabled")
             .withProperty("dike.otp.send-enabled", "false")
-            .withProperty("dike.routing.provider", "disabled")
+            .withProperty("dike.routing.provider", "goong")
             .withProperty(
                 "spring.security.oauth2.client.registration.google.client-id", "google-demo-client")
             .withProperty(

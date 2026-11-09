@@ -1,6 +1,7 @@
 package com.dike.planning.infrastructure.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.dike.planning.domain.PlaceSnapshot;
@@ -73,6 +74,48 @@ class RoutingProviderTest {
                         properties("goong", "https://rsapi.goong.io", "key"), demo, environment)
                     .run(null))
         .hasMessageContaining("contribution policy");
+  }
+
+  @Test
+  void demoUsesSecureGoongWithDemoContributionValues() {
+    var environment = new MockEnvironment().withProperty("dike.environment", "demo");
+    var contribution =
+        new ContributionProperties(
+            true,
+            BigDecimal.valueOf(25_000),
+            BigDecimal.valueOf(2),
+            BigDecimal.valueOf(8),
+            BigDecimal.ZERO,
+            BigDecimal.valueOf(10_000));
+    var configuration = new RoutingConfiguration();
+
+    assertThatNoException()
+        .isThrownBy(
+            () ->
+                configuration
+                    .validateRoutingConfiguration(
+                        properties("goong", "https://rsapi.goong.io", "key"),
+                        contribution,
+                        environment)
+                    .run(null));
+    assertThatThrownBy(
+            () ->
+                configuration
+                    .validateRoutingConfiguration(
+                        properties("goong", "http://rsapi.goong.io", "key"),
+                        contribution,
+                        environment)
+                    .run(null))
+        .hasMessageContaining("Secure Goong");
+    assertThatThrownBy(
+            () ->
+                configuration
+                    .validateRoutingConfiguration(
+                        properties("goong", "https://rsapi.goong.io", "local-not-configured"),
+                        contribution,
+                        environment)
+                    .run(null))
+        .hasMessageContaining("Secure Goong");
   }
 
   private RoutingProperties properties(String provider, String baseUrl, String key) {

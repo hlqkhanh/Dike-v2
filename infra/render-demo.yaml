@@ -14,6 +14,14 @@ services:
         value: demo,combined
       - key: DIKE_WORKLOAD
         value: combined
+      - key: DIKE_ROUTING_PROVIDER
+        value: goong
+      - key: DIKE_GOONG_API_KEY
+        sync: false
+      - key: DIKE_ROUTING_CACHE_KEY_SECRET
+        generateValue: true
+      - key: DIKE_ROUTING_ALLOW_UNVERIFIED_MEMBERS
+        value: "true"
       - key: DIKE_MONGODB_URI
         sync: false
       - key: DIKE_MONGODB_DATABASE

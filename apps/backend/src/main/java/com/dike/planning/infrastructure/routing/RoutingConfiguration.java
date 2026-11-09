@@ -30,7 +30,7 @@ public class RoutingConfiguration {
     return arguments -> {
       String current = environment.getProperty("dike.environment", "local");
       boolean hosted = "staging".equals(current) || "production".equals(current);
-      if (hosted
+      if ((hosted || "demo".equals(current))
           && (!"goong".equalsIgnoreCase(properties.provider())
               || properties.apiKey().isBlank()
               || properties.apiKey().contains("not-configured")
