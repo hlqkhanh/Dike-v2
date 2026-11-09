@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath />
     </parent>
 
@@ -27,25 +27,25 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.16.0</maven.compiler.plugin.version>
         <maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
-        <maven.deploy.plugin.version>3.1.4</maven.deploy.plugin.version>
-        <maven.enforcer.plugin.version>3.6.2</maven.enforcer.plugin.version>
-        <maven.install.plugin.version>3.1.4</maven.install.plugin.version>
-        <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
-        <maven.resources.plugin.version>3.3.1</maven.resources.plugin.version>
-        <maven.site.plugin.version>3.21.0</maven.site.plugin.version>
-        <maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
-        <maven.failsafe.plugin.version>3.5.4</maven.failsafe.plugin.version>
+        <maven.deploy.plugin.version>3.2.0</maven.deploy.plugin.version>
+        <maven.enforcer.plugin.version>3.7.0</maven.enforcer.plugin.version>
+        <maven.install.plugin.version>3.2.0</maven.install.plugin.version>
+        <maven.jar.plugin.version>3.5.1</maven.jar.plugin.version>
+        <maven.resources.plugin.version>3.5.0</maven.resources.plugin.version>
+        <maven.site.plugin.version>3.22.0</maven.site.plugin.version>
+        <maven.surefire.plugin.version>3.6.1</maven.surefire.plugin.version>
+        <maven.failsafe.plugin.version>3.6.1</maven.failsafe.plugin.version>
         <spotless.maven.plugin.version>2.46.1</spotless.maven.plugin.version>
         <google.java.format.version>1.24.0</google.java.format.version>
-        <spring-modulith.version>2.1.1</spring-modulith.version>
-        <springdoc.version>3.1.1</springdoc.version>
-        <archunit.version>1.4.1</archunit.version>
+        <spring-modulith.version>2.1.2</spring-modulith.version>
+        <springdoc.version>3.2.0</springdoc.version>
+        <archunit.version>1.5.1</archunit.version>
         <testcontainers.version>1.21.3</testcontainers.version>
-        <aws.sdk.version>2.42.23</aws.sdk.version>
-        <libphonenumber.version>9.0.17</libphonenumber.version>
-        <twelvemonkeys.version>3.15.0</twelvemonkeys.version>
+        <aws.sdk.version>2.57.10</aws.sdk.version>
+        <libphonenumber.version>9.0.43</libphonenumber.version>
+        <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
     </properties>
 
     <dependencyManagement>
