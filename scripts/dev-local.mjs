@@ -99,7 +99,11 @@ process.once("SIGTERM", () => {
 });
 process.once("exit", stop);
 
-const infrastructurePorts = [27017, 6379, 9000];
+const infrastructurePorts = [
+  Number(process.env.DIKE_MONGODB_PORT ?? 27017),
+  6379,
+  9000,
+];
 const infrastructureReady = (
   await Promise.all(infrastructurePorts.map(isPortOpen))
 ).every(Boolean);

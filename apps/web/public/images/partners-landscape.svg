@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="650" viewBox="0 0 1800 650" fill="none">
+ <defs>
+  <linearGradient id="hill" x2="0" y2="1"><stop stop-color="#8fc883"/><stop offset="1" stop-color="#d3edc7"/></linearGradient>
+  <linearGradient id="leaf"><stop stop-color="#388c36"/><stop offset="1" stop-color="#a8d96a"/></linearGradient>
+ </defs>
+ <path d="M0 0H310C280 125 100 85 0 200Z M1800 0H1640C1550 95 1630 150 1800 105Z" fill="#e4f4e9" opacity=".65"/>
+ <g fill="#b1dccc" opacity=".45">
+  <path d="M1450 590V530h25v60m12 0V505h30v85m15 0V470h27v120m18 0V435h25v155m15 0V495h29v95m12 0V410h32v180m15 0V460h28v130"/>
+ </g>
+ <g stroke="#a2d3c0" stroke-width="3" opacity=".65">
+  <path d="M100 565V430m0 0-12-58m12 58 40 42m-40-42-55 12M195 580V480m0 0 10-45m-10 45 28 35m-28-35-44 6"/>
+ </g>
+ <path d="M0 530C220 480 350 630 560 565S920 650 1120 590 1430 470 1590 520 1760 510 1800 500V650H0Z" fill="#dcefe2"/>
+ <path d="M0 530C260 530 270 660 550 610S920 610 1130 620 1570 525 1800 555V650H0Z" fill="url(#hill)"/>
+ <path d="M0 650C260 530 400 560 620 620S1050 660 1300 620 1610 545 1800 590V650Z" fill="#94c889" opacity=".7"/>
+ <g fill="url(#leaf)">
+  <path d="M45 60q35-5 55 35-42 0-55-35M1650 220q-35 0-50 35 40-2 50-35M540 520q-30-3-45 28 35 0 45-28M1470 120q-20 0-22 28 25-7 22-28"/>
+  <path d="M0 650V525q70 10 90 85-55-5-90-60 95 15 125 100M1800 650V500q-55 15-70 75 40-5 70-50-100 35-120 125"/>
+ </g>
+</svg>

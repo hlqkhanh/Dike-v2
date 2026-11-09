@@ -35,6 +35,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { rideApi } from "../../src/rides/api";
@@ -479,17 +480,42 @@ export function AuthenticatedHome({
                 </button>
               </div>
             ) : posts.length === 0 ? (
-              <div className="new-feed-state">
-                <span>🌿</span>
-                <h3>
-                  {feedPosts.length === 0
-                    ? "Chưa có bài đăng để hiển thị."
-                    : "Chưa tìm thấy hành trình phù hợp"}
-                </h3>
-                <p>
-                  Thử đổi từ khóa hoặc bộ lọc, hoặc tạo nhu cầu mới của bạn.
-                </p>
-                <Link href="/rides/new?mode=passenger">Tạo nhu cầu đi ké</Link>
+              <div className="home-feed-empty">
+                <div className="home-feed-empty-art" aria-hidden="true">
+                  <Image
+                    src="/images/Bản đồ xanh với tuyến đường xe máy.png"
+                    alt=""
+                    width={1536}
+                    height={1024}
+                    sizes="(max-width: 700px) 70vw, 320px"
+                  />
+                </div>
+                <div className="home-feed-empty-copy">
+                  <h3>
+                    {feedPosts.length === 0
+                      ? "Chưa có chuyến đi nào"
+                      : "Chưa tìm thấy hành trình phù hợp"}
+                  </h3>
+                  <p>Thử điều chỉnh bộ lọc hoặc tạo nhu cầu đi ké nhé.</p>
+                  <div className="home-feed-empty-actions">
+                    <Link href="/rides/new?mode=passenger">
+                      Tạo nhu cầu đi ké <span aria-hidden="true">+</span>
+                    </Link>
+                    {query || filter !== "ALL" || departureDate ? (
+                      <button
+                        className="home-feed-empty-reset"
+                        type="button"
+                        onClick={() => {
+                          setQuery("");
+                          setFilter("ALL");
+                          setDepartureDate("");
+                        }}
+                      >
+                        Xóa bộ lọc
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="new-feed-grid">

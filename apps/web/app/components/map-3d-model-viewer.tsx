@@ -23,8 +23,11 @@ export function Map3DModelViewer({
     const container = containerRef.current;
     if (!container) return;
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let isDisposed = false;
+    let isVisible = false;
+    let lastFrameTime = 0;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     // 1. Scene setup
     const scene = new THREE.Scene();
@@ -40,7 +43,7 @@ export function Map3DModelViewer({
       antialias: true,
       powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
@@ -56,15 +59,19 @@ export function Map3DModelViewer({
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.enablePan = false;
-    controls.enableZoom = true; // Bounded zoom enabled
+    controls.enableZoom = false; // Let wheel events scroll the landing page.
     controls.minDistance = 1.35; // Limit zoom in (no clipping)
     controls.maxDistance = 3.6; // Limit zoom out (keep map in focus)
     controls.zoomSpeed = 0.8;
-    controls.autoRotate = true; // Temporarily pause during alignment check
+    controls.autoRotate = !reducedMotion.matches;
     controls.autoRotateSpeed = 0.35; // Gentle, slow cinematic rotation around Y axis
     controls.minPolarAngle = Math.PI / 4.2; // ~42° vantage
     controls.maxPolarAngle = Math.PI / 2.3; // ~78° vantage (stay above earth base)
     controls.target.set(0, 0.18, 0);
+    // OrbitControls sets touch-action:none during construction. Restore page scrolling.
+    renderer.domElement.style.touchAction = "pan-y";
+    controls.touches.ONE = THREE.TOUCH.PAN;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
 
     const onStart = () => {
       renderer.domElement.style.cursor = "grabbing";
@@ -115,7 +122,7 @@ export function Map3DModelViewer({
         setIsLoading(false);
       },
       (xhr) => {
-        if (xhr.total > 0) {
+        if (!isDisposed && xhr.total > 0) {
           const percent = Math.min(
             Math.round((xhr.loaded / xhr.total) * 100),
             99,
@@ -132,12 +139,34 @@ export function Map3DModelViewer({
     );
 
     // 7. Render Loop
-    const animate = () => {
+    const animate = (time: number) => {
+      if (isDisposed || !isVisible || document.hidden) {
+        animationFrameId = 0;
+        return;
+      }
       animationFrameId = requestAnimationFrame(animate);
-      controls.update();
+      if (time - lastFrameTime < 1000 / 30) return;
+      const delta = lastFrameTime
+        ? Math.min((time - lastFrameTime) / 1000, 0.1)
+        : 1 / 30;
+      lastFrameTime = time;
+      controls.update(delta);
       renderer.render(scene, camera);
     };
-    animate();
+    const syncAnimation = () => {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = 0;
+      lastFrameTime = 0;
+      if (isVisible && !document.hidden && !isDisposed) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      syncAnimation();
+    });
+    visibilityObserver.observe(container);
+    document.addEventListener("visibilitychange", syncAnimation);
 
     // 8. Resize handling
     const resizeObserver = new ResizeObserver((entries) => {
@@ -155,6 +184,8 @@ export function Map3DModelViewer({
     return () => {
       isDisposed = true;
       cancelAnimationFrame(animationFrameId);
+      visibilityObserver.disconnect();
+      document.removeEventListener("visibilitychange", syncAnimation);
       resizeObserver.disconnect();
       controls.removeEventListener("start", onStart);
       controls.removeEventListener("end", onEnd);

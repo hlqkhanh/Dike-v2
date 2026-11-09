@@ -128,7 +128,7 @@ class AccountAccessServiceTest {
   }
 
   @Test
-  void doesNotGrantSimulationBeforeRequiredConsents() {
+  void grantsTemporaryLocalAccessWithoutProfileCompletion() {
     when(store.findUserById("user-1"))
         .thenReturn(
             Optional.of(
@@ -147,8 +147,24 @@ class AccountAccessServiceTest {
                     .withProperty("dike.identity.simulated-full-access-enabled", "true"))
             .require("user-1");
 
-    assertThat(snapshot.authorities()).containsExactly(AccountAuthority.MEMBER);
-    assertThat(snapshot.accessMode()).isEqualTo(AccessMode.RESTRICTED);
+    assertThat(snapshot.authorities())
+        .contains(AccountAuthority.MEMBER, AccountAuthority.APPROVED_DRIVER);
+    assertThat(snapshot.accessMode()).isEqualTo(AccessMode.SIMULATED);
+  }
+
+  @Test
+  void verifiedLocalMemberAlsoReceivesSimulatedVehiclesAccess() {
+    when(store.findUserById("user-1"))
+        .thenReturn(Optional.of(user(
+            AccountStatus.ACTIVE, PhoneStatus.VERIFIED, VerificationEvidence.REAL, Set.of())));
+
+    var snapshot = new AccountAccessService(
+        store, consents, environment("local")
+            .withProperty("dike.identity.simulated-full-access-enabled", "true"))
+        .require("user-1");
+
+    assertThat(snapshot.authorities()).contains(AccountAuthority.APPROVED_DRIVER);
+    assertThat(snapshot.accessMode()).isEqualTo(AccessMode.SIMULATED);
   }
 
   @Test

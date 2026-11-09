@@ -8,4 +8,6 @@ blockExoticSubdeps: true
 virtualStoreDir: .p
 virtualStoreDirMaxLength: 32
 allowBuilds:
+  esbuild: true
+  workerd: true
   unrs-resolver: true

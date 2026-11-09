@@ -6,7 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Button, Card, Status } from "@dike/web-ui";
+import {
+  UsersRound,
+  GraduationCap,
+  Layers3,
+  Landmark,
+  CarFront,
+} from "lucide-react";
 
 import { AuthNavigation } from "./auth-navigation";
 import { DikeLogo } from "./components/dike-logo";
@@ -409,16 +415,7 @@ export default function HomePage() {
               <span className="hero-title-green">DIKÉ SHARE.</span>
             </h1>
 
-            <p className="hero-tagline">
-              Chuyến đi xanh của bạn. Tiết kiệm. Chia sẻ. Di chuyển.
-            </p>
-
-            <p className="hero-description">
-              Đi chung xe cùng cộng đồng, chia sẻ chuyến đi với bạn bè và cùng
-              nhau di chuyển bền vững. Tiết kiệm chi phí và giảm thiểu dấu chân
-              carbon trước mỗi chuyến đi.
-              <span className="hero-location-note"> (Khu vực Hà Nội)</span>
-            </p>
+            <p className="hero-slogan">Chung đường, thêm xanh.</p>
 
             <div className="hero-actions-row">
               <Link className="btn-primary-pill" href="/login">
@@ -540,10 +537,22 @@ export default function HomePage() {
           id="ve-chung-toi"
           aria-labelledby="impact-title"
         >
+          <Image
+            className="impact-background"
+            src="/images/Phong cảnh thành phố xanh bền vững.png"
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 90vw"
+          />
           <div className="impact-container">
             <div className="impact-info">
               <p className="eyebrow">Về DIKÉ SHARE</p>
-              <h2 id="impact-title">Vì một đô thị xanh và kết nối bền vững</h2>
+              <h2 id="impact-title">
+                Vì một đô thị <span>xanh</span>
+                <br />
+                và kết nối{" "}
+                <span className="impact-title-flourish">bền vững</span>
+              </h2>
               <p>
                 DIKÉ SHARE ra đời với mục tiêu giải quyết bài toán ùn tắc giao
                 thông, ô nhiễm khói bụi và gánh nặng chi phí đi lại của sinh
@@ -584,8 +593,13 @@ export default function HomePage() {
           aria-labelledby="partners-title"
         >
           <div className="section-header">
-            <p className="eyebrow">Đối tác tin cậy</p>
-            <h2 id="partners-title">Đồng hành cùng các đơn vị tiên phong</h2>
+            <p className="eyebrow">
+              <UsersRound aria-hidden="true" />
+              Đối tác tin cậy
+            </p>
+            <h2 id="partners-title">
+              Đồng hành cùng <span>các đơn vị tiên phong</span>
+            </h2>
             <p className="section-subtitle">
               Hợp tác cùng các trường đại học, khu công nghệ cao và doanh nghiệp
               thúc đẩy lối sống di chuyển bền vững.
@@ -593,47 +607,20 @@ export default function HomePage() {
           </div>
 
           <div className="partners-badges">
-            <div className="partner-item">Đại học FPT Hà Nội</div>
-            <div className="partner-item">Khu Công Nghệ Cao Hòa Lạc</div>
-            <div className="partner-item">Đại học Quốc gia Hà Nội</div>
-            <div className="partner-item">Cộng đồng Xe Điện Xanh</div>
-            <div className="partner-item">Mạng lưới Sinh viên Hà Nội</div>
-          </div>
-        </section>
-
-        {/* Platform Foundation & System States (Required by test assertions) */}
-        <section
-          className="states-section"
-          id="trang-thai-he-thong"
-          aria-labelledby="states-title"
-        >
-          <div className="section-header">
-            <p className="eyebrow">Trạng thái giao diện chuẩn</p>
-            <h2 id="states-title">Rõ ràng cả khi chưa có dữ liệu</h2>
-            <p className="section-subtitle">
-              Hệ thống luôn đảm bảo tính ổn định và phản hồi thông tin minh bạch
-              tới người dùng trong mọi điều kiện mạng.
-            </p>
-          </div>
-
-          <div className="states__grid">
-            <Card aria-label="Trạng thái đang tải">
-              <Status>Đang tải</Status>
-              <p>Đang kết nối với dịch vụ Dike…</p>
-            </Card>
-
-            <Card aria-label="Trạng thái trống">
-              <Status tone="success">Sẵn sàng</Status>
-              <p>Chưa có dữ liệu để hiển thị.</p>
-            </Card>
-
-            <Card aria-label="Trạng thái mất kết nối">
-              <Status tone="danger">Ngoại tuyến</Status>
-              <p>Kiểm tra kết nối rồi thử lại.</p>
-              <Button type="button" variant="secondary">
-                Thử lại
-              </Button>
-            </Card>
+            {[
+              { name: "Đại học FPT Hà Nội", icon: GraduationCap },
+              { name: "Khu Công Nghệ Cao Hòa Lạc", icon: Layers3 },
+              { name: "Đại học Quốc gia Hà Nội", icon: Landmark },
+              { name: "Cộng đồng Xe Điện Xanh", icon: CarFront },
+              { name: "Mạng lưới Sinh viên Hà Nội", icon: UsersRound },
+            ].map(({ name, icon: Icon }) => (
+              <div className="partner-item" key={name}>
+                <span className="partner-icon">
+                  <Icon aria-hidden="true" />
+                </span>
+                <span>{name}</span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -690,10 +677,10 @@ export default function HomePage() {
               <h4>Hỗ trợ & Pháp lý</h4>
               <ul>
                 <li>
-                  <a href="#trang-thai-he-thong">Trung tâm trợ giúp</a>
+                  <a href="#dich-vu">Trung tâm trợ giúp</a>
                 </li>
                 <li>
-                  <a href="#trang-thai-he-thong">Quy chuẩn an toàn</a>
+                  <a href="#ve-chung-toi">Quy chuẩn an toàn</a>
                 </li>
                 <li>
                   <a href="/settings/privacy">Chính sách bảo mật</a>

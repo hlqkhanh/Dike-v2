@@ -14,14 +14,12 @@ import org.springframework.stereotype.Service;
 public class AccountAccessService {
 
   private final IdentityStore store;
-  private final ConsentService consents;
   private final boolean simulatedEvidenceAllowed;
   private final boolean simulatedFullAccessEnabled;
 
   public AccountAccessService(
       IdentityStore store, ConsentService consents, Environment environment) {
     this.store = store;
-    this.consents = consents;
     String current = environment.getProperty("dike.environment", "local");
     this.simulatedEvidenceAllowed = "local".equals(current) || "test".equals(current);
     boolean requested =
@@ -45,19 +43,21 @@ public class AccountAccessService {
     AccessMode accessMode = AccessMode.RESTRICTED;
     if (user.accountStatus() == AccountStatus.ACTIVE) {
       authorities.add(AccountAuthority.MEMBER);
-      if (isAcceptedVerification(user)) {
+      // Temporary local/test bypass: new accounts can use the simulated vehicles
+      // without completing driver or vehicle onboarding.
+      if (simulatedFullAccessEnabled) {
+        authorities.add(AccountAuthority.VERIFIED_MEMBER);
+        authorities.add(AccountAuthority.APPROVED_DRIVER);
+        verificationEvidence = VerificationEvidence.SIMULATED;
+        driverApprovalEvidence = DriverApprovalEvidence.SIMULATED;
+        accessMode = AccessMode.SIMULATED;
+      } else if (isAcceptedVerification(user)) {
         authorities.add(AccountAuthority.VERIFIED_MEMBER);
         accessMode = AccessMode.REAL;
         if (user.assignedRoles().contains(AccountRole.APPROVED_DRIVER)) {
           authorities.add(AccountAuthority.APPROVED_DRIVER);
           driverApprovalEvidence = DriverApprovalEvidence.REAL;
         }
-      } else if (isEligibleForSimulatedFullAccess(user)) {
-        authorities.add(AccountAuthority.VERIFIED_MEMBER);
-        authorities.add(AccountAuthority.APPROVED_DRIVER);
-        verificationEvidence = VerificationEvidence.SIMULATED;
-        driverApprovalEvidence = DriverApprovalEvidence.SIMULATED;
-        accessMode = AccessMode.SIMULATED;
       }
       if (user.assignedRoles().contains(AccountRole.MODERATOR)) {
         authorities.add(AccountAuthority.MODERATOR);
@@ -74,14 +74,6 @@ public class AccountAccessService {
         driverApprovalEvidence,
         accessMode,
         user.authorizationVersion());
-  }
-
-  private boolean isEligibleForSimulatedFullAccess(UserAccount user) {
-    return simulatedFullAccessEnabled
-        && user.onboardingStatus() == com.dike.identity.domain.OnboardingStatus.PHONE_SUBMITTED
-        && user.phoneE164() != null
-        && !user.phoneE164().isBlank()
-        && consents.hasRequiredConsents(user.id());
   }
 
   private boolean isAcceptedVerification(UserAccount user) {

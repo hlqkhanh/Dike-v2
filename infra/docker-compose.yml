@@ -5,7 +5,7 @@ services:
     image: mongo:8.0.32-noble
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     ports:
-      - "27017:27017"
+      - "${DIKE_MONGODB_PORT:-27017}:27017"
     volumes:
       - dike-mongo:/data/db
     healthcheck:
