@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { theme } from "@/core/theme";
 
 import { SessionProvider, useSession } from "@/core/session";
+import { MobileRealtimeMonitor } from "@/core/realtime";
 import { SessionLoading } from "@/components/SessionLoading";
 
 export default function RootLayout() {
@@ -69,6 +70,7 @@ function SessionNavigator() {
   if (loading) return <SessionLoading />;
   return (
     <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+      {session?.authenticated ? <MobileRealtimeMonitor /> : null}
       <Stack
         screenOptions={{
           headerShown: false,

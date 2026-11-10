@@ -1,7 +1,11 @@
 package com.dike.community.infrastructure;
 
+import com.dike.messaging.RealtimeEnvelope;
+import com.dike.messaging.RealtimePublisher;
 import com.dike.shared.outbox.OutboxEvent;
 import com.dike.shared.outbox.OutboxHandler;
+import java.time.Clock;
+import java.util.Map;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -12,9 +16,13 @@ import org.springframework.stereotype.Component;
 @Component
 class SocialChangeHandler implements OutboxHandler {
   private final MongoTemplate mongo;
+  private final RealtimePublisher realtime;
+  private final Clock clock;
 
-  SocialChangeHandler(MongoTemplate mongo) {
+  SocialChangeHandler(MongoTemplate mongo, RealtimePublisher realtime, Clock clock) {
     this.mongo = mongo;
+    this.realtime = realtime;
+    this.clock = clock;
   }
 
   @Override
@@ -39,5 +47,31 @@ class SocialChangeHandler implements OutboxHandler {
         Query.query(Criteria.where("_id").is(event.aggregateId())),
         new Update().max("deliveredVersion", version),
         "social_relations");
+    String low = String.valueOf(event.payload().get("low"));
+    String high = String.valueOf(event.payload().get("high"));
+    String action = String.valueOf(event.payload().get("action"));
+    publish(event, low, high, action, version);
+    publish(event, high, low, action, version);
+  }
+
+  private void publish(
+      OutboxEvent event, String recipient, String counterpart, String action, long version) {
+    try {
+      realtime.publish(
+          new RealtimeEnvelope(
+              event.eventId() + ":" + recipient,
+              "social.relationship.changed",
+              1,
+              recipient,
+              "/queue/social",
+              Map.of(
+                  "relationId", event.aggregateId(),
+                  "counterpartUserId", counterpart,
+                  "action", action,
+                  "relationVersion", version),
+              clock.instant()));
+    } catch (RuntimeException ignored) {
+      // REST revision reconciliation remains authoritative when Redis is unavailable.
+    }
   }
 }

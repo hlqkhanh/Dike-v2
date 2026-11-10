@@ -10,8 +10,12 @@ import { handleAuthenticationError } from "../auth/session-expiry";
 import { journeyApi } from "./api";
 
 type RealtimeEnvelope = {
-  type?: string;
-  payload?: { conversationId?: string; bookingId?: string };
+  eventType?: string;
+  payload?: {
+    conversationId?: string;
+    bookingId?: string;
+    notificationId?: string;
+  };
 };
 
 export function JourneyRealtimeMonitor() {
@@ -42,6 +46,11 @@ function JourneyRealtimeConnection() {
     };
     const invalidateNotification = () => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      // Ride and social state changes also create notifications. Refresh the
+      // visible summaries immediately while REST remains authoritative.
+      for (const key of ["feed", "rides", "social", "conversations"] as const) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
     };
     const invalidateBooking = (message: IMessage) => {
       const event = parse(message);
@@ -50,6 +59,7 @@ function JourneyRealtimeConnection() {
         const bookingId = event.payload.bookingId;
         for (const key of [
           "payment",
+          "cash-payment",
           "review-eligibility",
           "booking-reviews",
           "live-location",
@@ -57,6 +67,11 @@ function JourneyRealtimeConnection() {
           void queryClient.invalidateQueries({ queryKey: [key, bookingId] });
         }
       }
+    };
+    const invalidateSocial = () => {
+      void queryClient.invalidateQueries({ queryKey: ["social"] });
+      void queryClient.invalidateQueries({ queryKey: ["social-revision"] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
     const client = new Client({
@@ -87,6 +102,7 @@ function JourneyRealtimeConnection() {
         client.subscribe("/user/queue/conversations", invalidateConversation);
         client.subscribe("/user/queue/notifications", invalidateNotification);
         client.subscribe("/user/queue/bookings", invalidateBooking);
+        client.subscribe("/user/queue/social", invalidateSocial);
       },
     });
     client.activate();
