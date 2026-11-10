@@ -1,11 +1,9 @@
 package com.dike.community.infrastructure;
 
-import com.dike.messaging.RealtimeEnvelope;
-import com.dike.messaging.RealtimePublisher;
+import com.dike.community.SocialRealtimePublisher;
 import com.dike.shared.outbox.OutboxEvent;
 import com.dike.shared.outbox.OutboxHandler;
 import java.time.Clock;
-import java.util.Map;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -16,10 +14,10 @@ import org.springframework.stereotype.Component;
 @Component
 class SocialChangeHandler implements OutboxHandler {
   private final MongoTemplate mongo;
-  private final RealtimePublisher realtime;
+  private final SocialRealtimePublisher realtime;
   private final Clock clock;
 
-  SocialChangeHandler(MongoTemplate mongo, RealtimePublisher realtime, Clock clock) {
+  SocialChangeHandler(MongoTemplate mongo, SocialRealtimePublisher realtime, Clock clock) {
     this.mongo = mongo;
     this.realtime = realtime;
     this.clock = clock;
@@ -58,17 +56,13 @@ class SocialChangeHandler implements OutboxHandler {
       OutboxEvent event, String recipient, String counterpart, String action, long version) {
     try {
       realtime.publish(
-          new RealtimeEnvelope(
-              event.eventId() + ":" + recipient,
-              "social.relationship.changed",
-              1,
+          new SocialRealtimePublisher.Change(
+              event.eventId(),
+              event.aggregateId(),
               recipient,
-              "/queue/social",
-              Map.of(
-                  "relationId", event.aggregateId(),
-                  "counterpartUserId", counterpart,
-                  "action", action,
-                  "relationVersion", version),
+              counterpart,
+              action,
+              version,
               clock.instant()));
     } catch (RuntimeException ignored) {
       // REST revision reconciliation remains authoritative when Redis is unavailable.
