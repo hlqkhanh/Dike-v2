@@ -18071,7 +18071,10 @@ html:has(.journeys-hub) {
   box-shadow: 0 30px 80px rgba(9, 48, 37, 0.24);
 }
 .response-payment-modal > header,
-.feed-response-owner-panel > .response-progress .response-payment-modal > header {
+.feed-response-owner-panel
+  > .response-progress
+  .response-payment-modal
+  > header {
   position: sticky;
   z-index: 2;
   top: 0;

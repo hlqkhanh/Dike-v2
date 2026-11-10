@@ -142,9 +142,7 @@ export function ResponseProgress({
         {steps.map((step, index) => {
           const Icon = step.icon;
           const complete =
-            step.status === "PAYMENT"
-              ? paid
-              : activeIndex >= index;
+            step.status === "PAYMENT" ? paid : activeIndex >= index;
           return (
             <li className={complete ? "is-complete" : ""} key={step.status}>
               <i>
@@ -291,7 +289,8 @@ export function ResponseProgress({
                         <strong>Hướng dẫn thanh toán</strong>
                         <span>1. Kiểm tra đúng quãng đường và số tiền.</span>
                         <span>
-                          2. {paymentMethod === "CASH"
+                          2.{" "}
+                          {paymentMethod === "CASH"
                             ? "Trả tiền trực tiếp cho người chở."
                             : "Hoàn tất chuyển khoản cho người chở."}
                         </span>
@@ -332,25 +331,41 @@ export function ResponseProgress({
                         aria-label="Phương thức thanh toán"
                       >
                         <button
-                          className={paymentMethod === "CASH" ? "is-selected" : ""}
+                          className={
+                            paymentMethod === "CASH" ? "is-selected" : ""
+                          }
                           type="button"
                           role="radio"
                           aria-checked={paymentMethod === "CASH"}
                           onClick={() => setPaymentMethod("CASH")}
                         >
-                          <span><Banknote aria-hidden="true" size={29} /></span>
-                          <b>Tiền mặt<small>Thanh toán trực tiếp cho người đồng hành</small></b>
+                          <span>
+                            <Banknote aria-hidden="true" size={29} />
+                          </span>
+                          <b>
+                            Tiền mặt
+                            <small>
+                              Thanh toán trực tiếp cho người đồng hành
+                            </small>
+                          </b>
                           <i aria-hidden="true" />
                         </button>
                         <button
-                          className={paymentMethod === "BANK" ? "is-selected" : ""}
+                          className={
+                            paymentMethod === "BANK" ? "is-selected" : ""
+                          }
                           type="button"
                           role="radio"
                           aria-checked={paymentMethod === "BANK"}
                           onClick={() => setPaymentMethod("BANK")}
                         >
-                          <span><Landmark aria-hidden="true" size={29} /></span>
-                          <b>Chuyển khoản<small>Thanh toán qua tài khoản ngân hàng</small></b>
+                          <span>
+                            <Landmark aria-hidden="true" size={29} />
+                          </span>
+                          <b>
+                            Chuyển khoản
+                            <small>Thanh toán qua tài khoản ngân hàng</small>
+                          </b>
                           <i aria-hidden="true" />
                         </button>
                       </div>
