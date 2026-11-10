@@ -4,6 +4,7 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.dike.identity.application.*;
@@ -88,6 +89,53 @@ class RideDiscoverySecurityTest {
         .andExpect(jsonPath("$.error.message").value("Bạn không có quyền thực hiện yêu cầu này"));
   }
 
+  @Test
+  void authenticatedAssistantRoutesPassTheRealSecurityChain() throws Exception {
+    for (String[] route : assistantRoutes()) {
+      mvc.perform(
+              request(org.springframework.http.HttpMethod.valueOf(route[0]), route[1])
+                  .header("Origin", "http://localhost:3000")
+                  .with(user("member"))
+                  .with(csrf()))
+          .andExpect(status().isOk())
+          .andExpect(content().string("ok"));
+    }
+  }
+
+  @Test
+  void allAssistantRoutesStillRequireAuthentication() throws Exception {
+    for (String[] route : assistantRoutes()) {
+      mvc.perform(
+              request(org.springframework.http.HttpMethod.valueOf(route[0]), route[1])
+                  .header("Origin", "http://localhost:3000")
+                  .with(csrf()))
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.error.code").value("AUTHENTICATION_REQUIRED"));
+    }
+  }
+
+  @Test
+  void assistantMutationsStillRequireCsrf() throws Exception {
+    for (String[] route : assistantRoutes()) {
+      if (route[0].equals("GET")) continue;
+      mvc.perform(
+              request(org.springframework.http.HttpMethod.valueOf(route[0]), route[1])
+                  .header("Origin", "http://localhost:3000")
+                  .with(user("member")))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.error.code").value("CSRF_INVALID"));
+    }
+  }
+
+  private static List<String[]> assistantRoutes() {
+    return List.of(
+        new String[] {"POST", "/api/v1/assistant/conversations"},
+        new String[] {"GET", "/api/v1/assistant/conversations/test-conversation"},
+        new String[] {"POST", "/api/v1/assistant/conversations/test-conversation/messages"},
+        new String[] {"POST", "/api/v1/assistant/conversations/test-conversation/confirm"},
+        new String[] {"DELETE", "/api/v1/assistant/conversations/test-conversation"});
+  }
+
   @Configuration
   @EnableWebSecurity
   @EnableWebMvc
@@ -148,6 +196,17 @@ class RideDiscoverySecurityTest {
 
   @RestController
   static class ProbeController {
+    @RequestMapping(
+        value = {
+          "/api/v1/assistant/conversations",
+          "/api/v1/assistant/conversations/{id}",
+          "/api/v1/assistant/conversations/{id}/messages",
+          "/api/v1/assistant/conversations/{id}/confirm"
+        })
+    String assistant() {
+      return "ok";
+    }
+
     @PostMapping("/api/v1/ride-discovery")
     String discover() {
       return "ok";

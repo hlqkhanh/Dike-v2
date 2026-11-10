@@ -25,6 +25,7 @@ import dynamic from "next/dynamic";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RidePostView, TripView } from "@dike/api-client-ts";
 import { authApi } from "../../../src/auth/api";
+import { readAssistantRideDraft } from "../../../src/assistant/ride-draft";
 import { routingApi } from "../../../src/routing/client";
 import { rideApi } from "../../../src/rides/api";
 import { PassengerRequest } from "../../../src/rides/passenger-request";
@@ -91,9 +92,11 @@ const messageOf = (error: unknown) =>
 export function UnifiedRideFlow({
   initialMode,
   initialRouteId,
+  initialAssistantDraftId,
 }: {
   initialMode: "driver" | "passenger";
   initialRouteId?: string;
+  initialAssistantDraftId?: string;
 }) {
   const router = useRouter();
   const client = useQueryClient();
@@ -122,12 +125,49 @@ export function UnifiedRideFlow({
   const generation = useRef({ origin: 0, destination: 0, route: 0 });
   const publication = useRef<Publication | undefined>(undefined);
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => setDeparture(dateLocal(Date.now())),
-      0,
-    );
+    const timer = window.setTimeout(() => {
+      const userId = client.getQueryData<
+        Awaited<ReturnType<typeof authApi.session>>
+      >(["auth", "session"])?.user?.id;
+      const imported =
+        userId && initialAssistantDraftId
+          ? readAssistantRideDraft(client, userId, initialAssistantDraftId)
+          : undefined;
+      if (
+        initialAssistantDraftId &&
+        (!imported || Date.now() - imported.createdAt > 30 * 60 * 1000)
+      ) {
+        setError(
+          "Bản nháp từ trợ lý đã hết hạn. Mở chatbot và bấm tiếp tục lại để điền thông tin.",
+        );
+      }
+      if (imported && Date.now() - imported.createdAt <= 30 * 60 * 1000) {
+        setOrigin({
+          ...emptyPicker(),
+          query:
+            imported.origin?.displayLabel ?? imported.fields.originQuery ?? "",
+          selected: imported.origin,
+        });
+        setDestination({
+          ...emptyPicker(),
+          query:
+            imported.destination?.displayLabel ??
+            imported.fields.destinationQuery ??
+            "",
+          selected: imported.destination,
+        });
+        setSeats(Math.max(1, Math.min(8, Number(imported.fields.seats) || 1)));
+        setMode(imported.fields.role === "DRIVER" ? "driver" : "passenger");
+        setImmediate(false);
+        setDeparture(
+          imported.fields.date && imported.fields.departureTime
+            ? `${imported.fields.date}T${imported.fields.departureTime}`
+            : "",
+        );
+      } else setDeparture(dateLocal(Date.now()));
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [client, initialAssistantDraftId]);
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: authApi.session,
@@ -179,6 +219,70 @@ export function UnifiedRideFlow({
       : Math.min(8, vehicle?.passengerCapacity ?? 4);
   const effectiveSeats = Math.min(seats, maxSeats);
   const discovery = useMutation({ mutationFn: rideApi.discover });
+  const discover = discovery.mutate;
+  useEffect(() => {
+    if (!initialAssistantDraftId) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const userId = client.getQueryData<
+        Awaited<ReturnType<typeof authApi.session>>
+      >(["auth", "session"])?.user?.id;
+      const imported = userId
+        ? readAssistantRideDraft(client, userId, initialAssistantDraftId)
+        : undefined;
+      if (!imported || Date.now() - imported.createdAt > 30 * 60 * 1000) return;
+      if (!imported.origin || !imported.destination) {
+        setError(
+          "Chọn hai địa chỉ chính xác để tiếp tục tới bước tìm bài phù hợp.",
+        );
+        return;
+      }
+      setPlanning(true);
+      try {
+        const time = new Date(
+          `${imported.fields.date}T${imported.fields.departureTime}`,
+        ).getTime();
+        if (
+          !Number.isFinite(time) ||
+          time <= Date.now() ||
+          time > Date.now() + 7 * 86400000
+        )
+          throw new Error(
+            "Chọn giờ khởi hành trong tương lai, trong vòng 7 ngày tới.",
+          );
+        const next =
+          imported.route &&
+          new Date(imported.route.expiresAt).getTime() > Date.now()
+            ? imported.route
+            : await routingApi.createRoute(
+                imported.origin.placeRef,
+                imported.destination.placeRef,
+                imported.route?.vehicleMode ?? "MOTORBIKE",
+              );
+        if (cancelled) return;
+        setRoute(next);
+        setVehicleMode(next.vehicleMode);
+        setEstimate(imported.estimate);
+        setStage("matches");
+        discover({
+          routeId: next.id,
+          role: imported.fields.role === "DRIVER" ? "driver" : "passenger",
+          departureAt: new Date(
+            `${imported.fields.date}T${imported.fields.departureTime}`,
+          ).toISOString(),
+          seats: Number(imported.fields.seats || "1"),
+        });
+      } catch (cause) {
+        if (!cancelled) setError(messageOf(cause));
+      } finally {
+        if (!cancelled) setPlanning(false);
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [client, initialAssistantDraftId, discover]);
   const offer = useMutation({
     mutationFn: () =>
       rideApi.createPostResponse(responsePost!.id, responseMessage),

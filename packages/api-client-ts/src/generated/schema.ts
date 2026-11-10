@@ -1036,3 +1036,57 @@ export type RideRequestSummary = {
   sharedDistanceMeters?: number;
   estimatedAmountVnd?: number;
 };
+
+export type AssistantConfirmationResult = {
+  id: string;
+  kind: string;
+  warnings: string[];
+};
+
+export type AssistantConversation = {
+  id: string;
+  draft: AssistantDraft;
+  saved: AssistantConfirmationResult;
+};
+
+export type AssistantDraft = {
+  id: string;
+  kind: string;
+  version: number;
+  fields: Record<string, string>;
+};
+
+export type AssistantBookingCard = {
+  id: string;
+  status: string;
+  pickupAt?: string;
+  role: string;
+};
+
+export type AssistantHelpArticle = {
+  id: string;
+  title: string;
+  text: string;
+  action: string;
+};
+
+export type AssistantReply = {
+  text: string;
+  draft: AssistantDraft;
+  source: AssistantHelpArticle;
+  bookings: AssistantBookingCard[];
+  checkedAt?: string;
+};
+
+export type AssistantConfirmation = {
+  version: number;
+  fields: Record<string, string>;
+  originPlaceRef: string;
+  destinationPlaceRef: string;
+};
+
+export type AssistantMessageInput = {
+  text: string;
+  draftVersion?: number;
+  fields?: Record<string, string>;
+};

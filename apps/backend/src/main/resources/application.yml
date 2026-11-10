@@ -31,6 +31,11 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 dike:
+  assistant:
+    enabled: ${DIKE_ASSISTANT_ENABLED:false}
+    api-key: ${DIKE_ASSISTANT_API_KEY:}
+    model: ${DIKE_ASSISTANT_MODEL:gemini-3.5-flash-lite}
+    daily-request-limit: ${DIKE_ASSISTANT_DAILY_REQUEST_LIMIT:500}
   demo:
     seed-enabled: ${DIKE_DEMO_SEED_ENABLED:true}
   identity:

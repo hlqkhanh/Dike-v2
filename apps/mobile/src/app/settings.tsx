@@ -14,6 +14,12 @@ import {
 import { useSession } from "@/core/session";
 const items: { title: string; text: string; icon: IconName; href: Href }[] = [
   {
+    title: "Trợ lý Dike",
+    text: "Tạo lịch bằng câu nói và hỏi đáp",
+    icon: "chatbubbles-outline",
+    href: "/assistant",
+  },
+  {
     title: "Thông tin cá nhân",
     text: "Tên hiển thị và giới thiệu",
     icon: "person-outline",
@@ -65,9 +71,9 @@ export default function Settings() {
       subtitle="Quản lý hồ sơ và trải nghiệm Diké của bạn"
     >
       {[
-        { title: "HỒ SƠ VÀ HÀNH TRÌNH", rows: items.slice(0, 2) },
-        { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(2, 4) },
-        { title: "ỨNG DỤNG VÀ BẢO MẬT", rows: items.slice(4) },
+        { title: "HỒ SƠ VÀ HÀNH TRÌNH", rows: items.slice(0, 3) },
+        { title: "TÀI KHOẢN VÀ QUYỀN RIÊNG TƯ", rows: items.slice(3, 5) },
+        { title: "ỨNG DỤNG VÀ BẢO MẬT", rows: items.slice(5) },
       ].map((group) => (
         <View key={group.title} style={{ gap: 12 }}>
           <Text style={[ui.eyebrow, { paddingHorizontal: 4 }]}>

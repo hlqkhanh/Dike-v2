@@ -15,14 +15,18 @@ import {
 } from "../../src/auth/route-access";
 import { SocialSessionMonitor } from "../../src/social/invalidation";
 import { JourneyRealtimeMonitor } from "../../src/journey/realtime";
+import { AssistantWidget } from "../../src/assistant/assistant-widget";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (!requiresAuthentication(pathname)) return children;
   return (
-    <AuthenticatedShell key={pathname} pathname={pathname}>
-      {children}
-    </AuthenticatedShell>
+    <>
+      <AuthenticatedShell key={pathname} pathname={pathname}>
+        {children}
+      </AuthenticatedShell>
+      <AssistantWidget />
+    </>
   );
 }
 
