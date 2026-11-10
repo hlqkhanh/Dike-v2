@@ -10,7 +10,13 @@ const candidates = execFileSync(
   .filter(Boolean)
   .map((file) => file.replaceAll("\\", "/"));
 
-const forbiddenNames = new Set(["id_rsa", "id_dsa", "id_ecdsa", "id_ed25519"]);
+const forbiddenNames = new Set([
+  "id_rsa",
+  "id_dsa",
+  "id_ecdsa",
+  "id_ed25519",
+  "google-oauth-local.json",
+]);
 const forbiddenExtensions = new Set([
   ".key",
   ".pem",
@@ -53,6 +59,7 @@ function isForbidden(file) {
 
   return (
     forbiddenNames.has(basename) ||
+    /^client_secret.*\.json$/.test(basename) ||
     forbiddenExtensions.has(extension) ||
     parts.some((part) => forbiddenDirectories.has(part.toLowerCase()))
   );
