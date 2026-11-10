@@ -151,7 +151,11 @@ async function setup(
         pickupAt: new Date(Date.now() + 60000).toISOString(),
         expiresAt: new Date(Date.now() + 300000).toISOString(),
       };
-    else if (path.endsWith("/ride-posts/candidate/route")) json = savedRoute;
+    else if (
+      path.endsWith("/ride-posts/candidate/route") ||
+      path.endsWith("/ride-posts/published/route")
+    )
+      json = savedRoute;
     else if (path.endsWith("/trips") || path.endsWith("/trips/trip/open"))
       json = { id: "trip", version: path.endsWith("/open") ? 1 : 0 };
     else if (path.endsWith("/ride-post-sources"))
@@ -227,6 +231,141 @@ async function find(page: Page) {
     .getByRole("button", { name: "Bắt đầu tìm chuyến", exact: true })
     .click();
   await expect(page.getByLabel("Chế độ bài đăng")).toBeVisible();
+}
+
+for (const role of ["driver", "passenger"] as const) {
+  test(`assistant hands ${role} draft to existing form and publishes only after review`, async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+    const state = await setup(page);
+    let confirmations = 0;
+    let routeCalls = 0;
+    await page.route("**/api/v1/routing/routes", (route) => {
+      routeCalls++;
+      return route.fulfill({
+        json: {
+          ...savedRoute,
+          expiresAt:
+            role === "passenger" && routeCalls === 1
+              ? new Date(Date.now() - 1000).toISOString()
+              : new Date(Date.now() + 86400000).toISOString(),
+        },
+      });
+    });
+    const tomorrow = new Date(Date.now() + 86400000);
+    const date = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    await page.route("**/assistant/conversations", (route) =>
+      route.fulfill({ json: { id: "chat" } }),
+    );
+    await page.route("**/assistant/conversations/*/confirm", (route) => {
+      confirmations++;
+      return route.fulfill({ json: {} });
+    });
+    await page.route("**/assistant/conversations/*/messages", (route) =>
+      route.fulfill({
+        json: {
+          text: "Mình cần thêm: hạn đến nơi.",
+          draft: {
+            id: "draft",
+            kind: "INTENT",
+            version: 1,
+            fields: {
+              originQuery: "start",
+              destinationQuery: "end",
+              date,
+              departureTime: "07:00",
+              role: role === "driver" ? "DRIVER" : "RIDER",
+              seats: "1",
+            },
+          },
+          source: null,
+          bookings: [],
+          checkedAt: null,
+        },
+      }),
+    );
+    await page.goto(
+      role === "passenger" ? "/rides/new?mode=passenger" : "/schedules",
+    );
+    await page
+      .getByRole("button", { name: "Mở trợ lý Dike", exact: true })
+      .click();
+    await page
+      .getByLabel("Tin nhắn của bạn")
+      .fill("Mai 7 giờ sáng đi từ A tới B");
+    await page
+      .getByRole("button", { name: "Gửi tin nhắn", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Bản nháp chuyến đi" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Hạn đến nơi", { exact: true })).toHaveCount(
+      0,
+    );
+    for (let i = 0; i < 2; i++) {
+      await page
+        .getByRole("button", { name: "Tìm địa chỉ chính xác", exact: true })
+        .nth(i)
+        .click();
+      await page
+        .getByRole("button", {
+          name: i === 0 ? start.displayLabel : end.displayLabel,
+          exact: true,
+        })
+        .click();
+    }
+    await page
+      .getByRole("button", {
+        name: "Tìm bài phù hợp và đăng bài",
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/rides/new\\?mode=${role}&assistantDraft=`),
+      { timeout: 20000 },
+    );
+    await expect(
+      page.getByRole("dialog", { name: "Trợ lý Dike" }),
+    ).toBeHidden();
+    await expect(page.getByLabel("Chế độ bài đăng")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Tính tuyến đường", exact: true }),
+    ).toHaveCount(0);
+    expect(state.discovery()).toMatchObject({
+      role,
+      routeId: "route",
+      seats: 1,
+    });
+    expect(routeCalls).toBe(role === "passenger" ? 2 : 1);
+    await page.reload();
+    await expect(page.getByLabel("Chế độ bài đăng")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Tính tuyến đường", exact: true }),
+    ).toHaveCount(0);
+    expect(confirmations).toBe(0);
+    expect(state.writes).toHaveLength(0);
+    await page.getByRole("button", { name: "Quay lại chỉnh sửa" }).click();
+    await expect(
+      page.getByRole("textbox", { name: "Điểm đi", exact: true }),
+    ).toHaveValue(start.displayLabel);
+    await expect(page.locator('input[type="datetime-local"]')).toHaveValue(
+      `${date}T07:00`,
+    );
+    await find(page);
+    expect(state.writes).toHaveLength(0);
+    await page.getByRole("button", { name: "Đăng bài", exact: true }).click();
+    await expect(page).toHaveURL(/\/feed\/published/, { timeout: 60000 });
+    expect(state.writes.map((w) => w.path)).toEqual(
+      role === "driver"
+        ? ["/trips", "/ride-posts", "/trips/trip/open"]
+        : [
+            "/ride-post-sources",
+            "/ride-posts",
+            "/ride-posts/published/publish",
+          ],
+    );
+  });
 }
 
 test("one page keeps the draft private until publish, fixes motorbike seats and preserves edited fields", async ({

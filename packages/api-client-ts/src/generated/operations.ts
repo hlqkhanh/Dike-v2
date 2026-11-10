@@ -2,6 +2,11 @@
 
 import type {
   Assignment,
+  AssistantConfirmation,
+  AssistantConfirmationResult,
+  AssistantConversation,
+  AssistantMessageInput,
+  AssistantReply,
   BookingAction,
   ConsentDecisionRequest,
   ConversationView,
@@ -1044,3 +1049,40 @@ export const reversePlaceOperation = {
 } as const;
 export type ReversePlaceOperationRequest = ReversePlace;
 export type ReversePlaceOperationResponse = void;
+
+export const createAssistantConversationOperation = {
+  method: "POST",
+  path: "/assistant/conversations",
+} as const;
+export type CreateAssistantConversationOperationRequest = never;
+export type CreateAssistantConversationOperationResponse =
+  AssistantConversation;
+
+export const getAssistantConversationOperation = {
+  method: "GET",
+  path: "/assistant/conversations/{id}",
+} as const;
+export type GetAssistantConversationOperationRequest = never;
+export type GetAssistantConversationOperationResponse = AssistantConversation;
+
+export const deleteAssistantConversationOperation = {
+  method: "DELETE",
+  path: "/assistant/conversations/{id}",
+} as const;
+export type DeleteAssistantConversationOperationRequest = never;
+export type DeleteAssistantConversationOperationResponse = void;
+
+export const sendAssistantMessageOperation = {
+  method: "POST",
+  path: "/assistant/conversations/{id}/messages",
+} as const;
+export type SendAssistantMessageOperationRequest = AssistantMessageInput;
+export type SendAssistantMessageOperationResponse = AssistantReply;
+
+export const confirmAssistantDraftOperation = {
+  method: "POST",
+  path: "/assistant/conversations/{id}/confirm",
+} as const;
+export type ConfirmAssistantDraftOperationRequest = AssistantConfirmation;
+export type ConfirmAssistantDraftOperationResponse =
+  AssistantConfirmationResult;

@@ -89,6 +89,7 @@ function SessionNavigator() {
           <Stack.Protected guard={!needsOnboarding}>
             {[
               "(tabs)",
+              "assistant",
               "booking/[id]",
               "chat/[id]",
               "create-trip",

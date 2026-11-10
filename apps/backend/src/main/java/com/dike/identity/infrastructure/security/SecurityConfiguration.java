@@ -181,6 +181,7 @@ public class SecurityConfiguration {
                     .authenticated()
                     .requestMatchers(
                         "/api/v1/demo/**",
+                        "/api/v1/assistant/**",
                         "/api/v1/ride-posts/**",
                         "/api/v1/ride-discovery",
                         "/api/v1/ride-post-responses/**",

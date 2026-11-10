@@ -5,7 +5,7 @@ dike:
   identity:
     simulated-full-access-enabled: ${DIKE_SIMULATED_FULL_ACCESS_ENABLED:true}
   auth:
-    dev-login-enabled: ${DIKE_DEV_AUTH_ENABLED:true}
+    dev-login-enabled: ${DIKE_DEV_AUTH_ENABLED:false}
     allowed-origins:
       - http://localhost:3000
       - http://localhost:8081

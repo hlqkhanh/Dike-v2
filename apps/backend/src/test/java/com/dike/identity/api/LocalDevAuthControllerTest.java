@@ -40,6 +40,9 @@ class LocalDevAuthControllerTest {
             .withBean(MongoTemplate.class, () -> mock(MongoTemplate.class))
             .withBean(Clock.class, Clock::systemUTC);
     runner
+        .withPropertyValues("dike.environment=local")
+        .run(context -> assertThat(context).doesNotHaveBean(LocalDevAuthController.class));
+    runner
         .withPropertyValues("dike.environment=local", "dike.auth.dev-login-enabled=true")
         .run(context -> assertThat(context).hasSingleBean(LocalDevAuthController.class));
     runner

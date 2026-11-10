@@ -139,14 +139,19 @@ export function Button({
 }
 export function Field({
   label,
+  labelStyle,
   error,
   style,
   ...props
-}: TextInputProps & { label: string; error?: string }) {
+}: TextInputProps & {
+  label: string;
+  error?: string;
+  labelStyle?: StyleProp<TextStyle>;
+}) {
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ gap: 8 }}>
-      <Text style={ui.label}>{label}</Text>
+      <Text style={[ui.label, labelStyle]}>{label}</Text>
       <TextInput
         {...props}
         accessibilityLabel={label}

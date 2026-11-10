@@ -1,6 +1,23 @@
 import { colors as sharedColors } from "@dike/design-tokens";
 
 export const theme = {
+  assistant: {
+    titleSize: 24,
+    light: {
+      canvas: "#ffffff",
+      surface: "#f0f7f4",
+      ink: "#12342d",
+      muted: "#526e62",
+      error: "#a12727",
+    },
+    dark: {
+      canvas: "#10231d",
+      surface: "#19372b",
+      ink: "#f0f7f4",
+      muted: "#b8d2c5",
+      error: "#ffb3b3",
+    },
+  },
   colors: {
     ...sharedColors,
     canvas: "#ffffff",

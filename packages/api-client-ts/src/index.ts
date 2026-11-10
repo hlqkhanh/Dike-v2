@@ -6,3 +6,4 @@ export * from "./profile";
 export * from "./social";
 export * from "./rides";
 export * from "./journey";
+export * from "./assistant";
