@@ -26,7 +26,8 @@
         "ACCESS_BACKGROUND_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "versionCode": 2
     },
     "plugins": [
       "expo-router",
@@ -48,8 +49,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "26047d96-e5e6-48aa-bc18-8a4f7398e292"
+        "projectId": "471dd9c3-c39c-47bf-aa90-e9f7a155343a"
       }
-    }
+    },
+    "owner": "nhatnguyen3105"
   }
 }

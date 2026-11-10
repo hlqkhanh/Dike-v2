@@ -3,6 +3,7 @@
 import type { RidePostResponse } from "@dike/api-client-ts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   Banknote,
   Check,
   CreditCard,
@@ -11,6 +12,7 @@ import {
   Navigation,
   Play,
   Route,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +26,8 @@ const steps = [
   { status: "COMPLETED", label: "Hoàn thành", icon: Navigation },
   { status: "PAYMENT", label: "Thanh toán", icon: CreditCard },
 ] as const;
+
+const PRICE_PER_KM_VND = 2_000;
 
 type ProgressStatus = Exclude<(typeof steps)[number]["status"], "PAYMENT">;
 
@@ -40,14 +44,18 @@ export function ResponseProgress({
 }) {
   const client = useQueryClient();
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "PAYOS" | null>(
-    null,
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "BANK">("CASH");
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const driverId =
     response.action === "REQUEST_RIDE"
       ? response.ownerId
       : response.requesterId;
+  const passengerId =
+    response.action === "REQUEST_RIDE"
+      ? response.requesterId
+      : response.ownerId;
   const isDriver = currentUserId === driverId;
+  const isPassenger = currentUserId === passengerId;
   const activeIndex = steps.findIndex(
     (step) => step.status === response.status,
   );
@@ -74,29 +82,41 @@ export function ResponseProgress({
     queryFn: () => journeyApi.cashPayment(response.id),
     enabled: response.status === "COMPLETED",
     retry: false,
+    refetchInterval: response.status === "COMPLETED" ? 5_000 : false,
   });
   const bankPayment = useQuery({
     queryKey: ["payment", response.id],
     queryFn: () => journeyApi.payment(response.id),
     enabled: response.status === "COMPLETED",
     retry: false,
-  });
-  const checkout = useMutation({
-    mutationFn: () => journeyApi.createPaymentCheckout(response.id),
-    onSuccess: async (result) => {
-      await client.invalidateQueries({ queryKey: ["payment", response.id] });
-      if (result.checkoutUrl) window.location.assign(result.checkoutUrl);
-    },
+    refetchInterval: response.status === "COMPLETED" ? 5_000 : false,
   });
   const confirmCash = useMutation({
     mutationFn: (kind: "paid" | "received") =>
       journeyApi.acknowledgePayment(response.id, kind, true),
     onSuccess: async () => {
-      await client.invalidateQueries({
-        queryKey: ["cash-payment", response.id],
-      });
+      setPaymentOpen(false);
+      setConfirmingPayment(false);
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["cash-payment", response.id] }),
+        client.invalidateQueries({ queryKey: ["payment", response.id] }),
+      ]);
     },
   });
+  const paid = Boolean(
+    cashPayment.data?.locked || bankPayment.data?.bankVerified,
+  );
+  const passengerReportedPaid = Boolean(
+    cashPayment.data?.passengerPaidAt || bankPayment.data?.bankVerified,
+  );
+  const amountVnd =
+    cashPayment.data?.amountVnd ?? bankPayment.data?.amountVnd ?? 0;
+  const distanceKm = amountVnd / PRICE_PER_KM_VND;
+  const closePayment = () => {
+    if (confirmCash.isPending) return;
+    setPaymentOpen(false);
+    setConfirmingPayment(false);
+  };
 
   return (
     <section
@@ -110,9 +130,11 @@ export function ResponseProgress({
         </span>
         <strong>
           {response.status === "COMPLETED"
-            ? cashPayment.data?.locked || bankPayment.data?.bankVerified
+            ? paid
               ? "Đã thanh toán"
-              : "Chờ thanh toán"
+              : passengerReportedPaid
+                ? "Chờ xác nhận"
+                : "Chờ thanh toán"
             : steps[Math.max(0, activeIndex)]?.label}
         </strong>
       </header>
@@ -121,9 +143,7 @@ export function ResponseProgress({
           const Icon = step.icon;
           const complete =
             step.status === "PAYMENT"
-              ? Boolean(
-                  cashPayment.data?.locked || bankPayment.data?.bankVerified,
-                )
+              ? paid
               : activeIndex >= index;
           return (
             <li className={complete ? "is-complete" : ""} key={step.status}>
@@ -151,210 +171,206 @@ export function ResponseProgress({
         <p>Bạn sẽ nhận thông báo khi người chở cập nhật hành trình.</p>
       ) : null}
       {response.status === "COMPLETED" && !compact ? (
-        <>
-          <button
-            className="response-payment-toggle"
-            type="button"
-            aria-expanded={paymentOpen}
-            onClick={(event) => {
-              event.stopPropagation();
-              setPaymentOpen((value) => {
-                if (value) setPaymentMethod(null);
-                return !value;
-              });
-            }}
-          >
-            <Banknote aria-hidden="true" size={17} />
-            {paymentOpen ? "Ẩn thanh toán" : "Thanh toán chuyến đi"}
-          </button>
-          {paymentOpen ? (
-            <div
-              className="response-payment-flow"
-              onClick={(event) => event.stopPropagation()}
-            >
-              {paymentMethod === null ? (
-                <div className="response-payment-choices">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("CASH")}
-                  >
-                    <span>
-                      <Banknote aria-hidden="true" size={27} />
-                    </span>
-                    <b>
-                      Tiền mặt
-                      <small>Thanh toán trực tiếp cho người đồng hành</small>
-                    </b>
-                    <i aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("PAYOS")}
-                  >
-                    <span>
-                      <Landmark aria-hidden="true" size={27} />
-                    </span>
-                    <b>
-                      Chuyển khoản
-                      <small>Thanh toán qua tài khoản ngân hàng</small>
-                    </b>
-                    <i aria-hidden="true" />
-                  </button>
-                </div>
-              ) : (
-                <div className="response-payment-confirmation">
-                  <button
-                    className="response-payment-back"
-                    type="button"
-                    onClick={() => setPaymentMethod(null)}
-                  >
-                    ← Quay lại
-                  </button>
-                  <h3>
-                    {paymentMethod === "CASH"
-                      ? "Thanh toán tiền mặt"
-                      : "Thanh toán chuyển khoản"}
-                  </h3>
-                  <div className="response-payment-notice">
-                    {paymentMethod === "CASH" ? (
-                      <Banknote aria-hidden="true" />
-                    ) : (
-                      <Landmark aria-hidden="true" />
-                    )}
-                    <span>
-                      <strong>
-                        Bạn đã chọn{" "}
-                        {paymentMethod === "CASH"
-                          ? "thanh toán bằng tiền mặt"
-                          : "thanh toán bằng chuyển khoản"}
-                      </strong>
-                      <small>
-                        {paymentMethod === "CASH"
-                          ? "Vui lòng thanh toán trực tiếp cho người đồng hành sau khi hoàn thành chuyến đi."
-                          : "Thông tin giao dịch sẽ được xác nhận tự động qua payOS."}
-                      </small>
-                    </span>
-                  </div>
-                  <section className="response-payment-summary">
-                    <strong>Thông tin thanh toán</strong>
-                    <span>Chuyến đi đã hoàn thành</span>
-                    <b>
-                      {new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      }).format(
-                        cashPayment.data?.amountVnd ??
-                          bankPayment.data?.amountVnd ??
-                          0,
-                      )}
-                    </b>
-                    <small>Số tiền đóng góp cho người đồng hành</small>
-                  </section>
-                  {paymentMethod === "CASH" ? (
-                    cashPayment.isPending ? (
-                      <p role="status">Đang tải thông tin thanh toán…</p>
-                    ) : cashPayment.isError ? (
-                      <p role="alert">{cashPayment.error.message}</p>
-                    ) : cashPayment.data ? (
-                      <>
-                        <div className="response-cash-status">
-                          <span
-                            className={
-                              cashPayment.data.passengerPaidAt
-                                ? "is-complete"
-                                : ""
-                            }
-                          >
-                            <Check aria-hidden="true" size={14} /> Người đi ké
-                            đã trả
-                          </span>
-                          <span
-                            className={
-                              cashPayment.data.driverReceivedAt
-                                ? "is-complete"
-                                : ""
-                            }
-                          >
-                            <Check aria-hidden="true" size={14} /> Người chở đã
-                            nhận
-                          </span>
-                        </div>
-                        {!isDriver && !cashPayment.data.passengerPaidAt ? (
-                          <button
-                            className="response-payment-submit"
-                            type="button"
-                            disabled={confirmCash.isPending}
-                            onClick={() => confirmCash.mutate("paid")}
-                          >
-                            Xác nhận đã thanh toán tiền mặt
-                          </button>
-                        ) : null}
-                        {isDriver &&
-                        cashPayment.data.passengerPaidAt &&
-                        !cashPayment.data.driverReceivedAt ? (
-                          <button
-                            className="response-payment-submit"
-                            type="button"
-                            disabled={confirmCash.isPending}
-                            onClick={() => confirmCash.mutate("received")}
-                          >
-                            Xác nhận đã nhận tiền
-                          </button>
-                        ) : null}
-                        {isDriver && !cashPayment.data.passengerPaidAt ? (
-                          <p>Đang chờ người đi ké xác nhận đã trả tiền.</p>
-                        ) : null}
-                        {cashPayment.data.locked ? (
-                          <p className="is-success">
-                            Hai bên đã hoàn tất xác nhận thanh toán.
-                          </p>
-                        ) : null}
-                      </>
-                    ) : null
-                  ) : bankPayment.isPending ? (
-                    <p role="status">Đang tải thông tin chuyển khoản…</p>
-                  ) : bankPayment.isError ? (
-                    <p role="alert">{bankPayment.error.message}</p>
-                  ) : bankPayment.data ? (
-                    <>
-                      {!isDriver && !bankPayment.data.bankVerified ? (
+        paid ? (
+          <div className="response-payment-success" role="status">
+            <Check aria-hidden="true" size={17} />
+            Hai bên đã hoàn tất thanh toán.
+          </div>
+        ) : (
+          <>
+            {isPassenger && !passengerReportedPaid ? (
+              <button
+                className="response-payment-toggle"
+                type="button"
+                aria-haspopup="dialog"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPaymentMethod("CASH");
+                  setConfirmingPayment(false);
+                  setPaymentOpen(true);
+                }}
+              >
+                <CreditCard aria-hidden="true" size={18} />
+                Thanh toán
+              </button>
+            ) : isDriver && passengerReportedPaid ? (
+              <button
+                className="response-payment-toggle"
+                type="button"
+                disabled={confirmCash.isPending}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  confirmCash.mutate("received");
+                }}
+              >
+                <Check aria-hidden="true" size={18} />
+                {confirmCash.isPending ? "Đang xác nhận…" : "Đã nhận"}
+              </button>
+            ) : (
+              <div className="response-payment-waiting" role="status">
+                <CreditCard aria-hidden="true" size={17} />
+                {isDriver
+                  ? "Đang chờ người đi ké xác nhận thanh toán."
+                  : "Đã xác nhận thanh toán. Đang chờ người chở bấm “Đã nhận”."}
+              </div>
+            )}
+
+            {paymentOpen ? (
+              <div
+                className="response-payment-modal-backdrop"
+                role="presentation"
+                onClick={closePayment}
+              >
+                <section
+                  className="response-payment-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="response-payment-title"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <header>
+                    <div>
+                      <h2 id="response-payment-title">
+                        {confirmingPayment
+                          ? "Xác nhận thanh toán"
+                          : "Chọn phương thức thanh toán"}
+                      </h2>
+                      <p>
+                        {confirmingPayment
+                          ? "Kiểm tra số tiền trước khi xác nhận với người chở."
+                          : "Vui lòng chọn cách thanh toán cho chuyến đi này."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Đóng thanh toán"
+                      disabled={confirmCash.isPending}
+                      onClick={closePayment}
+                    >
+                      <X aria-hidden="true" size={21} />
+                    </button>
+                  </header>
+
+                  {confirmingPayment ? (
+                    <div className="response-payment-confirmation">
+                      <div className="response-payment-notice">
+                        {paymentMethod === "CASH" ? (
+                          <Banknote aria-hidden="true" />
+                        ) : (
+                          <Landmark aria-hidden="true" />
+                        )}
+                        <span>
+                          <strong>
+                            {paymentMethod === "CASH"
+                              ? "Thanh toán tiền mặt"
+                              : "Thanh toán chuyển khoản"}
+                          </strong>
+                          <small>
+                            {paymentMethod === "CASH"
+                              ? "Thanh toán trực tiếp cho người chở."
+                              : "Chuyển khoản cho người chở theo thông tin hai bên thống nhất."}
+                          </small>
+                        </span>
+                      </div>
+                      <section className="response-payment-summary">
+                        <strong>Số tiền cần thanh toán</strong>
+                        <b>
+                          {new Intl.NumberFormat("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          }).format(amountVnd)}
+                        </b>
+                        <small>
+                          {distanceKm.toLocaleString("vi-VN", {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          km × {PRICE_PER_KM_VND.toLocaleString("vi-VN")} đ/km
+                        </small>
+                      </section>
+                      <section className="response-payment-guide">
+                        <strong>Hướng dẫn thanh toán</strong>
+                        <span>1. Kiểm tra đúng quãng đường và số tiền.</span>
+                        <span>
+                          2. {paymentMethod === "CASH"
+                            ? "Trả tiền trực tiếp cho người chở."
+                            : "Hoàn tất chuyển khoản cho người chở."}
+                        </span>
+                        <span>
+                          3. Bấm xác nhận và chờ người chở bấm “Đã nhận”.
+                        </span>
+                      </section>
+                      {confirmCash.isError ? (
+                        <p role="alert">{confirmCash.error.message}</p>
+                      ) : null}
+                      <button
+                        className="response-payment-submit"
+                        type="button"
+                        disabled={confirmCash.isPending || amountVnd <= 0}
+                        onClick={() => confirmCash.mutate("paid")}
+                      >
+                        <Check aria-hidden="true" size={18} />
+                        {confirmCash.isPending
+                          ? "Đang xác nhận…"
+                          : paymentMethod === "CASH"
+                            ? "Xác nhận đã thanh toán tiền mặt"
+                            : "Xác nhận đã chuyển khoản"}
+                      </button>
+                      <button
+                        className="response-payment-back"
+                        type="button"
+                        disabled={confirmCash.isPending}
+                        onClick={() => setConfirmingPayment(false)}
+                      >
+                        <ArrowLeft aria-hidden="true" size={17} /> Quay lại
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="response-payment-picker">
+                      <div
+                        className="response-payment-choices"
+                        role="radiogroup"
+                        aria-label="Phương thức thanh toán"
+                      >
                         <button
-                          className="response-payment-submit"
+                          className={paymentMethod === "CASH" ? "is-selected" : ""}
                           type="button"
-                          disabled={
-                            !bankPayment.data.providerAvailable ||
-                            checkout.isPending
-                          }
-                          onClick={() => checkout.mutate()}
+                          role="radio"
+                          aria-checked={paymentMethod === "CASH"}
+                          onClick={() => setPaymentMethod("CASH")}
                         >
-                          {checkout.isPending
-                            ? "Đang tạo giao dịch…"
-                            : bankPayment.data.providerAvailable
-                              ? "Tiếp tục thanh toán qua payOS"
-                              : "payOS chưa được cấu hình"}
+                          <span><Banknote aria-hidden="true" size={29} /></span>
+                          <b>Tiền mặt<small>Thanh toán trực tiếp cho người đồng hành</small></b>
+                          <i aria-hidden="true" />
                         </button>
-                      ) : null}
-                      {isDriver && !bankPayment.data.bankVerified ? (
-                        <p>Đang chờ người đi ké hoàn tất chuyển khoản.</p>
-                      ) : null}
-                      {bankPayment.data.bankVerified ? (
-                        <p className="is-success">
-                          Ngân hàng đã xác nhận giao dịch thành công.
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                  {confirmCash.isError ? (
-                    <p role="alert">{confirmCash.error.message}</p>
-                  ) : null}
-                  {checkout.isError ? (
-                    <p role="alert">{checkout.error.message}</p>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          ) : null}
-        </>
+                        <button
+                          className={paymentMethod === "BANK" ? "is-selected" : ""}
+                          type="button"
+                          role="radio"
+                          aria-checked={paymentMethod === "BANK"}
+                          onClick={() => setPaymentMethod("BANK")}
+                        >
+                          <span><Landmark aria-hidden="true" size={29} /></span>
+                          <b>Chuyển khoản<small>Thanh toán qua tài khoản ngân hàng</small></b>
+                          <i aria-hidden="true" />
+                        </button>
+                      </div>
+                      <button
+                        className="response-payment-continue"
+                        type="button"
+                        onClick={() => setConfirmingPayment(true)}
+                      >
+                        Tiếp tục
+                      </button>
+                    </div>
+                  )}
+                </section>
+              </div>
+            ) : null}
+          </>
+        )
+      ) : null}
+      {confirmCash.isError && !paymentOpen ? (
+        <p role="alert">{confirmCash.error.message}</p>
       ) : null}
       {update.isError ? <p role="alert">{update.error.message}</p> : null}
     </section>

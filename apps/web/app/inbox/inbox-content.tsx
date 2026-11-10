@@ -46,9 +46,13 @@ function InboxWorkspace({
       const container = workspace.current;
       if (!container) return;
       const height = window.visualViewport?.height ?? window.innerHeight;
+      const minimumWorkspaceHeight = window.innerWidth <= 864 ? 480 : 520;
       container.style.setProperty(
         "--inbox-height",
-        `${Math.max(0, height - container.getBoundingClientRect().top - 16)}px`,
+        `${Math.max(
+          minimumWorkspaceHeight,
+          height - container.getBoundingClientRect().top - 16,
+        )}px`,
       );
     };
     resize();
