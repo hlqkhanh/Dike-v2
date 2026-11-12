@@ -344,6 +344,24 @@ export default function Discover() {
         </Animated.ScrollView>
       </MapViewportProvider>
       <ActivePostResponses floating bottomOffset={84 + insets.bottom} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Mở trợ lý AI Dike"
+        accessibilityHint="Hỏi đáp hoặc tạo hành trình bằng ngôn ngữ tự nhiên"
+        onPress={() => router.push("/assistant")}
+        style={({ pressed }) => [
+          styles.assistantLauncher,
+          { bottom: 154 + insets.bottom },
+          pressed && styles.assistantLauncherPressed,
+        ]}
+      >
+        <View style={styles.assistantGlyph}>
+          <Icon name="chatbubble-outline" size={27} color={h.surface} />
+          <View style={styles.assistantSparkle}>
+            <Icon name="sparkles" size={13} color={h.surface} />
+          </View>
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -403,6 +421,45 @@ function FeatureCard({
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: h.surface },
+  assistantLauncher: {
+    position: "absolute",
+    end: 16,
+    zIndex: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.86)",
+    backgroundColor: h.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#063b2f",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  assistantLauncherPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
+  },
+  assistantGlyph: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  assistantSparkle: {
+    position: "absolute",
+    top: -3,
+    end: -4,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: h.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   hero: { width: "100%", position: "relative", zIndex: 1 },
   heroImage: {
     position: "absolute",

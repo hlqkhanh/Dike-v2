@@ -44,7 +44,6 @@ export const assistantFields: Record<
   until: { label: "Ngày kết thúc", type: "date" },
   role: { label: "Vai trò", options: ["RIDER", "DRIVER"] },
   departureTime: { label: "Giờ xuất phát", type: "time" },
-  arrivalTime: { label: "Hạn đến nơi", type: "time" },
   startTime: { label: "Giờ bắt đầu học/làm", type: "time" },
   endTime: { label: "Giờ kết thúc học/làm", type: "time" },
   weekdays: {
@@ -80,7 +79,7 @@ export function assistantFieldKeys(kind: string) {
         "directions",
         "buffer",
       ]
-    : ["date", "role", "departureTime", "arrivalTime"];
+    : ["date", "role", "departureTime"];
 }
 export const assistantOptionLabels: Record<string, string> = {
   MONDAY: "Thứ hai",

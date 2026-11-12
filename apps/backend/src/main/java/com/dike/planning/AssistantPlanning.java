@@ -86,10 +86,9 @@ public class AssistantPlanning {
       ZoneId zone = ZoneId.of(ScheduleRule.V1_ZONE);
       Instant departure =
           date.atTime(LocalTime.parse(required(f, "departureTime"))).atZone(zone).toInstant();
-      Instant arrival =
-          date.atTime(LocalTime.parse(required(f, "arrivalTime"))).atZone(zone).toInstant();
-      if (departure.isBefore(clock.instant()) || !arrival.isAfter(departure))
-        throw new IllegalArgumentException("Giờ đến phải sau giờ đi và giờ đi chưa được qua.");
+      Instant arrival = departure.plus(Duration.ofHours(2));
+      if (departure.isBefore(clock.instant()))
+        throw new IllegalArgumentException("Giờ đi chưa được qua.");
       var command =
           new TravelIntentService.CreateManual(
               date,

@@ -25,7 +25,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "versionCode": 2
     },
@@ -41,7 +42,14 @@
         }
       ],
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Diké dùng micro để chuyển lời nói của bạn thành nội dung trò chuyện với trợ lý AI.",
+          "speechRecognitionPermission": "Diké dùng nhận dạng giọng nói để nhập nội dung cho trợ lý AI."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

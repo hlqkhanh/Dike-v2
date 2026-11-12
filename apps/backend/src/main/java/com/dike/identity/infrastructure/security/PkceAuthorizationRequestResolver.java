@@ -24,18 +24,23 @@ final class PkceAuthorizationRequestResolver implements OAuth2AuthorizationReque
 
   @Override
   public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
-    return withPublicRedirect(delegate.resolve(request));
+    return customize(request, delegate.resolve(request));
   }
 
   @Override
   public OAuth2AuthorizationRequest resolve(
       HttpServletRequest request, String clientRegistrationId) {
-    return withPublicRedirect(delegate.resolve(request, clientRegistrationId));
+    return customize(request, delegate.resolve(request, clientRegistrationId));
   }
 
-  private OAuth2AuthorizationRequest withPublicRedirect(OAuth2AuthorizationRequest request) {
-    return request == null
-        ? null
-        : OAuth2AuthorizationRequest.from(request).redirectUri(redirectUri).build();
+  private OAuth2AuthorizationRequest customize(
+      HttpServletRequest servletRequest, OAuth2AuthorizationRequest authorizationRequest) {
+    if (authorizationRequest == null) return null;
+    var builder = OAuth2AuthorizationRequest.from(authorizationRequest).redirectUri(redirectUri);
+    var session = servletRequest.getSession(false);
+    if (session != null && session.getAttribute(MobileLoginController.CHALLENGE) != null) {
+      builder.additionalParameters(parameters -> parameters.put("prompt", "select_account"));
+    }
+    return builder.build();
   }
 }

@@ -95,7 +95,7 @@ class AssistantServiceTest {
   }
 
   @Test
-  void extractedOneTimeTravelKeepsKnownDetailsAndOnlyAsksForArrivalDeadline() {
+  void extractedOneTimeTravelIsCompleteWithoutArrivalDeadline() {
     var c = service.create("alice");
     var fields =
         Map.of(
@@ -116,8 +116,7 @@ class AssistantServiceTest {
     var reply =
         service.message("alice", c.id(), "Mai 7 giờ sáng đi từ Thủ Đức tới ĐH FPT, cần 1 chỗ");
     assertThat(reply.draft().fields()).containsAllEntriesOf(fields);
-    assertThat(reply.text()).startsWith("Mình cần thêm: hạn đến nơi.");
-    assertThat(reply.text()).contains("Đã nhận tên nơi đi/đến");
+    assertThat(reply.text()).startsWith("Mình đã điền bản nháp.");
     assertThat(reply.draft().fields()).doesNotContainKey("arrivalTime");
     verifyNoInteractions(planning);
   }

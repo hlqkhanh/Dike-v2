@@ -24,6 +24,7 @@ export function PlacePicker({
   compact,
   onFocus,
   onInputChange,
+  initialQuery,
   accentColor,
   leadingIcon,
   hideLeadingIcon,
@@ -38,6 +39,7 @@ export function PlacePicker({
   compact?: boolean;
   onFocus?: () => void;
   onInputChange?: (text: string) => void;
+  initialQuery?: string;
   accentColor?: string;
   leadingIcon?: IconName;
   hideLeadingIcon?: boolean;
@@ -45,7 +47,7 @@ export function PlacePicker({
   containerStyle?: StyleProp<ViewStyle>;
 }) {
   const api = useMobileApi();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialQuery ?? "");
   const [suggestions, setSuggestions] = useState<PlaceSuggestionResponse[]>([]);
   const session = useRef<
     { sessionToken: string; expiresAt: string } | undefined
@@ -81,6 +83,9 @@ export function PlacePicker({
     },
   });
   const runSearch = search.mutate;
+  useEffect(() => {
+    if (!value) setText(initialQuery ?? "");
+  }, [initialQuery, value]);
   useEffect(() => {
     if (disabled || value || text.trim().length < 3) return;
     const timer = setTimeout(() => runSearch(), 500);

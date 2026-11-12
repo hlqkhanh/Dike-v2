@@ -306,7 +306,6 @@ public class AssistantService {
       required.put("directions", "chiều đi/về");
     } else {
       required.put("departureTime", "giờ xuất phát");
-      required.put("arrivalTime", "hạn đến nơi");
     }
     return required.entrySet().stream()
         .filter(e -> !f.containsKey(e.getKey()) || f.get(e.getKey()).isBlank())

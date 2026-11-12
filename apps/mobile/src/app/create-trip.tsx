@@ -492,15 +492,37 @@ function TripRouteMap({
   );
 }
 
+function parsedAssistantPlace(value?: string): PlaceResponse | undefined {
+  if (!value) return undefined;
+  try {
+    const place = JSON.parse(value) as PlaceResponse;
+    return place.placeRef && place.displayLabel ? place : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function CreateTrip() {
-  const { mode: initialMode } = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    review?: string;
+    origin?: string;
+    destination?: string;
+    departure?: string;
+    seats?: string;
+  }>();
+  const initialMode = params.mode;
+  const assistantOrigin = parsedAssistantPlace(params.origin);
+  const assistantDestination = parsedAssistantPlace(params.destination);
+  const assistantReview =
+    params.review === "assistant" && !!assistantOrigin && !!assistantDestination;
   const api = useMobileApi();
   const client = useQueryClient();
   const { session } = useSession();
   const [mode, setMode] = useState<"driver" | "passenger">(
     initialMode === "passenger" ? "passenger" : "driver",
   );
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(assistantReview ? 1 : 0);
   const [activePlace, setActivePlace] = useState<"origin" | "destination">(
     "destination",
   );
@@ -508,7 +530,7 @@ export default function CreateTrip() {
     "origin",
   );
   const [mapSeed, setMapSeed] = useState<PlaceResponse>();
-  const [scheduled, setScheduled] = useState(false);
+  const [scheduled, setScheduled] = useState(assistantReview);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [routeDetails, setRouteDetails] = useState(false);
   const places = usePlaces();
@@ -516,12 +538,14 @@ export default function CreateTrip() {
   const pickupInitialized = useRef(false);
   const pickupManuallyEdited = useRef(false);
   const transitionLocked = useRef(false);
-  const [origin, setOrigin] = useState<PlaceResponse>();
-  const [destination, setDestination] = useState<PlaceResponse>();
+  const [origin, setOrigin] = useState<PlaceResponse | undefined>(assistantOrigin);
+  const [destination, setDestination] = useState<PlaceResponse | undefined>(
+    assistantDestination,
+  );
   const [vehicleId, setVehicleId] = useState("");
   const [vehicleMode, setVehicleMode] = useState("MOTORBIKE");
-  const [departure, setDeparture] = useState("");
-  const [seats, setSeats] = useState("1");
+  const [departure, setDeparture] = useState(params.departure ?? "");
+  const [seats, setSeats] = useState(params.seats ?? "1");
   const [contribution, setContribution] = useState("1000");
   const [contributionEdited, setContributionEdited] = useState(false);
   const [note, setNote] = useState("");
@@ -534,6 +558,7 @@ export default function CreateTrip() {
   const [responsePost, setResponsePost] = useState<RidePostView>();
   const [responseMessage, setResponseMessage] = useState("");
   const routeGeneration = useRef(0);
+  const assistantReviewStarted = useRef(false);
   const progress = useRef<
     | {
         key: string;
@@ -671,6 +696,17 @@ export default function CreateTrip() {
       seats: number;
     }) => api.call<RideDiscoveryResults>("/ride-discovery", "POST", input),
   });
+  useEffect(() => {
+    if (
+      !assistantReview ||
+      assistantReviewStarted.current ||
+      !preview.data ||
+      calc.isPending
+    )
+      return;
+    assistantReviewStarted.current = true;
+    calc.mutate();
+  }, [assistantReview, preview.data, calc.isPending]);
   const sendResponse = useMutation({
     mutationFn: async () => {
       if (!responsePost) throw new Error("Chọn một hành trình phù hợp.");

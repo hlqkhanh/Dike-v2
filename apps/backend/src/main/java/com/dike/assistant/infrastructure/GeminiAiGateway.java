@@ -128,14 +128,14 @@ public class GeminiAiGateway implements AiGateway {
           Extract ALL supplied travel details, not just the date. Vietnamese location names must be copied into
           originQuery and destinationQuery even though they still need place search/confirmation later.
           'cần 1 chỗ' / 'cần người chở' explicitly means role RIDER; 'tôi chở' means role DRIVER.
-          '7 giờ sáng' explicitly means departureTime 07:00; an arrival deadline is a separate missing field.
+          '7 giờ sáng' explicitly means departureTime 07:00.
           Example with today=2026-11-10, draftKind=NONE:
           message: 'Mai 7 giờ sáng đi từ Thủ Đức tới ĐH FPT, cần 1 chỗ'
           output: {"action":"INTENT","helpTopic":"assistant","answer":"","fields":{"originQuery":"Thủ Đức","destinationQuery":"ĐH FPT","date":"2026-11-11","departureTime":"07:00","role":"RIDER","seats":"1"}}
-          Do not omit these known fields just because arrivalTime or exact place references are missing.
+          Do not omit these known fields just because exact place references are missing.
           originQuery/destinationQuery are search text, never coordinates or place IDs. Never infer 'home'.
           date/until: YYYY-MM-DD, based on the supplied today in Asia/Ho_Chi_Minh. Times HH:mm (24h).
-          departureTime/arrivalTime are travel departure/deadline for INTENT.
+          departureTime is the travel departure time for INTENT. Do not request an arrival deadline.
           startTime/endTime are the beginning/end of STUDY/WORK activity for SCHEDULE, NOT departure time.
           If user only gives departure time, leave startTime missing. Ambiguous '7 giờ' without context stays missing.
           weekdays: comma-separated MONDAY,TUESDAY,...,SUNDAY; expand 'thứ hai đến thứ sáu'.
